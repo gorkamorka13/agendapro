@@ -82,7 +82,7 @@ export default function AssignmentCalendar() {
   };
 
   return (
-    <div className="bg-white dark:bg-slate-800 p-2 sm:p-4 md:p-6 rounded-lg shadow-md transition-colors">
+    <div className="bg-white dark:bg-slate-800 p-2 sm:p-4 md:p-6 rounded-lg shadow-md transition-colors [&_.fc-toolbar-title]:text-sm [&_.fc-toolbar-title]:sm:text-xl [&_.fc-button]:text-xs [&_.fc-button]:px-2">
       <FullCalendar
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
         initialView="dayGridMonth"
@@ -132,15 +132,23 @@ export default function AssignmentCalendar() {
              arg.view.calendar.setOption('dayHeaderFormat', { weekday: 'short', day: 'numeric' });
            }
 
+           /* Mobile options */
            arg.view.calendar.setOption('headerToolbar', isMobile ? {
              left: 'prev,next',
              center: 'title',
-             right: 'dayGridMonth,timeGridWeek,timeGridDay'
+             right: 'dayGridMonth,timeGridWeek'  // Removed timeGridDay to save space
            } : {
              left: 'prev,next today',
              center: 'title',
              right: 'dayGridMonth,timeGridWeek,timeGridDay'
            });
+
+           if (isMobile) {
+             arg.view.calendar.setOption('titleFormat', {
+               month: 'short',
+               year: 'numeric'
+             });
+           }
         }}
         eventContent={(eventInfo) => {
           const status = eventInfo.event.extendedProps.status;

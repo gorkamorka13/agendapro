@@ -67,3 +67,28 @@ npx prisma db push
 # 3. Revenir en mode Dev
 mv .env.local.bak .env.local
 ```
+
+## 4. Dépannage (Troubleshooting)
+
+### Vercel ne déploie pas automatiquement ?
+
+Si votre site ne se met pas à jour après un `git push`, vérifiez ces points :
+
+1.  **Vérifier le Push Git** :
+    Assurez-vous que votre commande `git push` a bien fonctionné et que vos commits sont visibles sur le site de GitHub.
+
+2.  **Vérifier le statut sur Vercel** :
+    Allez sur votre tableau de bord Vercel > onglet **Deployments**.
+    - Si vous voyez le déploiement "Building" ou "Ready", c'est bon.
+    - Si vous ne voyez **rien**, Vercel n'a pas reçu la notification de GitHub (problème de connexion GitHub/Vercel).
+    - Si vous voyez "Error", cliquez dessus pour voir les logs (souvent une erreur de Build).
+
+3.  **Déploiement Manuel (Secours)** :
+    Vous pouvez forcer un déploiement depuis votre ordinateur si vous avez installé **Vercel CLI**.
+    ```powershell
+    # Installer Vercel CLI (une seule fois)
+    npm i -g vercel
+
+    # Déployer en production
+    vercel --prod
+    ```
