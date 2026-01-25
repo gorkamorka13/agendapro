@@ -113,28 +113,48 @@ export default function AssignmentCalendar() {
           const status = eventInfo.event.extendedProps.status;
           const isCompleted = status === 'COMPLETED';
           const isCancelled = status === 'CANCELLED';
+          const bgColor = eventInfo.event.backgroundColor || '#3b82f6';
+
+          // Fonction pour déterminer si le texte doit être noir ou blanc selon le contraste
+          const getContrastColor = (hexcolor: string) => {
+            if (!hexcolor || hexcolor === 'transparent') return 'white';
+            const r = parseInt(hexcolor.substring(1, 3), 16);
+            const g = parseInt(hexcolor.substring(3, 5), 16);
+            const b = parseInt(hexcolor.substring(5, 7), 16);
+            const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+            return (yiq >= 128) ? 'black' : 'white';
+          };
+
+          const textColor = getContrastColor(bgColor);
+          const isDayView = eventInfo.view.type === 'timeGridDay';
+          const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
           return (
             <div
-              className={`px-1.5 py-0.5 rounded-md shadow-sm w-full h-full overflow-hidden flex items-center gap-1 border-l-4 transition-all ${
+              className={`px-1 sm:px-1.5 py-0.5 rounded-md shadow-sm w-full h-full overflow-hidden flex items-center gap-1 border-l-4 transition-all duration-300 ${
                 isCompleted
-                  ? 'opacity-100 ring-1 ring-white/20'
+                  ? 'opacity-100 ring-1 ring-white/30 scale-[1.02]'
                   : isCancelled
-                    ? 'opacity-30 grayscale'
-                    : 'opacity-50 border-dashed border-white/30'
+                    ? 'opacity-20 grayscale'
+                    : 'opacity-40 border-dashed border-white/40'
               }`}
               style={{
-                backgroundColor: eventInfo.event.backgroundColor || '#3b82f6',
+                backgroundColor: bgColor,
                 borderColor: 'rgba(0,0,0,0.1)'
               }}
             >
-              <div className={`flex-1 text-[9px] sm:text-[10px] font-bold leading-tight truncate text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.2)] ${isCancelled ? 'line-through' : ''}`}>
+              <div
+                className={`flex-1 font-black leading-tight truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)] ${isCancelled ? 'line-through' : ''} ${
+                  isDayView && isMobile ? 'text-[14px]' : 'text-[10px] sm:text-[12px]'
+                }`}
+                style={{ color: textColor }}
+              >
                 {eventInfo.event.title}
               </div>
               {isCompleted && (
-                <div className="flex-shrink-0 text-white drop-shadow-md">
-                   <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" />
+                <div className="flex-shrink-0 drop-shadow-md" style={{ color: textColor }}>
+                   <svg className={`${isDayView && isMobile ? 'w-4 h-4' : 'w-3 h-3 sm:w-4 sm:h-4'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={5} d="M5 13l4 4L19 7" />
                    </svg>
                 </div>
               )}

@@ -19,7 +19,7 @@ export async function GET() {
     if (session.user.role !== Role.ADMIN) {
       whereClause = { id: session.user.id };
     } else {
-      whereClause = { role: { not: Role.ADMIN } };
+      whereClause = {}; // L'admin voit TOUT le monde (incluant les autres admins)
     }
 
     const users = await prisma.user.findMany({
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { name, email, password, role, hourlyRate, travelCost } = await request.json();
+    const { name, email, password, role, hourlyRate, travelCost, color } = await request.json();
 
     if (!name || !password) {
       return new NextResponse('Nom et mot de passe requis', { status: 400 });
@@ -64,6 +64,7 @@ export async function POST(request: Request) {
         role: role || Role.USER,
         hourlyRate: hourlyRate ? parseFloat(hourlyRate) : null,
         travelCost: travelCost ? parseFloat(travelCost) : null,
+        color: color || '#3b82f6',
       },
     });
 

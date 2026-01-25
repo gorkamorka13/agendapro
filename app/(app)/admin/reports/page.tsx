@@ -48,6 +48,8 @@ interface DetailedEntry {
   endTime: string;
   duration: string;
   pay: string;
+  status: string;
+  isRealized: boolean;
 }
 
 interface ChartEntry {
@@ -74,10 +76,15 @@ interface ReportData {
   dailySummaries: DailySummary[];
   distributionData: DistributionEntry[];
   summary: {
-    totalHours: number;
+    realizedHours: number;
+    realizedPay: number;
+    realizedTravelCost: number;
+    plannedHours: number;
+    plannedPay: number;
+    plannedTravelCost: number;
     totalPay: number;
+    totalHours: number;
     totalTravelCost: number;
-    hourlyRate: number;
   };
 }
 
@@ -265,64 +272,10 @@ export default function ReportsPage() {
 
     currentY += 15;
 
-    // --- 3. GRAPHICS CAPTURE ---
-    if (options.evaluationAnalytics) {
-      const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-      await wait(600);
-
-      const barChartElem = document.getElementById('bar-chart-container');
-      const pieChartElem = document.getElementById('pie-chart-container');
-      const costChartElem = document.getElementById('cost-chart-container');
-
-      if (barChartElem && pieChartElem && costChartElem) {
-        try {
-          const [barCanvas, pieCanvas, costCanvas] = await Promise.all([
-            html2canvas(barChartElem, { scale: 2, backgroundColor: '#ffffff', logging: false, useCORS: true }),
-            html2canvas(pieChartElem, { scale: 2, backgroundColor: '#ffffff', logging: false, useCORS: true }),
-            html2canvas(costChartElem, { scale: 2, backgroundColor: '#ffffff', logging: false, useCORS: true })
-          ]);
-
-          // Helper logic to add image without distortion
-          const addImageAuto = (canvas: HTMLCanvasElement, x: number, y: number, maxWidth: number, maxHeight: number) => {
-            const canvasRatio = canvas.width / canvas.height;
-            let targetWidth = maxWidth;
-            let targetHeight = targetWidth / canvasRatio;
-
-            if (targetHeight > maxHeight) {
-              targetHeight = maxHeight;
-              targetWidth = targetHeight * canvasRatio;
-            }
-
-            doc.addImage(canvas.toDataURL('image/png'), 'PNG', x, y, targetWidth, targetHeight);
-            return targetHeight;
-          };
-
-          // Row 1: Bar Chart (Full width)
-          doc.setFontSize(11);
-          doc.setTextColor(71, 85, 105);
-          doc.text('Activité par jour (Heures)', 14, currentY);
-          const h1 = addImageAuto(barCanvas, 14, currentY + 5, 182, 70);
-          currentY += h1 + 15;
-
-          // Row 2: Two Pie Charts
-          doc.text('Répartition des activités', 14, currentY);
-          doc.text('Répartition des coûts', 110, currentY);
-
-          addImageAuto(pieCanvas, 14, currentY + 5, 85, 60);
-          addImageAuto(costCanvas, 110, currentY + 5, 85, 60);
-
-          currentY += 75;
-        } catch (err) {
-          console.error("Erreur capture graphiques:", err);
-        }
-      }
-    }
-
     // --- 4. FINANCIAL SUMMARY CARDS ---
     if (options.financialSummary) {
       if (currentY > 230) { doc.addPage(); currentY = 20; }
 
-      // Background for summary
       doc.setFillColor(241, 245, 249); // Slate 100
       doc.roundedRect(14, currentY, 182, 30, 2, 2, 'F');
 
@@ -330,23 +283,23 @@ export default function ReportsPage() {
 
       doc.setFontSize(9);
       doc.setTextColor(100, 116, 139);
-      doc.text('HEURES TOTALES', col1, currentY + 10);
+      doc.text('HEURES RÉALISÉES', col1, currentY + 10);
       doc.text('DÉPLACEMENT', col2, currentY + 10);
-      doc.text('MONTANT NET', col3, currentY + 10);
+      doc.text('MONTANT RÉALISÉ', col3, currentY + 10);
 
       doc.setTextColor(30, 41, 59);
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
-      doc.text(`${reportData.summary.totalHours.toFixed(2)} h`, col1, currentY + 20);
-      doc.text(`${reportData.summary.totalTravelCost.toFixed(2)} €`, col2, currentY + 20);
+      doc.text(`${reportData.summary.realizedHours.toFixed(2)} h`, col1, currentY + 20);
+      doc.text(`${reportData.summary.realizedTravelCost.toFixed(2)} €`, col2, currentY + 20);
 
       doc.setTextColor(37, 99, 235);
-      doc.text(`${reportData.summary.totalPay.toFixed(2)} €`, col3, currentY + 20);
+      doc.text(`${reportData.summary.realizedPay.toFixed(2)} €`, col3, currentY + 20);
 
       currentY += 45;
     }
 
-    // --- 5. DETAILED LOGS TABLE (Amplitude removed as requested) ---
+    // --- 5. DETAILED LOGS TABLE ---
     if (options.detailedLogs && reportData.workedHours.length > 0) {
       if (currentY > 250) { doc.addPage(); currentY = 20; }
 
@@ -357,9 +310,10 @@ export default function ReportsPage() {
 
       autoTable(doc, {
         startY: currentY + 5,
-        head: [['Date', 'Intervenant', 'Patient', 'Début', 'Fin', 'Durée', 'Coût']],
+        head: [['Date', 'Statut', 'Intervenant', 'Patient', 'Début', 'Fin', 'Durée', 'Cout']],
         body: reportData.workedHours.map(entry => [
           entry.date,
+          entry.isRealized ? 'Vérifié' : 'Projeté',
           entry.worker,
           entry.patient,
           entry.startTime,
@@ -381,8 +335,8 @@ export default function ReportsPage() {
           fillColor: [248, 250, 252]
         },
         columnStyles: {
-          5: { halign: 'right', fontStyle: 'bold' },
-          6: { halign: 'right', fontStyle: 'bold', textColor: [37, 99, 235] }
+          6: { halign: 'right', fontStyle: 'bold' },
+          7: { halign: 'right', fontStyle: 'bold', textColor: [37, 99, 235] }
         },
         margin: { top: 20 },
       });
@@ -398,7 +352,7 @@ export default function ReportsPage() {
         doc.setDrawColor(226, 232, 240);
         doc.line(14, 285, 196, 285);
 
-        doc.text(`AGENDA PRO - © Michel ESPARSA - v${process.env.APP_VERSION} - ${process.env.BUILD_DATE}`, 14, 290);
+        doc.text(`AGENDA PRO - © Michel ESPARSA`, 14, 290);
         doc.text(`Page ${i} sur ${pageCount}`, 185, 290);
     }
 
@@ -408,7 +362,6 @@ export default function ReportsPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 transition-colors duration-300">
-
 
       {/* YEAR & MONTH SELECTOR */}
       <div className="flex flex-wrap items-center gap-4">
@@ -429,10 +382,9 @@ export default function ReportsPage() {
         <div className="flex-1 overflow-x-auto pb-1 scrollbar-none">
           <div className="flex gap-2 min-w-max">
             {allMonths.map((m) => {
-              // Be robust: parse startDate string "YYYY-MM-DD" directly to avoid any timezone shifting
               const [yStr, mStr] = startDate.split('-');
               const year = parseInt(yStr, 10);
-              const monthIndex = parseInt(mStr, 10) - 1; // 0-based
+              const monthIndex = parseInt(mStr, 10) - 1;
 
               const isActive = year === selectedYear && monthIndex === m.value;
               const hasActivity = activeMonths.some((am) => am.year === selectedYear && am.month === m.value);
@@ -470,7 +422,14 @@ export default function ReportsPage() {
 
         <div className="flex-1 min-w-[200px]">
           <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5 flex items-center gap-2">
-            <UserIcon size={14} /> Intervenant
+            <UserIcon size={14} />
+            <span>Intervenant</span>
+            {selectedUserId && selectedUserId !== 'all' && (
+              <span
+                className="w-2.5 h-2.5 rounded-full border border-white/20 shadow-sm transition-colors duration-300"
+                style={{ backgroundColor: (users.find(u => u.id === selectedUserId) as any)?.color || '#3b82f6' }}
+              />
+            )}
           </label>
           <select
             value={selectedUserId}
@@ -522,38 +481,6 @@ export default function ReportsPage() {
 
       {reportData && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-
-          {/* SYNTHESE QUOTIDIENNE */}
-          <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
-            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-6 flex items-center gap-2">
-              <Clock size={20} className="text-blue-500 dark:text-blue-400" />
-              Synthèse Quotidienne (Amplitude par intervenant)
-            </h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-700">
-                  <tr>
-                    <th className="pb-3 px-2">Date</th>
-                    {selectedUserId === 'all' && <th className="pb-3 px-2">Intervenant</th>}
-                    <th className="pb-3 px-2">Heure début visite</th>
-                    <th className="pb-3 px-2">Heure fin visite</th>
-                    <th className="pb-3 px-2">Total Heures</th>
-                  </tr>
-                </thead>
-                <tbody className="text-slate-600 dark:text-slate-300">
-                  {reportData.dailySummaries.map((s, idx) => (
-                    <tr key={idx} className="border-b border-slate-50 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
-                      <td className="py-3 px-2 font-medium">{s.date}</td>
-                      {selectedUserId === 'all' && <td className="py-3 px-2 font-bold text-indigo-600 dark:text-indigo-400">{s.worker}</td>}
-                      <td className="py-3 px-2">{s.firstStart}</td>
-                      <td className="py-3 px-2">{s.lastEnd}</td>
-                      <td className="py-3 px-2 font-bold">{s.totalHours} h</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
 
           {/* STATS GRID */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -616,7 +543,6 @@ export default function ReportsPage() {
                       axisLine={false}
                       tickLine={false}
                       tick={{fill: '#94a3b8', fontSize: 12}}
-                      ticks={[0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5, 11, 11.5, 12]}
                       domain={[0, 'auto']}
                       tickFormatter={(value) => `${value}h`}
                     />
@@ -628,7 +554,7 @@ export default function ReportsPage() {
                     />
                     <Bar dataKey="hours" radius={[6, 6, 0, 0]}>
                       {reportData.chartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.hours > 0 ? '#3b82f6' : '#475569'} />
+                        <Cell key={`cell-${index}`} fill={'#3b82f6'} />
                       ))}
                     </Bar>
                   </BarChart>
@@ -674,60 +600,11 @@ export default function ReportsPage() {
                 </ResponsiveContainer>
               </div>
             </div>
-
-            {/* COST BREAKDOWN PIE CHART */}
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
-              <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-6 flex items-center gap-2">
-                <Euro size={20} className="text-blue-500 dark:text-blue-400" />
-                Répartition des Coûts
-              </h3>
-              <div className="h-[300px] w-full" id="cost-chart-container">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={[
-                        {
-                          name: 'Salaires',
-                          value: parseFloat((reportData.summary.totalPay - reportData.summary.totalTravelCost).toFixed(2)),
-                          color: '#3b82f6'
-                        },
-                        {
-                          name: 'Frais de déplacement',
-                          value: parseFloat(reportData.summary.totalTravelCost.toFixed(2)),
-                          color: '#f59e0b'
-                        }
-                      ]}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={80}
-                      paddingAngle={5}
-                      dataKey="value"
-                      label={({ percent }: any) => percent > 0 ? `${(percent * 100).toFixed(1)}%` : ''}
-                      labelLine={true}
-                    >
-                      <Cell fill="#3b82f6" />
-                      <Cell fill="#f59e0b" />
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{ backgroundColor: '#1e293b', borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', color: '#f1f5f9' }}
-                      itemStyle={{ color: '#f1f5f9'}}
-                      formatter={(value: any, name: any) => [`${value?.toFixed(2) || 0} €`, name || 'Total']}
-                    />
-                    <Legend
-                      iconType="circle"
-                      wrapperStyle={{ fontSize: '11px' }}
-                      formatter={(value: string) => <span className="text-slate-700 dark:text-slate-300">{value}</span>}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* DETAILS CARD */}
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col col-span-3">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Détails des interventions</h3>
                 <button
@@ -739,11 +616,20 @@ export default function ReportsPage() {
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto max-h-[300px] space-y-3 pr-2 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
+              <div className="flex-1 overflow-y-auto max-h-[500px] space-y-3 pr-2 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
                 {reportData.workedHours.map((entry, i) => (
                   <div key={i} className="p-3 bg-slate-50 dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
                     <div className="flex justify-between items-start mb-1">
-                      <span className="text-xs font-bold text-slate-400 dark:text-slate-500">{entry.date}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-slate-400 dark:text-slate-500">{entry.date}</span>
+                        <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-md ${
+                          entry.isRealized
+                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400'
+                            : 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400'
+                        }`}>
+                          {entry.isRealized ? 'Vérifié' : 'Projeté'}
+                        </span>
+                      </div>
                       <span className="text-xs font-bold text-blue-600 dark:text-blue-400 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/50 rounded-full">{entry.duration} h</span>
                     </div>
                     <div className="text-sm font-bold text-slate-700 dark:text-slate-200">{entry.patient}</div>
@@ -751,9 +637,9 @@ export default function ReportsPage() {
                       <div className="text-xs font-bold text-indigo-600 dark:text-indigo-400 mt-1 uppercase">Intervenant: {entry.worker}</div>
                     )}
                     <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{entry.startTime} - {entry.endTime}</div>
-                    {selectedUserId === 'all' && (
-                       <div className="text-xs font-medium text-slate-400 dark:text-slate-500 mt-1">Paye estimée: {entry.pay} €</div>
-                    )}
+                    <div className="text-xs font-medium text-slate-400 dark:text-slate-500 mt-1">
+                      {entry.isRealized ? 'Payé' : 'Coût estimé'}: {entry.pay} €
+                    </div>
                   </div>
                 ))}
               </div>

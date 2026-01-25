@@ -33,10 +33,10 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
   const isCompleted = status === AssignmentStatus.COMPLETED;
   const isAdmin = session?.user?.role === Role.ADMIN;
   const isOwner = isEditing && session?.user?.id === userId;
-  const hasPermission = (isAdmin || isOwner) && !isCompleted;
+  const hasPermission = isAdmin || (isOwner && !isCompleted);
 
   const resetForm = () => {
-    setUserId('');
+    setUserId(session?.user?.id || '');
     setPatientId('');
     setStatus(AssignmentStatus.PLANNED);
     if (selectedDate) {
@@ -52,7 +52,14 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
       try {
         const [usersRes, patientsRes] = await Promise.all([fetch('/api/users'), fetch('/api/patients')]);
         if (usersRes.ok) setUsers(await usersRes.json());
-        if (patientsRes.ok) setPatients(await patientsRes.json());
+        if (patientsRes.ok) {
+          const fetchedPatients = await patientsRes.json();
+          setPatients(fetchedPatients);
+          // Si un seul patient, on le sélectionne d'office
+          if (fetchedPatients.length === 1 && !isEditing) {
+            setPatientId(fetchedPatients[0].id.toString());
+          }
+        }
       } catch (error) {
         console.error("Erreur données initiales:", error);
       }
@@ -194,7 +201,16 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             <div className="space-y-1.5">
-              <label className="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase flex items-center gap-2"><UserIcon size={12} className="text-blue-500" /> Intervenant</label>
+              <label className="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase flex items-center gap-2">
+                <UserIcon size={12} className="text-blue-500" />
+                <span>Intervenant</span>
+                {userId && (
+                  <span
+                    className="w-2.5 h-2.5 rounded-full border border-white/20 shadow-sm transition-colors duration-300"
+                    style={{ backgroundColor: (users.find(u => u.id === userId) as any)?.color || '#3b82f6' }}
+                  />
+                )}
+              </label>
               <select value={userId} onChange={(e) => setUserId(e.target.value)} required disabled={!isAdmin || isCompleted} className="w-full p-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-medium text-slate-700 dark:text-slate-200">
                 <option value="">Sélectionner...</option>
                 {users.map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}
@@ -230,13 +246,17 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
             </div>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
-            {isEditing && (isAdmin || isOwner) && !isCompleted && (
+            {isEditing && (isAdmin || isOwner) && (
               <>
-                <button type="button" onClick={handleValidate} disabled={isSubmitting} className="flex items-center justify-center gap-1.5 px-2 py-2.5 bg-emerald-600 text-white rounded-xl font-black text-xs shadow-lg shadow-emerald-500/20">Valider</button>
-                <button type="button" onClick={handleDelete} disabled={isSubmitting} className="flex items-center justify-center gap-1.5 px-2 py-2.5 bg-red-50 text-red-600 border border-red-100 rounded-xl text-xs font-bold">Supprimer</button>
+                {!isCompleted && (
+                  <button type="button" onClick={handleValidate} disabled={isSubmitting} className="flex items-center justify-center gap-1.5 px-2 py-2.5 bg-emerald-600 text-white rounded-xl font-black text-xs shadow-lg shadow-emerald-500/20">Valider</button>
+                )}
+                {(isAdmin || !isCompleted) && (
+                   <button type="button" onClick={handleDelete} disabled={isSubmitting} className={`flex items-center justify-center gap-1.5 px-2 py-2.5 bg-red-50 text-red-600 border border-red-100 rounded-xl text-xs font-bold ${!isCompleted ? '' : 'col-span-1'}`}>Supprimer</button>
+                )}
               </>
             )}
-            <button type="button" onClick={onClose} disabled={isSubmitting} className={`flex items-center justify-center px-2 py-2.5 bg-slate-50 text-slate-600 border border-slate-200 rounded-xl text-xs font-bold ${!(isEditing && (isAdmin || isOwner) && !isCompleted) ? 'col-span-2' : ''}`}>Fermer</button>
+            <button type="button" onClick={onClose} disabled={isSubmitting} className={`flex items-center justify-center px-2 py-2.5 bg-slate-50 text-slate-600 border border-slate-200 rounded-xl text-xs font-bold ${(!isEditing || isCompleted) && !isAdmin ? 'col-span-2' : ''}`}>Fermer</button>
             {hasPermission && (
               <button type="submit" disabled={isSubmitting} className={`flex items-center justify-center px-2 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl text-xs font-black shadow-lg ${!(isEditing && (isAdmin || isOwner)) ? 'col-span-2' : ''}`}>{isEditing ? 'Mettre à jour' : 'Créer'}</button>
             )}

@@ -25,6 +25,11 @@ export async function PUT(
 
     const isOwner = session.user.id === existing.userId;
     const isAdmin = session.user.role === Role.ADMIN;
+    const isCompleted = existing.status === 'COMPLETED';
+
+    if (isCompleted && !isAdmin) {
+      return new NextResponse('Accès refusé : seules les interventions planifiées peuvent être modifiées par un utilisateur.', { status: 403 });
+    }
 
     if (!isAdmin && !isOwner) {
       return new NextResponse('Accès refusé : vous ne pouvez modifier que vos propres interventions', { status: 403 });
@@ -92,6 +97,11 @@ export async function DELETE(
 
     const isOwner = session.user.id === existing.userId;
     const isAdmin = session.user.role === Role.ADMIN;
+    const isCompleted = existing.status === 'COMPLETED';
+
+    if (isCompleted && !isAdmin) {
+      return new NextResponse('Accès refusé : seules les interventions planifiées peuvent être supprimées par un utilisateur.', { status: 403 });
+    }
 
     if (!isAdmin && !isOwner) {
       return new NextResponse('Accès refusé : vous ne pouvez supprimer que vos propres interventions', { status: 403 });

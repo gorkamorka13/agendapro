@@ -16,7 +16,7 @@ export async function PUT(
   }
 
   try {
-    const { name, email, password, role, hourlyRate, travelCost } = await request.json();
+    const { name, email, password, role, hourlyRate, travelCost, color } = await request.json();
 
     const data: any = {
       name,
@@ -24,6 +24,7 @@ export async function PUT(
       role,
       hourlyRate: hourlyRate ? parseFloat(hourlyRate) : null,
       travelCost: travelCost ? parseFloat(travelCost) : null,
+      color: color,
     };
 
     if (password) {

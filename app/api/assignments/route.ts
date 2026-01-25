@@ -43,7 +43,7 @@ export async function GET() {
 
     // Formater les données pour être compatibles avec FullCalendar
     const formattedEvents = assignments.map((assignment) => {
-      let backgroundColor = getUserColor(assignment.userId);
+      let backgroundColor = assignment.user.color || getUserColor(assignment.userId);
 
       if (assignment.status === AssignmentStatus.COMPLETED) {
         // Optionnel : On peut garder le vert pour le complété ou mixer avec la couleur

@@ -55,6 +55,7 @@ model User {
   role          Role      @default(USER) // Utilise l'énumération Role
   hourlyRate    Float?    // Tarif horaire
   travelCost    Float?    // Frais de déplacement par intervention
+  color         String?   @default("#3b82f6") // Couleur personnalisée pour le calendrier
 
   // --- Relations ---
   assignments Assignment[]

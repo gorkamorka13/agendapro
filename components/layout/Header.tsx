@@ -30,7 +30,12 @@ export default function Header({ onMenuClick }: HeaderProps) {
         </h1>
       </div>
       <div className="flex items-center gap-1.5 sm:gap-4 ml-2">
-        <span className="hidden sm:inline text-[13px] opacity-70">Bonjour, {session?.user?.name || session?.user?.email}</span>
+        <span className="hidden sm:inline text-sm sm:text-base font-semibold opacity-80">Bonjour, {session?.user?.name || session?.user?.email}</span>
+        <span
+          className="w-5 h-5 rounded-full border-2 border-white dark:border-slate-800 shadow-md shrink-0 ring-1 ring-slate-200 dark:ring-slate-700"
+          style={{ backgroundColor: (session?.user as any)?.color || '#3b82f6' }}
+          title="Ma couleur d'intervenant"
+        />
         <ThemeToggle />
         <button
           onClick={() => signOut({ callbackUrl: '/login' })}

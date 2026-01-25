@@ -18,6 +18,7 @@ export default function UserManagementPage() {
   const [role, setRole] = useState<Role>(Role.USER);
   const [hourlyRate, setHourlyRate] = useState('');
   const [travelCost, setTravelCost] = useState('');
+  const [color, setColor] = useState('#3b82f6');
 
   const fetchUsers = async () => {
     setIsLoading(true);
@@ -45,10 +46,11 @@ export default function UserManagementPage() {
     setRole(Role.USER);
     setHourlyRate('');
     setTravelCost('');
+    setColor('#3b82f6');
     setEditingUser(null);
   };
 
-  const handleOpenModal = (user?: User) => {
+  const handleOpenModal = (user?: any) => {
     if (user) {
       setEditingUser(user);
       setName(user.name || '');
@@ -56,6 +58,7 @@ export default function UserManagementPage() {
       setRole(user.role);
       setHourlyRate(user.hourlyRate?.toString() || '');
       setTravelCost(user.travelCost?.toString() || '');
+      setColor(user.color || '#3b82f6');
       setPassword(''); // Password stays empty unless changing
     } else {
       resetForm();
@@ -68,7 +71,7 @@ export default function UserManagementPage() {
     const url = editingUser ? `/api/users/${editingUser.id}` : '/api/users';
     const method = editingUser ? 'PUT' : 'POST';
 
-    const body: any = { name, email, role, hourlyRate, travelCost };
+    const body: any = { name, email, role, hourlyRate, travelCost, color };
     if (password) body.password = password;
 
     try {
@@ -127,9 +130,12 @@ export default function UserManagementPage() {
           users.map((user) => (
             <div key={user.id} className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-md border border-gray-100 dark:border-slate-700 transition-all">
               <div className="flex justify-between items-start mb-3">
-                <div>
-                  <div className="font-black text-slate-800 dark:text-slate-100">{user.name}</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">{user.email}</div>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full shadow-inner border border-white/20" style={{ backgroundColor: user.color || '#3b82f6' }} />
+                  <div>
+                    <div className="font-black text-slate-800 dark:text-slate-100">{user.name}</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">{user.email}</div>
+                  </div>
                 </div>
                 <span className={`px-2 py-1 text-[10px] font-bold rounded-full uppercase tracking-tight ${
                   user.role === Role.ADMIN ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
@@ -184,6 +190,7 @@ export default function UserManagementPage() {
               <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center text-sm font-medium text-gray-900 dark:text-slate-200">
+                    <div className="w-8 h-8 rounded-full shadow-inner border border-white/20 mr-3 shrink-0" style={{ backgroundColor: (user as any).color || '#3b82f6' }} />
                     <div>
                       <div className="text-sm font-bold">{user.name}</div>
                       <div className="text-xs text-gray-500 dark:text-slate-400">{user.email}</div>
@@ -300,7 +307,7 @@ export default function UserManagementPage() {
                     placeholder="0.00"
                   />
                 </div>
-                <div className="col-span-2">
+                <div className="col-span-1">
                    <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1">Frais de déplacement (€/intervention)</label>
                   <input
                     type="number"
@@ -310,6 +317,17 @@ export default function UserManagementPage() {
                     className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all dark:text-slate-100"
                     placeholder="0.00"
                   />
+                </div>
+                <div className="col-span-1">
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1">Couleur</label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="color"
+                      value={color}
+                      onChange={(e) => setColor(e.target.value)}
+                      className="h-10 w-full p-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg cursor-pointer"
+                    />
+                  </div>
                 </div>
               </div>
 
