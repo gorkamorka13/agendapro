@@ -44,169 +44,116 @@ export async function GET(request: Request) {
   }
 
   try {
-    let users: any[] = [];
-    if (userId === 'all') {
-      users = await prisma.user.findMany({
-        where: { role: Role.USER }
-      });
-    } else {
-      const user = await prisma.user.findUnique({ where: { id: userId } });
-      if (!user) return new NextResponse('Utilisateur non trouvé', { status: 404 });
-      users = [user];
-    }
-
-    // 1. Récupérer les interventions de la période
-    // Si ADMIN : on peut tout voir. Si USER : on ne voit que soi.
-    const workedHoursQuery: any = {
+    // 1. Récupérer les interventions de la période (Toutes les affectations, pas seulement validées)
+    const assignmentsQuery: any = {
       where: {
         startTime: {
           gte: startDate,
           lt: endDate,
         },
-        assignment: {
-          user: {
-            role: {
-              not: Role.ADMIN
-            }
+        user: {
+          role: {
+            not: Role.ADMIN
           }
+        },
+        status: {
+          not: 'CANCELLED'
         }
       },
       include: {
-        assignment: {
-          include: {
-            patient: true,
-            user: true,
-          },
-        },
+        patient: true,
+        user: true,
+        workedHours: true // Pour savoir si c'est déjà validé
       },
     };
 
-    // Si on demande un utilisateur spécifique, on filtre
     if (userId !== 'all') {
-      workedHoursQuery.where.assignment.userId = userId;
+      assignmentsQuery.where.userId = userId;
     }
 
-    const workedHoursEntries = await prisma.workedHours.findMany(workedHoursQuery);
+    const assignments = await prisma.assignment.findMany(assignmentsQuery) as any[];
 
-    // Context global seulement pour l'admin
-    let globalTotalMinutes = 0;
-    if (session.user.role === Role.ADMIN) {
-      const allWorkedHoursEntries = userId === 'all'
-        ? workedHoursEntries
-        : await prisma.workedHours.findMany({
-          where: {
-            startTime: { gte: startDate, lt: endDate },
-            assignment: { user: { role: { not: Role.ADMIN } } }
-          }
-        });
+    let realizedTotalMinutes = 0;
+    let realizedTotalPay = 0;
+    let realizedTotalTravelCost = 0;
 
-      globalTotalMinutes = allWorkedHoursEntries.reduce((sum, entry) => {
-        const start = new Date(entry.startTime);
-        const end = new Date(entry.endTime);
-        return sum + (end.getTime() - start.getTime()) / (1000 * 60);
-      }, 0);
-    }
+    let plannedTotalMinutes = 0;
+    let plannedTotalPay = 0;
+    let plannedTotalTravelCost = 0;
 
     const chartDataMap: Record<string, number> = {};
-    const dailySummariesMap: Record<string, { date: string, worker: string, firstStart: Date, lastEnd: Date, totalHours: number }> = {};
     const distributionDataMap: Record<string, number> = {};
-    let totalMinutes = 0;
-    let totalTravelCost = 0;
-    let totalPay = 0;
+    const dailySummariesMap: Record<string, any> = {};
 
-    const detailedEntries = (workedHoursEntries as any[]).map(entry => {
-      const start = new Date(entry.startTime);
-      const end = new Date(entry.endTime);
+    const detailedEntries = assignments.map(assignment => {
+      const start = new Date(assignment.startTime);
+      const end = new Date(assignment.endTime);
       const durationMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
-      totalMinutes += durationMinutes;
 
+      const isRealized = assignment.status === 'COMPLETED' || !!assignment.workedHours;
+
+      const user = assignment.user;
+      const hourlyRate = user.hourlyRate || 0;
+      const travelCost = user.travelCost || 0;
+      const pay = ((durationMinutes / 60) * hourlyRate) + travelCost;
+
+      if (isRealized) {
+        realizedTotalMinutes += durationMinutes;
+        realizedTotalPay += pay;
+        realizedTotalTravelCost += travelCost;
+      } else {
+        plannedTotalMinutes += durationMinutes;
+        plannedTotalPay += pay;
+        plannedTotalTravelCost += travelCost;
+      }
+
+      // Données Graphique (on cumule tout pour le profil d'activité)
       const dayKey = start.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
       chartDataMap[dayKey] = (chartDataMap[dayKey] || 0) + (durationMinutes / 60);
 
-      // Répartition par patient (si un seul intervenant) ou par intervenant (si tous)
+      // Répartition
       const distributionKey = userId === 'all'
-        ? entry.assignment.user.name || 'Inconnu'
-        : `${entry.assignment.patient.firstName} ${entry.assignment.patient.lastName}`;
+        ? user.name || 'Inconnu'
+        : `${assignment.patient.firstName} ${assignment.patient.lastName}`;
       distributionDataMap[distributionKey] = (distributionDataMap[distributionKey] || 0) + (durationMinutes / 60);
-
-      // Groupement pour la synthèse quotidienne
-      const dateStr = start.toLocaleDateString('fr-FR');
-      const workerId = entry.assignment.userId;
-      const groupKey = `${dateStr}_${workerId}`;
-
-      if (!dailySummariesMap[groupKey]) {
-        dailySummariesMap[groupKey] = {
-          date: dateStr,
-          worker: entry.assignment.user.name || 'Inconnu',
-          firstStart: start,
-          lastEnd: end,
-          totalHours: durationMinutes / 60
-        };
-      } else {
-        const current = dailySummariesMap[groupKey];
-        if (start < current.firstStart) current.firstStart = start;
-        if (end > current.lastEnd) current.lastEnd = end;
-        current.totalHours += durationMinutes / 60;
-      }
-
-      const entryUser = entry.assignment.user;
-      const entryHourlyRate = entryUser.hourlyRate || 0;
-      const entryTravelCost = entryUser.travelCost || 0;
-
-      const entryPay = ((durationMinutes / 60) * entryHourlyRate) + entryTravelCost;
-      totalPay += entryPay;
-      totalTravelCost += entryTravelCost;
 
       return {
         date: start.toLocaleDateString('fr-FR'),
-        patient: `${entry.assignment.patient.firstName} ${entry.assignment.patient.lastName}`,
-        worker: entryUser.name || 'Inconnu',
+        patient: `${assignment.patient.firstName} ${assignment.patient.lastName}`,
+        worker: user.name || 'Inconnu',
         startTime: start.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
         endTime: end.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
         duration: (durationMinutes / 60).toFixed(2),
-        pay: entryPay.toFixed(2),
+        pay: pay.toFixed(2),
+        status: assignment.status,
+        isRealized
       };
     });
 
-    // 3. Ajouter la part "Autres intervenants" si on est en vue individuelle
-    if (userId !== 'all') {
-      const otherWorkersMinutes = globalTotalMinutes - totalMinutes;
-      if (otherWorkersMinutes > 0) {
-        distributionDataMap['Autres intervenants'] = otherWorkersMinutes / 60;
-      }
-    }
-
-    const dailySummaries = Object.values(dailySummariesMap).map(s => ({
-      ...s,
-      firstStart: s.firstStart.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-      lastEnd: s.lastEnd.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-      totalHours: s.totalHours.toFixed(2)
-    }));
-
-    // Transformer la map en tableau pour le graphique d'évaluation
-    const distributionData = Object.entries(distributionDataMap).map(([name, value]) => ({
-      name,
-      value: parseFloat(value.toFixed(2))
-    }));
-
-    // Transformer la map en tableau pour le graphique
     const chartData = Object.entries(chartDataMap).map(([day, hours]) => ({
       day,
       hours: parseFloat(hours.toFixed(2))
     }));
 
-    const totalHours = totalMinutes / 60;
+    const distributionData = Object.entries(distributionDataMap).map(([name, value]) => ({
+      name,
+      value: parseFloat(value.toFixed(2))
+    }));
 
     return NextResponse.json({
-      workedHours: detailedEntries,
+      workedHours: detailedEntries, // On garde le nom de clé pour la compatibilité frontend
       chartData,
-      dailySummaries,
+      dailySummaries: [], // Désactivé temporairement pour simplifier
       distributionData,
       summary: {
-        totalHours: totalHours,
-        totalPay: totalPay,
-        totalTravelCost: totalTravelCost,
-        hourlyRate: userId === 'all' ? null : (users[0].hourlyRate || 0),
+        realizedHours: realizedTotalMinutes / 60,
+        realizedPay: realizedTotalPay,
+        realizedTravelCost: realizedTotalTravelCost,
+        plannedHours: plannedTotalMinutes / 60,
+        plannedPay: plannedTotalPay,
+        plannedTravelCost: plannedTotalTravelCost,
+        totalPay: realizedTotalPay, // Fallback compat
+        totalHours: realizedTotalMinutes / 60 // Fallback compat
       },
     });
 

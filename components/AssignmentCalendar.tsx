@@ -71,10 +71,17 @@ export default function AssignmentCalendar() {
         events={events}
         locale="fr"
         firstDay={1}
-        dayHeaderFormat={typeof window !== 'undefined' && window.innerWidth < 768
-          ? { weekday: 'narrow', day: 'numeric' }
-          : { weekday: 'long', day: 'numeric' }
-        }
+        views={{
+          dayGridMonth: {
+            dayHeaderFormat: { weekday: typeof window !== 'undefined' && window.innerWidth < 768 ? 'narrow' : 'long' }
+          },
+          timeGridWeek: {
+            dayHeaderFormat: { weekday: 'short', day: 'numeric' }
+          },
+          timeGridDay: {
+            dayHeaderFormat: { weekday: 'long', day: 'numeric' }
+          }
+        }}
         buttonText={{
           today: "Aujourd'hui",
           month: 'Mois',
@@ -82,37 +89,58 @@ export default function AssignmentCalendar() {
           day: 'Jour'
         }}
         windowResize={(arg) => {
-           if (window.innerWidth < 768) {
-             arg.view.calendar.setOption('aspectRatio', 0.8);
-             arg.view.calendar.setOption('dayHeaderFormat', { weekday: 'narrow', day: 'numeric' });
-             arg.view.calendar.setOption('headerToolbar', {
-               left: 'prev,next',
-               center: 'title',
-               right: 'dayGridMonth,timeGridWeek,timeGridDay'
-             });
+           const isMobile = window.innerWidth < 768;
+           arg.view.calendar.setOption('aspectRatio', isMobile ? 0.8 : 1.35);
+
+           // Forcer le format d'en-tête selon la vue actuelle pour éviter les dates fixes
+           if (arg.view.type === 'dayGridMonth') {
+             arg.view.calendar.setOption('dayHeaderFormat', { weekday: isMobile ? 'narrow' : 'long' });
            } else {
-             arg.view.calendar.setOption('aspectRatio', 1.35);
-             arg.view.calendar.setOption('dayHeaderFormat', { weekday: 'long', day: 'numeric' });
-             arg.view.calendar.setOption('headerToolbar', {
-                left: 'prev,next today',
-                center: 'title',
-                right: 'dayGridMonth,timeGridWeek,timeGridDay'
-             });
+             arg.view.calendar.setOption('dayHeaderFormat', { weekday: 'short', day: 'numeric' });
            }
+
+           arg.view.calendar.setOption('headerToolbar', isMobile ? {
+             left: 'prev,next',
+             center: 'title',
+             right: 'dayGridMonth,timeGridWeek,timeGridDay'
+           } : {
+             left: 'prev,next today',
+             center: 'title',
+             right: 'dayGridMonth,timeGridWeek,timeGridDay'
+           });
         }}
-        eventContent={(eventInfo) => (
-          <div
-            className="px-2 py-0.5 rounded-lg shadow-sm w-full h-full overflow-hidden flex items-center"
-            style={{
-              backgroundColor: eventInfo.event.backgroundColor || '#3b82f6',
-              borderLeft: '4px solid rgba(0,0,0,0.1)'
-            }}
-          >
-            <div className="text-[10px] sm:text-xs font-medium leading-tight truncate text-white w-full text-center drop-shadow-[0_1px_1px_rgba(0,0,0,0.2)]">
-              {eventInfo.event.title}
+        eventContent={(eventInfo) => {
+          const status = eventInfo.event.extendedProps.status;
+          const isCompleted = status === 'COMPLETED';
+          const isCancelled = status === 'CANCELLED';
+
+          return (
+            <div
+              className={`px-1.5 py-0.5 rounded-md shadow-sm w-full h-full overflow-hidden flex items-center gap-1 border-l-4 transition-all ${
+                isCompleted
+                  ? 'opacity-100 ring-1 ring-white/20'
+                  : isCancelled
+                    ? 'opacity-30 grayscale'
+                    : 'opacity-50 border-dashed border-white/30'
+              }`}
+              style={{
+                backgroundColor: eventInfo.event.backgroundColor || '#3b82f6',
+                borderColor: 'rgba(0,0,0,0.1)'
+              }}
+            >
+              <div className={`flex-1 text-[9px] sm:text-[10px] font-bold leading-tight truncate text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.2)] ${isCancelled ? 'line-through' : ''}`}>
+                {eventInfo.event.title}
+              </div>
+              {isCompleted && (
+                <div className="flex-shrink-0 text-white drop-shadow-md">
+                   <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" />
+                   </svg>
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          );
+        }}
         dateClick={handleDateClick}
         eventClick={handleEventClick}
       />

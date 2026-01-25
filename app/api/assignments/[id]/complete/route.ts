@@ -10,12 +10,26 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   const session = await getServerSession(authOptions);
-  if (session?.user?.role !== Role.ADMIN) {
-    return new NextResponse('Accès refusé', { status: 403 });
-  }
+  if (!session) return new NextResponse('Non autorisé', { status: 401 });
 
   try {
     const assignmentId = parseInt(params.id, 10);
+    const existing = await prisma.assignment.findUnique({
+      where: { id: assignmentId }
+    });
+
+    if (!existing) return new NextResponse('Affectation non trouvée', { status: 404 });
+
+    const isAdmin = session.user.role === Role.ADMIN;
+    const isOwner = session.user.id === existing.userId;
+
+    if (!isAdmin && !isOwner) {
+      return new NextResponse('Accès refusé', { status: 403 });
+    }
+
+    if (existing.status === AssignmentStatus.COMPLETED) {
+      return new NextResponse('L\'intervention est déjà validée', { status: 400 });
+    }
 
     // Utiliser une transaction pour assurer la cohérence des données
     const result = await prisma.$transaction(async (tx) => {

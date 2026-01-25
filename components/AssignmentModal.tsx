@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect, FormEvent } from 'react';
-import { User, Patient, Role } from '@prisma/client';
+import { User, Patient, Role, AssignmentStatus } from '@prisma/client';
 import { useSession } from 'next-auth/react';
-import { Clock, Calendar, User as UserIcon, Heart, Trash2, Save, X } from 'lucide-react';
+import { Clock, Calendar, User as UserIcon, Heart, Trash2, Save, X, CheckCircle } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;
@@ -20,21 +20,25 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
 
   const [userId, setUserId] = useState('');
   const [patientId, setPatientId] = useState('');
+  const [status, setStatus] = useState<AssignmentStatus>(AssignmentStatus.PLANNED);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Nouveaux états pour séparer Date et Heures
+  // States for Date and Hours
   const [date, setDate] = useState('');
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('10:00');
   const [duration, setDuration] = useState('1h 00m');
 
   const isEditing = assignmentId !== null;
+  const isCompleted = status === AssignmentStatus.COMPLETED;
   const isAdmin = session?.user?.role === Role.ADMIN;
   const isOwner = isEditing && session?.user?.id === userId;
-  const hasPermission = isAdmin || isOwner;
+  const hasPermission = (isAdmin || isOwner) && !isCompleted;
 
   const resetForm = () => {
     setUserId('');
     setPatientId('');
+    setStatus(AssignmentStatus.PLANNED);
     if (selectedDate) {
       const d = new Date(selectedDate);
       setDate(d.toISOString().split('T')[0]);
@@ -50,12 +54,10 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
         if (usersRes.ok) setUsers(await usersRes.json());
         if (patientsRes.ok) setPatients(await patientsRes.json());
       } catch (error) {
-        console.error("Erreur lors de la récupération des données initiales:", error);
+        console.error("Erreur données initiales:", error);
       }
     };
-    if (isOpen) {
-      fetchData();
-    }
+    if (isOpen) fetchData();
   }, [isOpen]);
 
   useEffect(() => {
@@ -67,13 +69,14 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
             const data = await response.json();
             setUserId(data.userId);
             setPatientId(data.patientId.toString());
+            setStatus(data.status);
 
             const start = new Date(data.startTime);
             const end = new Date(data.endTime);
 
             setDate(start.toISOString().split('T')[0]);
-            setStartTime(start.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }).replace(':', 'h').replace('h', ':'));
-            setEndTime(end.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }).replace(':', 'h').replace('h', ':'));
+            setStartTime(start.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }).replace('H', ':').replace('h', ':'));
+            setEndTime(end.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }).replace('H', ':').replace('h', ':'));
           } else {
             onClose();
           }
@@ -88,18 +91,13 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
     }
   }, [assignmentId, isOpen]);
 
-  // Calcul de la durée en temps réel
   useEffect(() => {
     if (startTime && endTime) {
       const [h1, m1] = startTime.split(':').map(Number);
       const [h2, m2] = endTime.split(':').map(Number);
-
       let diff = (h2 * 60 + m2) - (h1 * 60 + m1);
-      if (diff < 0) diff += 24 * 60; // Gérer le passage à minuit si besoin
-
-      const hours = Math.floor(diff / 60);
-      const minutes = diff % 60;
-      setDuration(`${hours}h ${minutes.toString().padStart(2, '0')}m`);
+      if (diff < 0) diff += 24 * 60;
+      setDuration(`${Math.floor(diff / 60)}h ${(diff % 60).toString().padStart(2, '0')}m`);
     }
   }, [startTime, endTime]);
 
@@ -107,43 +105,55 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      const startObj = new Date(`${date}T${startTime.replace('h', ':')}:00`);
+      const endObj = new Date(`${date}T${endTime.replace('h', ':')}:00`);
+      if (endObj < startObj) endObj.setDate(endObj.getDate() + 1);
 
-    // Reconstruire les Date objects
-    const startObj = new Date(`${date}T${startTime}:00`);
-    const endObj = new Date(`${date}T${endTime}:00`);
+      const url = isEditing ? `/api/assignments/${assignmentId}` : '/api/assignments';
+      const method = isEditing ? 'PUT' : 'POST';
 
-    // Si l'heure de fin est avant l'heure de début, on assume le lendemain
-    if (endObj < startObj) {
-      endObj.setDate(endObj.getDate() + 1);
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, patientId, startTime: startObj.toISOString(), endTime: endObj.toISOString() }),
+      });
+
+      if (response.ok) {
+        onSave();
+        onClose();
+      } else {
+        const msg = await response.text();
+        alert(msg || "Erreur lors de l'enregistrement");
+      }
+    } finally {
+      setIsSubmitting(false);
     }
+  };
 
-    const url = isEditing ? `/api/assignments/${assignmentId}` : '/api/assignments';
-    const method = isEditing ? 'PUT' : 'POST';
-
-    const response = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId,
-        patientId,
-        startTime: startObj.toISOString(),
-        endTime: endObj.toISOString()
-      }),
-    });
-
-    if (response.ok) {
-      onSave();
-      onClose();
-    } else if (response.status === 409) {
-      const errorMsg = await response.text();
-      alert(errorMsg);
-    } else {
-      alert(`Erreur lors de ${isEditing ? 'la mise à jour' : 'la création'}`);
+  const handleValidate = async () => {
+    if (!isEditing || isSubmitting) return;
+    if (window.confirm("Voulez-vous marquer cette intervention comme RÉALISÉE ?")) {
+      setIsSubmitting(true);
+      try {
+        const response = await fetch(`/api/assignments/${assignmentId}/complete`, { method: 'PATCH' });
+        if (response.ok) {
+          onSave();
+          onClose();
+        } else {
+          const err = await response.text();
+          alert(`Erreur : ${err}`);
+        }
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
   const handleDelete = async () => {
-    if (isEditing && window.confirm('Êtes-vous sûr de vouloir supprimer cette affectation ?')) {
+    if (isEditing && window.confirm('Supprimer cette affectation ?')) {
       const response = await fetch(`/api/assignments/${assignmentId}`, { method: 'DELETE' });
       if (response.ok) {
         onSave();
@@ -154,14 +164,22 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center z-50 p-2 sm:p-4 animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 dark:border-slate-800 transition-colors duration-300">
-        {/* Header */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 dark:border-slate-800">
         <div className="bg-slate-50 dark:bg-slate-800/50 px-4 sm:px-8 py-4 sm:py-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-          <div>
-            <h2 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tight">
-              {isEditing ? 'Modifier l\'intervention' : 'Nouvelle intervention'}
-            </h2>
-            <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-medium mt-0.5">Détails de l'affectation</p>
+          <div className="flex-1">
+            <div className="flex items-center gap-3">
+              <h2 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tight">
+                {isEditing ? 'Modifier l\'intervention' : 'Nouvelle intervention'}
+              </h2>
+              {isEditing && (
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${isCompleted ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400'}`}>
+                  {isCompleted ? 'Réalisée' : 'Planifiée'}
+                </span>
+              )}
+            </div>
+            <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-medium mt-0.5">
+              {isCompleted ? 'Validée et non modifiable.' : 'Détails de l\'affectation'}
+            </p>
           </div>
           <button onClick={onClose} className="p-1.5 sm:p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400">
             <X size={20} className="sm:w-6 sm:h-6" />
@@ -169,122 +187,58 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 sm:p-8 space-y-4 sm:space-y-6">
-          {/* Intervenant & Patient Grid */}
+          {isCompleted && (
+            <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 p-3 rounded-xl flex items-center gap-3 text-emerald-800 dark:text-emerald-300 text-xs font-medium">
+              <CheckCircle size={16} className="text-emerald-500" /> Intervention terminée.
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             <div className="space-y-1.5">
-              <label className="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                <UserIcon size={12} className="text-blue-500 sm:w-[14px]" /> Intervenant
-              </label>
-                <select
-                  value={userId}
-                  onChange={(e) => setUserId(e.target.value)}
-                  required
-                  disabled={!isAdmin}
-                  className={`w-full p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 dark:focus:border-blue-400 transition-all outline-none font-medium text-slate-700 dark:text-slate-200 text-sm sm:text-base ${!isAdmin ? 'bg-slate-100 dark:bg-slate-800/80 cursor-not-allowed opacity-75' : ''}`}
-                >
-                  <option value="">Sélectionner...</option>
-                  {users.map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}
-                </select>
+              <label className="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase flex items-center gap-2"><UserIcon size={12} className="text-blue-500" /> Intervenant</label>
+              <select value={userId} onChange={(e) => setUserId(e.target.value)} required disabled={!isAdmin || isCompleted} className="w-full p-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-medium text-slate-700 dark:text-slate-200">
+                <option value="">Sélectionner...</option>
+                {users.map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}
+              </select>
             </div>
-
             <div className="space-y-1.5">
-              <label className="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                <Heart size={12} className="text-rose-500 sm:w-[14px]" /> Patient
-              </label>
-              <select
-                value={patientId}
-                onChange={(e) => setPatientId(e.target.value)}
-                required
-                className="w-full p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 dark:focus:border-rose-400 transition-all outline-none font-medium text-slate-700 dark:text-slate-200 text-sm sm:text-base"
-              >
+              <label className="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase flex items-center gap-2"><Heart size={12} className="text-rose-500" /> Patient</label>
+              <select value={patientId} onChange={(e) => setPatientId(e.target.value)} required disabled={isCompleted} className="w-full p-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-medium text-slate-700 dark:text-slate-200">
                 <option value="">Sélectionner...</option>
                 {patients.map((patient) => <option key={patient.id} value={patient.id}>{patient.firstName} {patient.lastName}</option>)}
               </select>
             </div>
           </div>
-
-          {/* Date Picker */}
           <div className="space-y-1.5">
-            <label className="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-2">
-              <Calendar size={12} className="text-indigo-500 sm:w-[14px]" /> Date de l'intervention
-            </label>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              required
-              disabled={!hasPermission}
-              className={`w-full p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all outline-none font-bold text-slate-700 dark:text-slate-200 text-sm sm:text-base ${!hasPermission ? 'opacity-75 cursor-not-allowed' : ''}`}
-            />
+            <label className="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase flex items-center gap-2"><Calendar size={12} className="text-indigo-500" /> Date</label>
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required disabled={!hasPermission} className="w-full p-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-bold text-slate-700 dark:text-slate-200" />
           </div>
-
-          {/* Time Pickers & Duration Bar */}
-          <div className="bg-slate-50 dark:bg-slate-800/50 p-4 sm:p-6 rounded-2xl border border-slate-100 dark:border-slate-700 space-y-3 sm:space-y-4">
-            <div className="flex items-center justify-between gap-3 sm:gap-4">
+          <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 space-y-3">
+            <div className="flex items-center justify-between gap-3">
               <div className="flex-1 space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Début</label>
-                <input
-                  type="time"
-                  step="1800"
-                  value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
-                  required
-                  disabled={!hasPermission}
-                  className={`w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:border-blue-500 dark:focus:border-blue-400 outline-none font-bold text-base sm:text-lg text-slate-800 dark:text-slate-100 ${!hasPermission ? 'opacity-75 cursor-not-allowed' : ''}`}
-                />
+                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase">Début</label>
+                <input type="time" step="1800" value={startTime} onChange={(e) => setStartTime(e.target.value)} required disabled={!hasPermission} className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg font-bold" />
               </div>
-              <div className="pt-5 sm:pt-6 text-slate-300 dark:text-slate-600">
-                <Clock size={16} className="sm:w-5 sm:h-5" />
-              </div>
+              <Clock size={20} className="mt-6 text-slate-300" />
               <div className="flex-1 space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Fin</label>
-                <input
-                  type="time"
-                  step="1800"
-                  value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
-                  required
-                  disabled={!hasPermission}
-                  className={`w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:border-blue-500 dark:focus:border-blue-400 outline-none font-bold text-base sm:text-lg text-slate-800 dark:text-slate-100 ${!hasPermission ? 'opacity-75 cursor-not-allowed' : ''}`}
-                />
+                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase">Fin</label>
+                <input type="time" step="1800" value={endTime} onChange={(e) => setEndTime(e.target.value)} required disabled={!hasPermission} className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg font-bold" />
               </div>
             </div>
-
-            <div className="flex items-center justify-center gap-2 pt-2 border-t border-slate-200/50 dark:border-slate-700">
-              <span className="text-[9px] sm:text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Durée :</span>
-              <span className="bg-blue-600 dark:bg-blue-500 text-white px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-black shadow-lg dark:shadow-none">{duration}</span>
+            <div className="text-center pt-2 border-t border-slate-200/50 dark:border-slate-700">
+              <span className="text-[10px] font-black text-slate-400 uppercase mr-2">Durée :</span>
+              <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-black">{duration}</span>
             </div>
           </div>
-
-          {/* Actions */}
-          <div className={`grid ${isEditing && hasPermission ? 'grid-cols-3' : 'grid-cols-2'} gap-2 sm:gap-3 pt-4 sm:pt-6 border-t border-slate-100 dark:border-slate-800`}>
-            {isEditing && hasPermission && (
-              <button
-                type="button"
-                onClick={handleDelete}
-                className="flex items-center justify-center gap-1.5 px-2 py-2.5 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-500/20 text-[10px] sm:text-xs font-bold hover:bg-red-100 dark:hover:bg-red-500/20 rounded-xl transition-all"
-              >
-                <Trash2 size={14} />
-                <span>Supprimer</span>
-              </button>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+            {isEditing && (isAdmin || isOwner) && !isCompleted && (
+              <>
+                <button type="button" onClick={handleValidate} disabled={isSubmitting} className="flex items-center justify-center gap-1.5 px-2 py-2.5 bg-emerald-600 text-white rounded-xl font-black text-xs shadow-lg shadow-emerald-500/20">Valider</button>
+                <button type="button" onClick={handleDelete} disabled={isSubmitting} className="flex items-center justify-center gap-1.5 px-2 py-2.5 bg-red-50 text-red-600 border border-red-100 rounded-xl text-xs font-bold">Supprimer</button>
+              </>
             )}
-
-            <button
-              type="button"
-              onClick={onClose}
-              className={`flex items-center justify-center px-2 py-2.5 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-[10px] sm:text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all whitespace-nowrap ${!(isEditing && hasPermission) ? 'w-full' : ''}`}
-            >
-              Annuler
-            </button>
-
+            <button type="button" onClick={onClose} disabled={isSubmitting} className={`flex items-center justify-center px-2 py-2.5 bg-slate-50 text-slate-600 border border-slate-200 rounded-xl text-xs font-bold ${!(isEditing && (isAdmin || isOwner) && !isCompleted) ? 'col-span-2' : ''}`}>Fermer</button>
             {hasPermission && (
-              <button
-                type="submit"
-                className={`flex items-center justify-center gap-1.5 px-2 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all text-[10px] sm:text-xs font-black shadow-lg shadow-blue-500/30 dark:shadow-none whitespace-nowrap ${!(isEditing && hasPermission) ? 'w-full' : ''}`}
-              >
-                <Save size={14} />
-                <span>Enregistrer</span>
-              </button>
+              <button type="submit" disabled={isSubmitting} className={`flex items-center justify-center px-2 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl text-xs font-black shadow-lg ${!(isEditing && (isAdmin || isOwner)) ? 'col-span-2' : ''}`}>{isEditing ? 'Mettre à jour' : 'Créer'}</button>
             )}
           </div>
         </form>

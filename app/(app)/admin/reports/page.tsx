@@ -560,45 +560,37 @@ export default function ReportsPage() {
             <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
               <div className="flex items-center gap-3 mb-2 text-slate-500 dark:text-slate-400">
                 <div className="p-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg"><Clock size={18} /></div>
-                <span className="text-sm font-medium">Heures Totales</span>
+                <span className="text-sm font-medium">Heures Réalisées</span>
               </div>
-              <div className="text-2xl font-bold text-slate-800 dark:text-slate-100">{reportData.summary.totalHours.toFixed(2)} h</div>
+              <div className="text-2xl font-bold text-slate-800 dark:text-slate-100">{reportData.summary.realizedHours.toFixed(2)} h</div>
+              <div className="text-[10px] text-slate-400 mt-1 uppercase font-bold">Plannifiées: {reportData.summary.plannedHours.toFixed(2)} h</div>
             </div>
-
-            {selectedUserId !== 'all' && (
-              <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
-                <div className="flex items-center gap-3 mb-2 text-slate-500 dark:text-slate-400">
-                  <div className="p-2 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg"><Euro size={18} /></div>
-                  <span className="text-sm font-medium">Taux Horaire</span>
-                </div>
-                <div className="text-2xl font-bold text-slate-800 dark:text-slate-100">{reportData.summary.hourlyRate?.toFixed(2)} €/h</div>
-              </div>
-            )}
-
-            {selectedUserId === 'all' && (
-              <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
-                <div className="flex items-center gap-3 mb-2 text-slate-500 dark:text-slate-400">
-                  <div className="p-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg"><TrendingUp size={18} /></div>
-                  <span className="text-sm font-medium">Intervenants actifs</span>
-                </div>
-                <div className="text-2xl font-bold text-slate-800 dark:text-slate-100">{users.length}</div>
-              </div>
-            )}
 
             <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
               <div className="flex items-center gap-3 mb-2 text-slate-500 dark:text-slate-400">
                 <div className="p-2 bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-lg"><MapPin size={18} /></div>
                 <span className="text-sm font-medium">Frais de Déplacement</span>
               </div>
-              <div className="text-2xl font-bold text-slate-800 dark:text-slate-100">{reportData.summary.totalTravelCost.toFixed(2)} €</div>
+              <div className="text-2xl font-bold text-slate-800 dark:text-slate-100">{reportData.summary.realizedTravelCost.toFixed(2)} €</div>
+              <div className="text-[10px] text-slate-400 mt-1 uppercase font-bold">À venir: {reportData.summary.plannedTravelCost.toFixed(2)} €</div>
+            </div>
+
+            <div className="bg-emerald-600 p-5 rounded-2xl shadow-lg shadow-emerald-100 dark:shadow-none text-white">
+              <div className="flex items-center gap-3 mb-2 opacity-80">
+                <TrendingUp size={18} />
+                <span className="text-sm font-medium">Paye Réalisée</span>
+              </div>
+              <div className="text-2xl font-bold">{reportData.summary.realizedPay.toFixed(2)} €</div>
+              <div className="text-[10px] opacity-70 mt-1 uppercase font-bold italic">Validé en base</div>
             </div>
 
             <div className="bg-blue-600 p-5 rounded-2xl shadow-lg shadow-blue-100 dark:shadow-none text-white">
               <div className="flex items-center gap-3 mb-2 opacity-80">
-                <TrendingUp size={18} />
-                <span className="text-sm font-medium">À Payer</span>
+                <Calendar size={18} />
+                <span className="text-sm font-medium">Coûts à venir</span>
               </div>
-              <div className="text-2xl font-bold">{reportData.summary.totalPay.toFixed(2)} €</div>
+              <div className="text-2xl font-bold">{reportData.summary.plannedPay.toFixed(2)} €</div>
+              <div className="text-[10px] opacity-70 mt-1 uppercase font-bold italic">Activités prévisionnelles</div>
             </div>
           </div>
 
