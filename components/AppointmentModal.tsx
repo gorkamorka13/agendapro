@@ -196,7 +196,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center z-50 p-2 sm:p-4 animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 dark:border-slate-800">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 dark:border-slate-800 flex flex-col max-h-[90vh]">
         <div className="bg-amber-50 dark:bg-amber-500/10 px-4 sm:px-8 py-4 sm:py-6 border-b border-amber-100 dark:border-amber-500/20 flex justify-between items-center">
           <div className="flex-1">
             <div className="flex items-center gap-3">
@@ -219,7 +219,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 sm:p-8 space-y-4 sm:space-y-6">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-8 space-y-4 sm:space-y-6 overflow-y-auto">
           {isCompleted && (
             <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 p-3 rounded-xl flex items-center gap-3 text-emerald-800 dark:text-emerald-300 text-xs font-medium">
               <CheckCircle size={16} className="text-emerald-500" /> Rendez-vous effectué.
