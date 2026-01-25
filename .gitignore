@@ -9,7 +9,6 @@
 # testing
 /coverage
 /scripts
-/prisma/migrations/*  # Prisma migrations
 
 
 # next.js
