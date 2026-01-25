@@ -1,0 +1,178 @@
+// Fichier : prisma/schema.prisma
+
+// =====================================================================
+// 1. CONFIGURATION DE BASE
+// =====================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// =====================================================================
+// 2. ÉNUMÉRATIONS (TYPES PERSONNALISÉS)
+// =====================================================================
+
+// Rôles possibles pour un utilisateur (sécurise les types)
+enum Role {
+  USER
+  ADMIN
+}
+
+// Statuts possibles pour une affectation
+enum AssignmentStatus {
+  PLANNED   // L'intervention est planifiée
+  COMPLETED // L'intervention a été effectuée
+  CANCELLED // L'intervention a été annulée
+}
+
+// Statuts possibles pour une facture
+enum InvoiceStatus {
+  DRAFT   // Brouillon, non finalisée
+  SENT    // Envoyée au client/payeur
+  PAID    // Payée
+}
+
+// =====================================================================
+// 3. MODÈLES CENTRAUX DE L'APPLICATION
+// =====================================================================
+
+// Modèle pour les utilisateurs (intervenants, administrateurs)
+// Adapté pour être compatible avec NextAuth.js
+model User {
+  id            String    @id @default(cuid())
+  name          String?   @unique
+  email         String?   @unique
+  emailVerified DateTime?
+  hashedPassword String?   // Mot de passe haché pour la connexion par identifiants
+  image         String?   // Avatar pour NextAuth
+
+  // --- Champs personnalisés pour la logique métier ---
+  role          Role      @default(USER) // Utilise l'énumération Role
+  hourlyRate    Float?    // Tarif horaire
+  travelCost    Float?    // Frais de déplacement par intervention
+
+  // --- Relations ---
+  assignments Assignment[]
+  accounts    Account[]    // Relation requise par NextAuth
+  sessions    Session[]    // Relation requise par NextAuth
+}
+
+// Modèle pour les patients (personnes âgées)
+model Patient {
+  id          Int      @id @default(autoincrement())
+  firstName   String
+  lastName    String
+  address     String
+  contactInfo String?
+
+  // --- Relations ---
+  assignments Assignment[]
+  invoices    Invoice[]
+}
+
+// Modèle pour les affectations (le cœur du calendrier)
+model Assignment {
+  id        Int      @id @default(autoincrement())
+  startTime DateTime
+  endTime   DateTime
+  notes     String?
+  status    AssignmentStatus @default(PLANNED)
+
+  // --- Relations ---
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  patientId Int
+
+  // Une affectation complétée donne lieu à un enregistrement d'heures travaillées
+  workedHours WorkedHours?
+}
+
+// =====================================================================
+// 4. MODÈLES POUR LA PAIE ET LA FACTURATION
+// =====================================================================
+
+// Enregistre les heures réellement effectuées pour le calcul de la paie
+model WorkedHours {
+  id          Int      @id @default(autoincrement())
+  startTime   DateTime // Heure de début réelle
+  endTime     DateTime // Heure de fin réelle
+  isPaid      Boolean  @default(false) // Pour savoir si ces heures ont été payées à l'intervenant
+
+  // --- Relation ---
+  // Lie ces heures à une affectation unique
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  assignmentId Int        @unique
+}
+
+// Modèle pour les factures envoyées aux patients ou organismes
+model Invoice {
+  id            Int           @id @default(autoincrement())
+  invoiceNumber String        @unique
+  issueDate     DateTime      // Date d'émission
+  dueDate       DateTime      // Date d'échéance
+  status        InvoiceStatus @default(DRAFT)
+  totalAmount   Float         // Montant total de la facture
+
+  // --- Relations ---
+  patient       Patient         @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  patientId     Int
+  lineItems     InvoiceLineItem[] // Lignes de la facture
+}
+
+// Lignes de détail pour chaque facture
+model InvoiceLineItem {
+  id          Int    @id @default(autoincrement())
+  description String // Ex: "Aide à domicile - 15/11/2025"
+  quantity    Float  // Ex: 2 (pour 2 heures)
+  unitPrice   Float  // Tarif horaire appliqué
+  total       Float  // quantity * unitPrice
+
+  // --- Relation ---
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoiceId   Int
+}
+
+// =====================================================================
+// 5. MODÈLES REQUIS PAR NEXTAUTH.JS (Ne pas modifier)
+// =====================================================================
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String  @db.VarChar(100)
+  providerAccountId String  @db.VarChar(100)
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @db.VarChar(191)
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String   @db.VarChar(100)
+  token      String   @unique @db.VarChar(100)
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
