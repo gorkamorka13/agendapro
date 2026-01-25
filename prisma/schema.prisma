@@ -42,9 +42,25 @@ model User {
   color         String?   @default("#3b82f6")
 
   assignments Assignment[]
+  appointments Appointment[]
   expenses    Expense[]
   accounts    Account[]
   sessions    Session[]
+}
+
+model Appointment {
+  id        Int      @id @default(autoincrement())
+  subject   String
+  location  String
+  startTime DateTime
+  endTime   DateTime
+  notes     String? @db.Text
+  status    AssignmentStatus @default(PLANNED)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
 }
 
 model Patient {

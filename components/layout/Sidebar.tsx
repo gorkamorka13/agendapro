@@ -87,20 +87,29 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
               </li>
               <li className="mb-2">
                 <Link
-                  href="/admin/reports"
-                  className={`${linkStyle} ${pathname === '/admin/reports' ? activeStyle : defaultStyle}`}
-                  onClick={() => onClose()}
-                >
-                  Rapports & Paie
-                </Link>
-              </li>
-              <li className="mb-2">
-                <Link
                   href="/admin/expenses"
                   className={`${linkStyle} ${pathname === '/admin/expenses' ? activeStyle : defaultStyle}`}
                   onClick={() => onClose()}
                 >
                   Gestion Dépenses
+                </Link>
+              </li>
+              <li className="mb-2">
+                <Link
+                  href="/?action=create-appointment"
+                  className={`${linkStyle} ${defaultStyle}`}
+                  onClick={() => onClose()}
+                >
+                  Gestion Rendez-vous
+                </Link>
+              </li>
+              <li className="mb-2">
+                <Link
+                  href="/admin/reports"
+                  className={`${linkStyle} ${pathname === '/admin/reports' ? activeStyle : defaultStyle}`}
+                  onClick={() => onClose()}
+                >
+                  Rapports & Paie
                 </Link>
               </li>
             </>

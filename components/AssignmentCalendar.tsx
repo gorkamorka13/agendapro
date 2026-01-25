@@ -5,8 +5,12 @@ import FullCalendar from '@fullcalendar/react';
 import { EventClickArg } from '@fullcalendar/core'; // <--- CORRECTION: Importer depuis @fullcalendar/core
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
-import interactionPlugin, { DateClickArg } from '@fullcalendar/interaction'; // DateClickArg reste ici
+import interactionPlugin, { DateClickArg } from '@fullcalendar/interaction';
 import AssignmentModal from './AssignmentModal';
+import AppointmentModal from './AppointmentModal';
+import { useSession } from 'next-auth/react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { Heart, Calendar } from 'lucide-react';
 
 interface CalendarEvent {
   id: string;
@@ -19,19 +23,41 @@ interface CalendarEvent {
 export default function AssignmentCalendar() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
+  const { data: session } = useSession();
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
-  const fetchAssignments = async () => {
+  const fetchEvents = async () => {
     try {
-      const response = await fetch('/api/assignments');
-      if (!response.ok) throw new Error('Erreur de chargement');
-      const data = await response.json();
-      setEvents(data);
-    } catch (error) { console.error(error); }
+      const [assignmentsRes, appointmentsRes] = await Promise.all([
+        fetch('/api/assignments'),
+        fetch('/api/appointments')
+      ]);
+
+      if (!assignmentsRes.ok || !appointmentsRes.ok) throw new Error('Erreur de chargement');
+
+      const assignments = await assignmentsRes.json();
+      const appointments = await appointmentsRes.json();
+
+      setEvents([...assignments, ...appointments]);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
-  useEffect(() => { fetchAssignments(); }, []);
+  useEffect(() => { fetchEvents(); }, []);
+
+  useEffect(() => {
+    if (searchParams.get('action') === 'create-appointment') {
+      setIsAppointmentModalOpen(true);
+      // Clean up URL
+      router.replace('/');
+    }
+  }, [searchParams, router]);
 
   const handleDateClick = (arg: DateClickArg) => {
     setSelectedDate(arg.date);
@@ -40,12 +66,19 @@ export default function AssignmentCalendar() {
   };
 
   const handleEventClick = (arg: EventClickArg) => {
-    setSelectedAssignmentId(arg.event.id);
-    setIsModalOpen(true);
+    const isAppointment = arg.event.extendedProps.type === 'APPOINTMENT';
+
+    if (isAppointment) {
+      setSelectedAppointmentId(arg.event.id);
+      setIsAppointmentModalOpen(true);
+    } else {
+      setSelectedAssignmentId(arg.event.id);
+      setIsModalOpen(true);
+    }
   };
 
   const handleSave = () => {
-    fetchAssignments();
+    fetchEvents();
   };
 
   return (
@@ -170,6 +203,13 @@ export default function AssignmentCalendar() {
         onSave={handleSave}
         selectedDate={selectedDate}
         assignmentId={selectedAssignmentId}
+      />
+      <AppointmentModal
+        isOpen={isAppointmentModalOpen}
+        onClose={() => setIsAppointmentModalOpen(false)}
+        onSave={handleSave}
+        selectedDate={selectedDate}
+        appointmentId={selectedAppointmentId}
       />
     </div>
   );
