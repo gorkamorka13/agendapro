@@ -57,8 +57,12 @@ export default function AssignmentCalendar() {
         height="auto"
         contentHeight="auto"
         aspectRatio={typeof window !== 'undefined' && window.innerWidth < 400 ? 0.65 : (typeof window !== 'undefined' && window.innerWidth < 768 ? 0.8 : 1.35)}
-        headerToolbar={{
+        headerToolbar={typeof window !== 'undefined' && window.innerWidth < 640 ? {
           left: 'prev,next',
+          center: 'title',
+          right: 'dayGridMonth,timeGridWeek,timeGridDay'
+        } : {
+          left: 'prev,next today',
           center: 'title',
           right: 'dayGridMonth,timeGridWeek,timeGridDay'
         }}
@@ -74,16 +78,26 @@ export default function AssignmentCalendar() {
         buttonText={{
           today: "Aujourd'hui",
           month: 'Mois',
-          week: 'Sem.',
+          week: 'Sem',
           day: 'Jour'
         }}
         windowResize={(arg) => {
            if (window.innerWidth < 768) {
              arg.view.calendar.setOption('aspectRatio', 0.8);
              arg.view.calendar.setOption('dayHeaderFormat', { weekday: 'narrow', day: 'numeric' });
+             arg.view.calendar.setOption('headerToolbar', {
+               left: 'prev,next',
+               center: 'title',
+               right: 'dayGridMonth,timeGridWeek,timeGridDay'
+             });
            } else {
              arg.view.calendar.setOption('aspectRatio', 1.35);
              arg.view.calendar.setOption('dayHeaderFormat', { weekday: 'long', day: 'numeric' });
+             arg.view.calendar.setOption('headerToolbar', {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+             });
            }
         }}
         eventContent={(eventInfo) => (

@@ -100,6 +100,12 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
           )}
         </ul>
       </nav>
+
+      <div className="mt-auto pt-6 border-t border-slate-700/50 pb-2">
+        <div className="text-[9px] text-slate-500 font-medium opacity-60">
+          © Michel ESPARSA - v{process.env.APP_VERSION} - {process.env.BUILD_DATE}
+        </div>
+      </div>
     </div>
   );
 }

@@ -118,9 +118,10 @@ export default function ReportsPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [activeMonths, setActiveMonths] = useState<{ year: number, month: number }[]>([]);
 
   // Liste des mois pour le sélecteur
-  const months = [
+  const allMonths = [
     { name: 'Janvier', value: 0 },
     { name: 'Février', value: 1 },
     { name: 'Mars', value: 2 },
@@ -135,20 +136,36 @@ export default function ReportsPage() {
     { name: 'Décembre', value: 11 },
   ];
 
-  const handleMonthSelect = (monthIndex: number) => {
-    // Construct local dates
-    const start = new Date(selectedYear, monthIndex, 1);
-    const end = new Date(selectedYear, monthIndex + 1, 0);
+  // Récupérer les mois avec activité
+  useEffect(() => {
+    const fetchActiveMonths = async () => {
+      if (!selectedUserId) return;
+      try {
+        const res = await fetch(`/api/reports/active-months?userId=${selectedUserId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setActiveMonths(data);
 
-    // Manual formatting: YYYY-MM-DD
-    // This strictly preserves the local year/month/day
-    const formatDate = (d: Date) => {
-        const y = d.getFullYear();
-        const m = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${y}-${m}-${day}`;
+          // Vérifier si le mois affiché est dans les actifs
+          const [y, mStr] = startDate.split('-').map(Number);
+          const m = mStr - 1;
+          const isCurrentActive = data.some((item: any) => item.year === y && item.month === m);
+
+          if (!isCurrentActive && data.length > 0) {
+             const lastActive = data.sort((a: any, b: any) => b.year - a.year || b.month - a.month)[0];
+             setSelectedYear(lastActive.year);
+             handleMonthSelect(lastActive.month, lastActive.year);
+          }
+        }
+      } catch (e) { console.error(e); }
     };
+    fetchActiveMonths();
+  }, [selectedUserId]);
 
+  const handleMonthSelect = (monthIndex: number, yearOverride?: number) => {
+    const year = yearOverride ?? selectedYear;
+    const start = new Date(year, monthIndex, 1);
+    const end = new Date(year, monthIndex + 1, 0);
     setStartDate(formatDate(start));
     setEndDate(formatDate(end));
   };
@@ -400,13 +417,17 @@ export default function ReportsPage() {
 
         <div className="flex-1 overflow-x-auto pb-1 scrollbar-none">
           <div className="flex gap-2 min-w-max">
-            {months.map((m) => {
+            {allMonths.map((m) => {
               // Be robust: parse startDate string "YYYY-MM-DD" directly to avoid any timezone shifting
               const [yStr, mStr] = startDate.split('-');
               const year = parseInt(yStr, 10);
               const monthIndex = parseInt(mStr, 10) - 1; // 0-based
 
               const isActive = year === selectedYear && monthIndex === m.value;
+              const hasActivity = activeMonths.some((am) => am.year === selectedYear && am.month === m.value);
+
+              if (!hasActivity && !isActive) return null;
+
               return (
                 <button
                   key={m.value}
