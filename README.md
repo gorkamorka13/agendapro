@@ -15,6 +15,11 @@ Une plateforme web premium de pointe dédiée à la planification et à la gesti
 - Mode Smartphone optimisé avec polices de caractères agrandies pour le terrain.
 - Personnalisation visuelle : Couleurs par intervenant avec adaptation automatique du contraste du texte (noir/blanc).
 
+#### 🗂️ **Gestion des Rendez-vous (Hors Patients)**
+- Distinction claire entre **Interventions** (Soins/Patients) et **Rendez-vous Administratifs** (Réunions, Formations).
+- Suivi du statut : **Planifié** (Grisé) vs **Réalisé** (Pleine couleur).
+- Interface de création dédiée pour les tâches administratives.
+
 #### 👥 **Administration & Utilisateurs**
 - **Rôles Unifiés** : Les administrateurs peuvent également être des intervenants actifs.
 - **Gestion Premium** : Attribution de couleurs personnalisées pour chaque membre de l'équipe.
@@ -83,6 +88,10 @@ Une plateforme web premium de pointe dédiée à la planification et à la gesti
    ```bash
    npm run dev
    ```
+
+### 🌍 Mise en Production
+Pour déployer les mises à jour sur Vercel et Neon (Base de données), consultez le guide dédié :
+👉 **[DEPLOYMENT.md](./DEPLOYMENT.md)**
 
 ## 🔐 Sécurité & Intégrité
 - Hachage BCrypt pour tous les mots de passe.
