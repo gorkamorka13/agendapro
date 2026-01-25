@@ -109,7 +109,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
       </nav>
 
       <div className="mt-auto pt-6 border-t border-slate-700/50 pb-2">
-        <div className="text-[9px] text-slate-500 font-medium opacity-60 space-y-0.5">
+        <div className="text-xs text-slate-500 font-bold opacity-80 space-y-1">
           <p>AGENDA PRO - © Michel ESPARSA</p>
           <p>v{process.env.APP_VERSION} - {process.env.BUILD_DATE}</p>
         </div>

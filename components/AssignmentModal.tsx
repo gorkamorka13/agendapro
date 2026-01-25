@@ -36,14 +36,20 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
   const isOwner = isEditing && session?.user?.id === userId;
   const hasPermission = isAdmin || (isOwner && !isCompleted);
 
+  const formatLocalDate = (d: Date) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const resetForm = () => {
     setUserId(session?.user?.id || '');
     setPatientId('');
     setStatus('PLANNED' as any);
     setShowOverlapWarning(false);
     if (selectedDate) {
-      const d = new Date(selectedDate);
-      setDate(d.toISOString().split('T')[0]);
+      setDate(formatLocalDate(selectedDate));
       setStartTime('09:00');
       setEndTime('10:00');
     }
@@ -82,7 +88,7 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
             const start = new Date(data.startTime);
             const end = new Date(data.endTime);
 
-            setDate(start.toISOString().split('T')[0]);
+            setDate(formatLocalDate(start));
             setStartTime(start.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }).replace('H', ':').replace('h', ':'));
             setEndTime(end.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }).replace('H', ':').replace('h', ':'));
           } else {

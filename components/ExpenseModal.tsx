@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Euro, Calendar, FileText, Save } from 'lucide-react';
+import { X, Euro, Calendar, FileText, Save, User as UserIcon } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;
@@ -11,17 +11,33 @@ interface Props {
 }
 
 export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props) {
+  const [users, setUsers] = useState<any[]>([]);
+  const [userId, setUserId] = useState('');
   const [motif, setMotif] = useState('');
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const res = await fetch('/api/users');
+        if (res.ok) setUsers(await res.json());
+      } catch (e) {
+        console.error("Erreur chargement utilisateurs:", e);
+      }
+    };
+    if (isOpen) fetchUsers();
+  }, [isOpen]);
+
+  useEffect(() => {
     if (expense) {
+      setUserId(expense.userId || '');
       setMotif(expense.motif);
       setAmount(expense.amount.toString());
       setDate(new Date(expense.date).toISOString().split('T')[0]);
     } else {
+      setUserId('');
       setMotif('');
       setAmount('');
       setDate(new Date().toISOString().split('T')[0]);
@@ -32,6 +48,10 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!userId) {
+      alert("Veuillez sélectionner un bénéficiaire");
+      return;
+    }
     setIsSubmitting(true);
     try {
       const url = expense ? `/api/expenses/${expense.id}` : '/api/expenses';
@@ -40,15 +60,19 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ motif, amount, date }),
+        body: JSON.stringify({ motif, amount, date, userId }),
       });
 
       if (response.ok) {
         onSave();
         onClose();
       } else {
-        alert("Erreur lors de l'enregistrement");
+        const errorText = await response.text();
+        alert("Erreur lors de l'enregistrement: " + errorText);
       }
+    } catch (error) {
+      console.error("Erreur soumission dépense:", error);
+      alert("Une erreur est survenue");
     } finally {
       setIsSubmitting(false);
     }
@@ -70,6 +94,23 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
         </div>
 
         <form onSubmit={handleSubmit} className="p-8 space-y-6">
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase flex items-center gap-2">
+              <UserIcon size={12} className="text-blue-500" /> Bénéficiaire (Intervenant / Admin)
+            </label>
+            <select
+              required
+              value={userId}
+              onChange={(e) => setUserId(e.target.value)}
+              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-slate-100 font-bold"
+            >
+              <option value="">Sélectionner un bénéficiaire...</option>
+              {users.map(u => (
+                <option key={u.id} value={u.id}>{u.name}</option>
+              ))}
+            </select>
+          </div>
+
           <div className="space-y-1.5">
             <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase flex items-center gap-2">
               <FileText size={12} className="text-blue-500" /> Motif de la dépense

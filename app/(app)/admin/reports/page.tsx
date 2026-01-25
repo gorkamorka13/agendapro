@@ -30,13 +30,16 @@ import {
 } from 'recharts';
 import {
   Calendar,
-  User as UserIcon,
-  FileText,
   Download,
   TrendingUp,
   Clock,
   Euro,
-  MapPin
+  MapPin,
+  CheckCircle,
+  FileText,
+  Search,
+  Filter,
+  User as UserIcon
 } from 'lucide-react';
 
 // Définir les types
@@ -135,6 +138,13 @@ export default function ReportsPage() {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [activeMonths, setActiveMonths] = useState<{ year: number, month: number }[]>([]);
+
+  const handleYearSelect = (year: number) => {
+    setSelectedYear(year);
+    const [_, mStr] = startDate.split('-');
+    const currentMonthIndex = parseInt(mStr, 10) - 1;
+    handleMonthSelect(currentMonthIndex, year);
+  };
 
   // Liste des mois pour le sélecteur
   const allMonths = [
@@ -364,15 +374,16 @@ export default function ReportsPage() {
 
         autoTable(doc, {
             startY: currentY + 5,
-            head: [['Date', 'Motif de la dépense', 'Montant']],
+            head: [['Date', 'Bénéficiaire', 'Motif de la dépense', 'Montant']],
             body: reportData.expenses.map(exp => [
                 new Date(exp.date).toLocaleDateString('fr-FR'),
+                (exp as any).user?.name || '-',
                 exp.motif,
                 `${exp.amount.toFixed(2)} €`
             ]),
             headStyles: { fillColor: [16, 185, 129] },
             columnStyles: {
-                2: { halign: 'right', fontStyle: 'bold' }
+                3: { halign: 'right', fontStyle: 'bold' }
             }
         });
 
@@ -386,7 +397,7 @@ export default function ReportsPage() {
     const pageCount = (doc as any).internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
-        doc.setFontSize(8);
+        doc.setFontSize(10);
         doc.setTextColor(148, 163, 184);
 
         doc.setDrawColor(226, 232, 240);
@@ -409,7 +420,7 @@ export default function ReportsPage() {
            {[2025, 2026].map(year => (
              <button
                 key={year}
-                onClick={() => setSelectedYear(year)}
+                onClick={() => handleYearSelect(year)}
                 className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   selectedYear === year ? 'bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-900 shadow-md' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
                 }`}
@@ -429,19 +440,20 @@ export default function ReportsPage() {
               const isActive = year === selectedYear && monthIndex === m.value;
               const hasActivity = activeMonths.some((am) => am.year === selectedYear && am.month === m.value);
 
-              if (!hasActivity && !isActive) return null;
-
               return (
                 <button
                   key={m.value}
                   onClick={() => handleMonthSelect(m.value)}
-                  className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                  className={`px-4 py-2 rounded-xl text-sm font-bold transition-all relative ${
                     isActive
                       ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 dark:shadow-none'
                       : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-100 dark:border-slate-700'
                   }`}
                 >
                   {m.name}
+                  {hasActivity && !isActive && (
+                    <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-blue-500 rounded-full" />
+                  )}
                 </button>
               );
             })}
@@ -544,34 +556,43 @@ export default function ReportsPage() {
 
             <div className="bg-emerald-600 p-5 rounded-2xl shadow-lg shadow-emerald-100 dark:shadow-none text-white">
               <div className="flex items-center gap-3 mb-2 opacity-80">
-                <TrendingUp size={18} />
-                <span className="text-sm font-medium">Paye Réalisée</span>
+                <CheckCircle size={18} />
+                <span className="text-sm font-medium">Paie réalisée</span>
               </div>
               <div className="text-2xl font-bold">{reportData.summary.realizedPay.toFixed(2)} €</div>
-              <div className="text-[10px] opacity-70 mt-1 uppercase font-bold italic">Validé en base</div>
+              <div className="text-[10px] opacity-70 mt-1 uppercase font-black">
+                Dont {reportData.summary.realizedTravelCost.toFixed(2)} € de frais de déplacement
+              </div>
             </div>
 
             <div className="bg-blue-600 p-5 rounded-2xl shadow-lg shadow-blue-100 dark:shadow-none text-white">
               <div className="flex items-center gap-3 mb-2 opacity-80">
                 <Calendar size={18} />
-                <span className="text-sm font-medium">Coûts à venir</span>
+                <span className="text-sm font-medium">Paie à venir</span>
               </div>
               <div className="text-2xl font-bold">{reportData.summary.plannedPay.toFixed(2)} €</div>
-              <div className="text-[10px] opacity-70 mt-1 uppercase font-bold italic">Activités prévisionnelles</div>
+              <div className="text-[10px] opacity-70 mt-1 uppercase font-black">
+                Dont {reportData.summary.plannedTravelCost.toFixed(2)} € de frais prévus
+              </div>
             </div>
 
-            <div className="bg-slate-800 p-5 rounded-2xl shadow-lg dark:bg-slate-700 text-white md:col-span-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-white/10 rounded-lg"><Euro size={18} /></div>
-                  <div>
-                    <span className="text-sm font-medium opacity-80">Total Dépenses de Fonctionnement</span>
-                    <div className="text-3xl font-black">{reportData.summary.totalExpenses.toFixed(2)} €</div>
-                  </div>
+            <div className="bg-slate-800 p-5 rounded-2xl shadow-lg dark:bg-slate-900 text-white md:col-span-2">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/10 rounded-lg"><Euro size={18} /></div>
+                <div>
+                  <span className="text-xs font-medium opacity-80 uppercase tracking-wider">Total Dépenses Fonctionnement</span>
+                  <div className="text-2xl font-black">{reportData.summary.totalExpenses.toFixed(2)} €</div>
                 </div>
-                <div className="text-right">
-                    <span className="text-[10px] font-bold uppercase opacity-60">Impact sur Trésorerie</span>
-                    <div className="text-xl font-bold">{(reportData.summary.realizedPay + reportData.summary.totalExpenses).toFixed(2)} €</div>
+              </div>
+            </div>
+
+            <div className="bg-rose-700 p-5 rounded-2xl shadow-lg text-white md:col-span-2">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/10 rounded-lg"><TrendingUp size={18} /></div>
+                <div>
+                  <span className="text-xs font-medium opacity-80 uppercase tracking-wider">Impact sur Trésorerie</span>
+                  <div className="text-2xl font-black">{(reportData.summary.realizedPay + reportData.summary.totalExpenses).toFixed(2)} €</div>
+                  <div className="text-[10px] opacity-60">Total Paies + Dépenses</div>
                 </div>
               </div>
             </div>
@@ -688,20 +709,27 @@ export default function ReportsPage() {
 
             {/* EXPENSES BREAKDOWN CARD */}
             <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col col-span-3 lg:col-span-1">
-              <div className="flex justify-between items-center mb-6">
+              <div className="flex justify-between items-center mb-2">
                 <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 uppercase tracking-tight">Détail des Dépenses</h3>
                 <Euro size={20} className="text-emerald-500 opacity-50" />
+              </div>
+              <div className="mb-4 flex items-center gap-1.5 grayscale opacity-60">
+                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Validées par l'administrateur</span>
               </div>
 
               <div className="flex-1 overflow-y-auto max-h-[500px] space-y-3 pr-2 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
                 {reportData.expenses && reportData.expenses.length > 0 ? (
-                  reportData.expenses.map((expense, i) => (
+                  reportData.expenses.map((expense: any, i) => (
                     <div key={i} className="p-3 bg-emerald-50/50 dark:bg-emerald-500/5 rounded-xl border border-emerald-100/50 dark:border-emerald-500/20 flex justify-between items-center group">
-                      <div>
-                        <div className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">{new Date(expense.date).toLocaleDateString('fr-FR')}</div>
-                        <div className="text-sm font-black text-slate-700 dark:text-slate-200 truncate max-w-[150px]">{expense.motif}</div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                           <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">{new Date(expense.date).toLocaleDateString('fr-FR')}</span>
+                           <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase truncate">| {expense.user?.name || 'Inconnu'}</span>
+                        </div>
+                        <div className="text-sm font-black text-slate-700 dark:text-slate-200 truncate">{expense.motif}</div>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right ml-4">
                         <div className="text-sm font-black text-emerald-600 dark:text-emerald-400">{expense.amount.toFixed(2)} €</div>
                       </div>
                     </div>

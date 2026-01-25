@@ -30,6 +30,9 @@ export async function GET() {
       },
     });
 
+    const patientCount = await prisma.patient.count();
+    const hidePatientLabel = patientCount === 1;
+
     // Fonction déterministe pour générer une couleur à partir de l'ID utilisateur
     const getUserColor = (id: string) => {
       let hash = 0;
@@ -42,7 +45,7 @@ export async function GET() {
 
     // Formater les données pour être compatibles avec FullCalendar
     const formattedEvents = assignments.map((assignment) => {
-      let backgroundColor = assignment.user.color || getUserColor(assignment.userId);
+      let backgroundColor = (assignment.user as any).color || getUserColor(assignment.userId);
 
       if (assignment.status === AssignmentStatus.COMPLETED) {
         // Optionnel : On peut garder le vert pour le complété ou mixer avec la couleur
@@ -50,18 +53,22 @@ export async function GET() {
 
       const start = new Date(assignment.startTime);
       const end = new Date(assignment.endTime);
-      const timeStr = `${start.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
+
+      const patientName = `${assignment.patient.firstName} ${assignment.patient.lastName}`;
+      const title = hidePatientLabel
+        ? (assignment.user.name || 'Inc.')
+        : `${assignment.user.name || 'Inc.'} - ${patientName}`;
 
       return {
         id: assignment.id.toString(),
-        title: `${assignment.user.name || 'Inc.'} - ${assignment.patient.firstName} ${assignment.patient.lastName}`,
+        title,
         start: assignment.startTime,
         end: assignment.endTime,
         backgroundColor,
         borderColor: backgroundColor,
         extendedProps: {
           workerName: assignment.user.name,
-          patientName: `${assignment.patient.firstName} ${assignment.patient.lastName}`,
+          patientName: hidePatientLabel ? '' : patientName,
           status: assignment.status
         }
       };

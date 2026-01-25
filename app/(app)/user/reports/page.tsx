@@ -34,7 +34,13 @@ import {
   TrendingUp,
   Clock,
   Euro,
-  MapPin
+  MapPin,
+  CheckCircle,
+  Zap,
+  CreditCard,
+  FileText,
+  Search,
+  Filter
 } from 'lucide-react';
 
 // Définir les types
@@ -68,11 +74,20 @@ interface DistributionEntry {
   value: number;
 }
 
+interface ExpenseEntry {
+  id: number;
+  motif: string;
+  amount: number;
+  date: string;
+  user?: { name: string | null };
+}
+
 interface ReportData {
   workedHours: DetailedEntry[];
   chartData: ChartEntry[];
   dailySummaries: DailySummary[];
   distributionData: DistributionEntry[];
+  expenses: ExpenseEntry[];
   summary: {
     realizedHours: number;
     realizedPay: number;
@@ -83,6 +98,7 @@ interface ReportData {
     totalPay: number;
     totalHours: number;
     totalTravelCost: number;
+    totalExpenses: number;
   };
 }
 
@@ -123,6 +139,14 @@ export default function UserReportsPage() {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [activeMonths, setActiveMonths] = useState<{ year: number, month: number }[]>([]);
+
+  const handleYearSelect = (year: number) => {
+    setSelectedYear(year);
+    // Extrait le mois actuel de startDate pour le basculer sur la nouvelle année
+    const [_, mStr] = startDate.split('-');
+    const currentMonthIndex = parseInt(mStr, 10) - 1;
+    handleMonthSelect(currentMonthIndex, year);
+  };
 
   // Liste des mois pour le sélecteur
   const allMonths = [
@@ -297,6 +321,51 @@ export default function UserReportsPage() {
         bodyStyles: { fontSize: 8 },
         columnStyles: { 5: { halign: 'right' }, 6: { halign: 'right' } }
       });
+
+      currentY = (doc as any).lastAutoTable.finalY + 15;
+    }
+
+    // --- 6. EXPENSES TABLE ---
+    if (options.financialSummary && reportData.expenses && reportData.expenses.length > 0) {
+        if (currentY > 250) { doc.addPage(); currentY = 20; }
+
+        doc.setTextColor(16, 185, 129); // Emerald 500
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Détail de mes Dépenses', 14, currentY);
+
+        autoTable(doc, {
+            startY: currentY + 5,
+            head: [['Date', 'Motif de la dépense', 'Montant']],
+            body: reportData.expenses.map(exp => [
+                new Date(exp.date).toLocaleDateString('fr-FR'),
+                exp.motif,
+                `${exp.amount.toFixed(2)} €`
+            ]),
+            headStyles: { fillColor: [16, 185, 129] },
+            columnStyles: {
+                2: { halign: 'right', fontStyle: 'bold' }
+            }
+        });
+
+        currentY = (doc as any).lastAutoTable.finalY + 10;
+        doc.setFontSize(10);
+        doc.setTextColor(30, 41, 59);
+        doc.text(`TOTAL MES DÉPENSES : ${reportData.summary.totalExpenses.toFixed(2)} €`, 196, currentY + 5, { align: 'right' });
+    }
+
+    // --- 6. MODERN FOOTER ---
+    const pageCount = (doc as any).internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(10);
+        doc.setTextColor(148, 163, 184);
+
+        doc.setDrawColor(226, 232, 240);
+        doc.line(14, 285, 196, 285);
+
+        doc.text(`AGENDA PRO - © Michel ESPARSA`, 14, 290);
+        doc.text(`Page ${i} sur ${pageCount}`, 185, 290);
     }
 
     doc.save(`Mon_Rapport_${startDate}.pdf`);
@@ -312,7 +381,7 @@ export default function UserReportsPage() {
            {[2025, 2026].map(year => (
              <button
                 key={year}
-                onClick={() => setSelectedYear(year)}
+                onClick={() => handleYearSelect(year)}
                 className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   selectedYear === year ? 'bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-900 shadow-md' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
                 }`}
@@ -332,19 +401,20 @@ export default function UserReportsPage() {
               const isActive = year === selectedYear && monthIndex === m.value;
               const hasActivity = activeMonths.some((am) => am.year === selectedYear && am.month === m.value);
 
-              if (!hasActivity && !isActive) return null;
-
               return (
                 <button
                   key={m.value}
                   onClick={() => handleMonthSelect(m.value)}
-                  className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                  className={`px-4 py-2 rounded-xl text-sm font-bold transition-all relative ${
                     isActive
                       ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 dark:shadow-none'
                       : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-100 dark:border-slate-700'
                   }`}
                 >
                   {m.name}
+                  {hasActivity && !isActive && (
+                    <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-blue-500 rounded-full" />
+                  )}
                 </button>
               );
             })}
@@ -363,9 +433,14 @@ export default function UserReportsPage() {
           </div>
         )}
 
-        <div className="flex-1">
-          <h2 className="text-xl font-bold dark:text-white">Récapitulatif de ma période</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Consultez vos heures et votre paie estimée</p>
+        <div className="flex-1 min-w-[200px]">
+           <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5 flex items-center gap-2">
+            <FileText size={14} />
+            <span>Période de Rapport</span>
+          </label>
+          <div className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold dark:text-slate-200 text-sm">
+             {new Date(startDate).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).toUpperCase()}
+          </div>
         </div>
 
         <div>
@@ -376,7 +451,7 @@ export default function UserReportsPage() {
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-slate-200"
+            className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-slate-200 font-bold"
           />
         </div>
 
@@ -388,7 +463,7 @@ export default function UserReportsPage() {
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-slate-200"
+            className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-slate-200 font-bold"
           />
         </div>
 
@@ -407,8 +482,9 @@ export default function UserReportsPage() {
       {reportData && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
-          {/* STATS GRID */}
+          {/* STATS GRID - EXACTLY LIKE ADMIN */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+
             <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
               <div className="flex items-center gap-3 mb-2 text-slate-500 dark:text-slate-400">
                 <div className="p-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg"><Clock size={18} /></div>
@@ -420,7 +496,7 @@ export default function UserReportsPage() {
 
             <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
               <div className="flex items-center gap-3 mb-2 text-slate-500 dark:text-slate-400">
-                <div className="p-2 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg"><Euro size={18} /></div>
+                <div className="p-2 bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-lg"><MapPin size={18} /></div>
                 <span className="text-sm font-medium">Frais de Déplacement</span>
               </div>
               <div className="text-2xl font-bold text-slate-800 dark:text-slate-100">{reportData.summary.realizedTravelCost.toFixed(2)} €</div>
@@ -429,20 +505,46 @@ export default function UserReportsPage() {
 
             <div className="bg-emerald-600 p-5 rounded-2xl shadow-lg shadow-emerald-100 dark:shadow-none text-white">
               <div className="flex items-center gap-3 mb-2 opacity-80">
-                <TrendingUp size={18} />
-                <span className="text-sm font-medium">Ma Paie Réalisée</span>
+                <CheckCircle size={18} />
+                <span className="text-sm font-medium">Paie réalisée</span>
               </div>
               <div className="text-2xl font-bold">{reportData.summary.realizedPay.toFixed(2)} €</div>
-              <div className="text-[10px] opacity-70 mt-1 uppercase font-bold italic">Activités validées</div>
+              <div className="text-[10px] opacity-70 mt-1 uppercase font-black">
+                Dont {reportData.summary.realizedTravelCost.toFixed(2)} € de frais de déplacement
+              </div>
             </div>
 
             <div className="bg-blue-600 p-5 rounded-2xl shadow-lg shadow-blue-100 dark:shadow-none text-white">
               <div className="flex items-center gap-3 mb-2 opacity-80">
                 <Calendar size={18} />
-                <span className="text-sm font-medium">À Venir</span>
+                <span className="text-sm font-medium">Paie à venir</span>
               </div>
               <div className="text-2xl font-bold">{reportData.summary.plannedPay.toFixed(2)} €</div>
-              <div className="text-[10px] opacity-70 mt-1 uppercase font-bold italic">Activités prévisionnelles</div>
+              <div className="text-[10px] opacity-70 mt-1 uppercase font-black">
+                Dont {reportData.summary.plannedTravelCost.toFixed(2)} € de frais prévus
+              </div>
+            </div>
+
+            {/* Row 2 - Exactly like Admin */}
+            <div className="bg-slate-800 p-5 rounded-2xl shadow-lg dark:bg-slate-900 text-white md:col-span-2">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/10 rounded-lg"><Euro size={18} /></div>
+                <div>
+                  <span className="text-xs font-medium opacity-80 uppercase tracking-wider">Total Dépenses Fonctionnement</span>
+                  <div className="text-2xl font-black">{reportData.summary.totalExpenses.toFixed(2)} €</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-rose-700 p-5 rounded-2xl shadow-lg text-white md:col-span-2">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/10 rounded-lg"><TrendingUp size={18} /></div>
+                <div>
+                  <span className="text-xs font-medium opacity-80 uppercase tracking-wider">Impact sur Trésorerie</span>
+                  <div className="text-2xl font-black">{(reportData.summary.realizedPay + reportData.summary.totalExpenses).toFixed(2)} €</div>
+                  <div className="text-[10px] opacity-60">Total Paie + Dépenses</div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -487,17 +589,17 @@ export default function UserReportsPage() {
               </div>
             </div>
 
-            {/* PIE CHART CARD (Distribution by Patient) */}
+            {/* PIE CHART CARD (Distribution) */}
             <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
               <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-6 flex items-center gap-2">
                 <TrendingUp size={20} className="text-blue-500 dark:text-blue-400" />
-                Répartition par Patient
+                Répartition des Activités
               </h3>
               <div className="h-[300px] w-full" id="pie-chart-container">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={reportData.distributionData.filter(d => d.name !== 'Autres intervenants')}
+                      data={reportData.distributionData}
                       cx="50%"
                       cy="50%"
                       innerRadius={60}
@@ -529,43 +631,64 @@ export default function UserReportsPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* DETAILS CARD */}
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col col-span-3">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col col-span-3 lg:col-span-2">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Détails de mes interventions</h3>
-                <button
-                  onClick={() => setIsExportModalOpen(true)}
-                  className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
-                  title="Exporter en PDF"
-                >
-                  <Download size={20} />
-                </button>
+                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 uppercase tracking-tight">Journal des Interventions</h3>
+                <Download size={20} className="text-blue-500 opacity-50" />
               </div>
 
-              <div className="flex-1 overflow-y-auto max-h-[500px] space-y-3 pr-2 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
+              <div className="flex-1 overflow-y-auto max-h-[500px] space-y-3 pr-2 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700 text-xs">
                 {reportData.workedHours.map((entry, i) => (
-                  <div key={i} className="p-3 bg-slate-50 dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-700 flex justify-between items-center">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-bold text-slate-400 dark:text-slate-500">{entry.date}</span>
-                        <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-md ${
-                          entry.isRealized
-                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400'
-                            : 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400'
-                        }`}>
+                  <div key={i} className="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-700">
+                    <div className="flex justify-between items-start mb-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-slate-400">{entry.date}</span>
+                        <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-md ${entry.isRealized ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20' : 'bg-amber-100 text-amber-700'}`}>
                           {entry.isRealized ? 'Vérifié' : 'Projeté'}
                         </span>
-                        <span className="text-sm font-bold text-slate-700 dark:text-slate-200 ml-1">{entry.patient}</span>
                       </div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400">{entry.startTime} - {entry.endTime}</div>
+                      <span className="font-bold text-blue-600">{entry.duration} h</span>
                     </div>
-                    <div className="text-right">
-                      <div className="text-sm font-bold text-blue-600 dark:text-blue-400">{entry.duration} h</div>
-                      <div className="text-xs font-medium text-slate-400 dark:text-slate-500">
-                        {entry.isRealized ? 'Payé' : 'À venir'}: {entry.pay} €
-                      </div>
+                    <div className="font-bold text-slate-700 dark:text-slate-200">{entry.patient}</div>
+                    <div className="text-slate-500 mt-1 uppercase text-[10px] font-bold">
+                        {entry.startTime} - {entry.endTime} | <span className="text-slate-800 dark:text-white">{entry.pay} €</span>
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+
+            {/* EXPENSES BREAKDOWN CARD */}
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col col-span-3 lg:col-span-1">
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 uppercase tracking-tight">Détail des Dépenses</h3>
+                <Euro size={20} className="text-emerald-500 opacity-50" />
+              </div>
+              <div className="mb-4 flex items-center gap-1.5 grayscale opacity-60">
+                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Validées par l'administrateur</span>
+              </div>
+
+              <div className="flex-1 overflow-y-auto max-h-[500px] space-y-3 pr-2 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
+                {reportData.expenses && reportData.expenses.length > 0 ? (
+                  reportData.expenses.map((expense, i) => (
+                    <div key={i} className="p-3 bg-emerald-50/50 dark:bg-emerald-500/5 rounded-xl border border-emerald-100/50 dark:border-emerald-500/20 flex justify-between items-center group">
+                      <div className="min-w-0 flex-1">
+                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">{new Date(expense.date).toLocaleDateString('fr-FR')}</span>
+                        <div className="text-sm font-black text-slate-700 dark:text-slate-200 truncate">{expense.motif}</div>
+                      </div>
+                      <div className="text-right ml-4">
+                        <div className="text-sm font-black text-emerald-600 dark:text-emerald-400">{expense.amount.toFixed(2)} €</div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-10 text-slate-400 italic text-sm">Aucune dépense sur cette période</div>
+                )}
+              </div>
+              <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-baseline font-black font-black">
+                 <span className="text-xs text-slate-400 uppercase">Total Dépenses</span>
+                 <span className="text-xl text-slate-800 dark:text-white">{reportData.summary.totalExpenses.toFixed(2)} €</span>
               </div>
             </div>
           </div>

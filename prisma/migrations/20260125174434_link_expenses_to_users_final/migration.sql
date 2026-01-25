@@ -16,15 +16,8 @@ DROP INDEX `InvoiceLineItem_invoiceId_fkey` ON `invoicelineitem`;
 -- DropIndex
 DROP INDEX `Session_userId_fkey` ON `session`;
 
--- CreateTable
-CREATE TABLE `Expense` (
-    `id` INTEGER NOT NULL AUTO_INCREMENT,
-    `motif` VARCHAR(191) NOT NULL,
-    `amount` DOUBLE NOT NULL,
-    `date` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-
-    PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+-- AlterTable
+ALTER TABLE `expense` ADD COLUMN `userId` VARCHAR(191) NULL;
 
 -- AddForeignKey
 ALTER TABLE `Assignment` ADD CONSTRAINT `Assignment_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
@@ -34,6 +27,9 @@ ALTER TABLE `Assignment` ADD CONSTRAINT `Assignment_patientId_fkey` FOREIGN KEY 
 
 -- AddForeignKey
 ALTER TABLE `WorkedHours` ADD CONSTRAINT `WorkedHours_assignmentId_fkey` FOREIGN KEY (`assignmentId`) REFERENCES `Assignment`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Expense` ADD CONSTRAINT `Expense_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `Invoice` ADD CONSTRAINT `Invoice_patientId_fkey` FOREIGN KEY (`patientId`) REFERENCES `Patient`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;

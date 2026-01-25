@@ -11,7 +11,8 @@ export async function GET() {
   }
 
   try {
-    const expenses = await prisma.expense.findMany({
+    const expenses = await (prisma as any).expense.findMany({
+      include: { user: true },
       orderBy: { date: 'desc' },
     });
     return NextResponse.json(expenses);
@@ -28,16 +29,17 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { motif, amount, date } = await request.json();
-    if (!motif || amount === undefined || !date) {
+    const { motif, amount, date, userId } = await request.json();
+    if (!motif || amount === undefined || !date || !userId) {
       return new NextResponse('Données manquantes', { status: 400 });
     }
 
-    const expense = await prisma.expense.create({
+    const expense = await (prisma as any).expense.create({
       data: {
         motif,
         amount: parseFloat(amount),
         date: new Date(date),
+        userId: userId
       },
     });
 

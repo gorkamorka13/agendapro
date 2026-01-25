@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useTitle } from '@/components/TitleContext';
 import ExpenseModal from '@/components/ExpenseModal';
-import { Plus, Edit2, Trash2, Euro, Calendar, FileText } from 'lucide-react';
+import { Plus, Edit2, Trash2, Euro, Calendar, FileText, User as UserIcon } from 'lucide-react';
 
 export default function ExpensesPage() {
   const { setTitle } = useTitle();
@@ -74,26 +74,32 @@ export default function ExpensesPage() {
                 <div className="p-3 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-2xl">
                   <FileText size={24} />
                 </div>
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => handleOpenModal(expense)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors text-slate-500 dark:text-slate-400">
-                    <Edit2 size={16} />
-                  </button>
-                  <button onClick={() => handleDelete(expense.id)} className="p-2 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-colors text-red-500">
-                    <Trash2 size={16} />
-                  </button>
+                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity text-xs font-bold">
+                    <button onClick={() => handleOpenModal(expense)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                        <Edit2 size={16} />
+                    </button>
+                    <button onClick={() => handleDelete(expense.id)} className="p-2 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-colors text-red-500 flex items-center gap-1">
+                        <Trash2 size={16} />
+                    </button>
                 </div>
               </div>
               <div className="space-y-4">
                 <div>
+                    <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-md border border-indigo-100 dark:border-indigo-800 flex items-center gap-1">
+                            <UserIcon size={10} />
+                            {expense.user?.name || 'Système'}
+                        </span>
+                    </div>
                   <h3 className="text-lg font-black text-slate-800 dark:text-white truncate">{expense.motif}</h3>
-                  <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-wider mt-1">
+                  <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-wider mt-1">
                     <Calendar size={12} />
-                    {new Date(expense.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    {new Date(expense.date).toLocaleDateString('fr-FR')}
                   </div>
                 </div>
                 <div className="pt-4 border-t border-slate-50 dark:border-slate-700/50 flex items-center justify-between">
-                  <span className="text-[10px] font-black text-slate-400 uppercase">Montant</span>
-                  <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{expense.amount.toFixed(2)} €</span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Montant de la dépense</span>
+                  <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 whitespace-nowrap">{expense.amount.toFixed(2)} €</span>
                 </div>
               </div>
             </div>

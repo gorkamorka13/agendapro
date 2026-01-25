@@ -127,15 +127,22 @@ export async function GET(request: Request) {
     });
 
     // 2. Récupérer les dépenses de la période
-    const expenses = await (prisma as any).expense.findMany({
+    const expensesQuery: any = {
       where: {
         date: {
           gte: startDate,
           lt: endDate,
         },
       },
+      include: { user: true },
       orderBy: { date: 'asc' },
-    });
+    };
+
+    if (userId !== 'all') {
+      expensesQuery.where.userId = userId;
+    }
+
+    const expenses = await (prisma as any).expense.findMany(expensesQuery);
 
     const totalExpenses = expenses.reduce((sum: number, exp: any) => sum + exp.amount, 0);
 
@@ -162,9 +169,10 @@ export async function GET(request: Request) {
         plannedHours: plannedTotalMinutes / 60,
         plannedPay: plannedTotalPay,
         plannedTravelCost: plannedTotalTravelCost,
-        totalExpenses, // Nouveau total
-        totalPay: realizedTotalPay, // Fallback compat
-        totalHours: realizedTotalMinutes / 60 // Fallback compat
+        totalExpenses,
+        totalPay: realizedTotalPay, // Paie effectivement due
+        totalHours: realizedTotalMinutes / 60,
+        expectedPay: plannedTotalPay // Paie à venir
       },
     });
 

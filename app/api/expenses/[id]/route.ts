@@ -14,15 +14,16 @@ export async function PUT(
   }
 
   try {
-    const { motif, amount, date } = await request.json();
+    const { motif, amount, date, userId } = await request.json();
     const id = parseInt(params.id, 10);
 
-    const expense = await prisma.expense.update({
+    const expense = await (prisma as any).expense.update({
       where: { id },
       data: {
         motif,
         amount: parseFloat(amount),
         date: new Date(date),
+        userId: userId
       },
     });
 
@@ -44,7 +45,7 @@ export async function DELETE(
 
   try {
     const id = parseInt(params.id, 10);
-    await prisma.expense.delete({
+    await (prisma as any).expense.delete({
       where: { id },
     });
     return new NextResponse(null, { status: 204 });
