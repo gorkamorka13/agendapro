@@ -45,20 +45,25 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
 
   useEffect(() => {
     const fetchData = async () => {
-      const [usersRes, patientsRes] = await Promise.all([ fetch('/api/users'), fetch('/api/patients') ]);
-      setUsers(await usersRes.json());
-      setPatients(await patientsRes.json());
+      try {
+        const [usersRes, patientsRes] = await Promise.all([fetch('/api/users'), fetch('/api/patients')]);
+        if (usersRes.ok) setUsers(await usersRes.json());
+        if (patientsRes.ok) setPatients(await patientsRes.json());
+      } catch (error) {
+        console.error("Erreur lors de la récupération des données initiales:", error);
+      }
     };
     if (isOpen) {
-        fetchData();
+      fetchData();
     }
   }, [isOpen]);
 
   useEffect(() => {
     if (isEditing && isOpen) {
       const fetchAssignmentData = async () => {
-        const response = await fetch(`/api/assignments/${assignmentId}`);
-        if (response.ok) {
+        try {
+          const response = await fetch(`/api/assignments/${assignmentId}`);
+          if (response.ok) {
             const data = await response.json();
             setUserId(data.userId);
             setPatientId(data.patientId.toString());
@@ -69,8 +74,12 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
             setDate(start.toISOString().split('T')[0]);
             setStartTime(start.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }).replace(':', 'h').replace('h', ':'));
             setEndTime(end.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }).replace(':', 'h').replace('h', ':'));
-        } else {
+          } else {
             onClose();
+          }
+        } catch (error) {
+          console.error("Erreur chargement intervention:", error);
+          onClose();
         }
       };
       fetchAssignmentData();

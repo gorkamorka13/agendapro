@@ -2,7 +2,7 @@
 
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import { Role } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 
@@ -114,7 +114,7 @@ export async function GET(request: Request) {
     let totalTravelCost = 0;
     let totalPay = 0;
 
-    const detailedEntries = workedHoursEntries.map(entry => {
+    const detailedEntries = (workedHoursEntries as any[]).map(entry => {
       const start = new Date(entry.startTime);
       const end = new Date(entry.endTime);
       const durationMinutes = (end.getTime() - start.getTime()) / (1000 * 60);

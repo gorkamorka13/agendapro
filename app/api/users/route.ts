@@ -3,25 +3,29 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcrypt';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '../auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Role } from '@prisma/client';
 
 export async function GET() {
   const session = await getServerSession(authOptions);
 
-  // Sécurité : Seul un administrateur peut obtenir la liste des utilisateurs
-  if (session?.user?.role !== Role.ADMIN) {
-    return new NextResponse('Accès refusé', { status: 403 });
+  if (!session?.user) {
+    return new NextResponse('Non autorisé', { status: 401 });
   }
 
   try {
+    let whereClause = {};
+    if (session.user.role !== Role.ADMIN) {
+      whereClause = { id: session.user.id };
+    } else {
+      whereClause = { role: { not: Role.ADMIN } };
+    }
+
     const users = await prisma.user.findMany({
-      where: {
-        role: { not: Role.ADMIN }
-      },
+      where: whereClause,
       orderBy: {
-        name: 'asc', // Ordonner les utilisateurs par ordre alphabétique
+        name: 'asc',
       },
     });
 

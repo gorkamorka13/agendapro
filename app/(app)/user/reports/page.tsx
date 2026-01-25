@@ -349,7 +349,7 @@ export default function UserReportsPage() {
       {/* YEAR & MONTH SELECTOR */}
       <div className="flex flex-wrap items-center gap-4">
         <div className="flex bg-white dark:bg-slate-800 p-1 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700">
-           {[2024, 2025, 2026].map(year => (
+           {[2025, 2026].map(year => (
              <button
                 key={year}
                 onClick={() => setSelectedYear(year)}

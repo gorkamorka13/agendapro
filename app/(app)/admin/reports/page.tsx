@@ -156,16 +156,21 @@ export default function ReportsPage() {
   useEffect(() => {
     const fetchUsers = async () => {
       const res = await fetch('/api/users');
-      const allUsers: User[] = await res.json();
-      const intervenants = allUsers.filter((u) => u.role !== 'ADMIN' && (u.hourlyRate !== null || u.role === 'USER'));
-      setUsers(intervenants);
-      if (intervenants.length > 0 && !selectedUserId) {
-        setSelectedUserId('all');
+      if (res.ok) {
+        const allUsers: User[] = await res.json();
+        const intervenants = allUsers.filter((u) => u.role !== 'ADMIN' && (u.hourlyRate !== null || u.role === 'USER'));
+        setUsers(intervenants);
+        if (intervenants.length > 0 && !selectedUserId) {
+          setSelectedUserId('all');
+        }
+      } else {
+        const errorText = await res.text();
+        console.error(`Erreur chargement utilisateurs: ${errorText}`);
       }
     };
     fetchUsers();
     setTitle("Rapports & Analytics");
-  }, [setTitle]);
+  }, [setTitle, selectedUserId]);
 
   // Génération automatique du rapport
   useEffect(() => {
@@ -380,7 +385,7 @@ export default function ReportsPage() {
       {/* YEAR & MONTH SELECTOR */}
       <div className="flex flex-wrap items-center gap-4">
         <div className="flex bg-white dark:bg-slate-800 p-1 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700">
-           {[2024, 2025, 2026].map(year => (
+           {[2025, 2026].map(year => (
              <button
                 key={year}
                 onClick={() => setSelectedYear(year)}
