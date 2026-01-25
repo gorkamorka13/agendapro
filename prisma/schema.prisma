@@ -121,7 +121,7 @@ model Invoice {
   totalAmount   Float         // Montant total de la facture
 
   // --- Relations ---
-  patient       Patient         @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  patient       Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
   patientId     Int
   lineItems     InvoiceLineItem[] // Lignes de la facture
 }
@@ -176,4 +176,18 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+// =====================================================================
+// 6. MODÈLE POUR LES DÉPENSES DE FONCTIONNEMENT
+// =====================================================================
+
+model Expense {
+  id        Int      @id @default(autoincrement())
+  motif     String
+  amount    Float
+  date      DateTime @default(now())
+
+  // --- Relations ---
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
 }

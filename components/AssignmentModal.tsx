@@ -22,6 +22,7 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
   const [patientId, setPatientId] = useState('');
   const [status, setStatus] = useState<AssignmentStatus>(AssignmentStatus.PLANNED);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showOverlapWarning, setShowOverlapWarning] = useState(false);
 
   // States for Date and Hours
   const [date, setDate] = useState('');
@@ -30,15 +31,16 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
   const [duration, setDuration] = useState('1h 00m');
 
   const isEditing = assignmentId !== null;
-  const isCompleted = status === AssignmentStatus.COMPLETED;
-  const isAdmin = session?.user?.role === Role.ADMIN;
+  const isCompleted = status === 'COMPLETED';
+  const isAdmin = session?.user?.role === 'ADMIN';
   const isOwner = isEditing && session?.user?.id === userId;
   const hasPermission = isAdmin || (isOwner && !isCompleted);
 
   const resetForm = () => {
     setUserId(session?.user?.id || '');
     setPatientId('');
-    setStatus(AssignmentStatus.PLANNED);
+    setStatus('PLANNED' as any);
+    setShowOverlapWarning(false);
     if (selectedDate) {
       const d = new Date(selectedDate);
       setDate(d.toISOString().split('T')[0]);
@@ -55,7 +57,6 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
         if (patientsRes.ok) {
           const fetchedPatients = await patientsRes.json();
           setPatients(fetchedPatients);
-          // Si un seul patient, on le sélectionne d'office
           if (fetchedPatients.length === 1 && !isEditing) {
             setPatientId(fetchedPatients[0].id.toString());
           }
@@ -110,9 +111,9 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
 
   if (!isOpen) return null;
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (isSubmitting) return;
+  const handleSubmit = async (e: FormEvent, ignoreConflict = false) => {
+    if (e) e.preventDefault();
+    if (isSubmitting && !ignoreConflict) return;
     setIsSubmitting(true);
     try {
       const startObj = new Date(`${date}T${startTime.replace('h', ':')}:00`);
@@ -125,12 +126,20 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, patientId, startTime: startObj.toISOString(), endTime: endObj.toISOString() }),
+        body: JSON.stringify({
+          userId,
+          patientId,
+          startTime: startObj.toISOString(),
+          endTime: endObj.toISOString(),
+          ignoreConflict
+        }),
       });
 
       if (response.ok) {
         onSave();
         onClose();
+      } else if (response.status === 409) {
+          setShowOverlapWarning(true);
       } else {
         const msg = await response.text();
         alert(msg || "Erreur lors de l'enregistrement");
@@ -199,6 +208,7 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
               <CheckCircle size={16} className="text-emerald-500" /> Intervention terminée.
             </div>
           )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             <div className="space-y-1.5">
               <label className="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase flex items-center gap-2">
@@ -211,14 +221,14 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
                   />
                 )}
               </label>
-              <select value={userId} onChange={(e) => setUserId(e.target.value)} required disabled={!isAdmin || isCompleted} className="w-full p-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-medium text-slate-700 dark:text-slate-200">
+              <select value={userId} onChange={(e) => setUserId(e.target.value)} required disabled={(isCompleted && !isAdmin) || showOverlapWarning} className="w-full p-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-medium text-slate-700 dark:text-slate-200">
                 <option value="">Sélectionner...</option>
                 {users.map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}
               </select>
             </div>
             <div className="space-y-1.5">
               <label className="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase flex items-center gap-2"><Heart size={12} className="text-rose-500" /> Patient</label>
-              <select value={patientId} onChange={(e) => setPatientId(e.target.value)} required disabled={isCompleted} className="w-full p-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-medium text-slate-700 dark:text-slate-200">
+              <select value={patientId} onChange={(e) => setPatientId(e.target.value)} required disabled={(isCompleted && !isAdmin) || showOverlapWarning} className="w-full p-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-medium text-slate-700 dark:text-slate-200">
                 <option value="">Sélectionner...</option>
                 {patients.map((patient) => <option key={patient.id} value={patient.id}>{patient.firstName} {patient.lastName}</option>)}
               </select>
@@ -226,18 +236,18 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
           </div>
           <div className="space-y-1.5">
             <label className="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase flex items-center gap-2"><Calendar size={12} className="text-indigo-500" /> Date</label>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required disabled={!hasPermission} className="w-full p-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-bold text-slate-700 dark:text-slate-200" />
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required disabled={!hasPermission || showOverlapWarning} className="w-full p-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-bold text-slate-700 dark:text-slate-200" />
           </div>
           <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 space-y-3">
             <div className="flex items-center justify-between gap-3">
               <div className="flex-1 space-y-1.5">
                 <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase">Début</label>
-                <input type="time" step="1800" value={startTime} onChange={(e) => setStartTime(e.target.value)} required disabled={!hasPermission} className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg font-bold" />
+                <input type="time" step="1800" value={startTime} onChange={(e) => setStartTime(e.target.value)} required disabled={!hasPermission || showOverlapWarning} className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg font-bold dark:text-slate-100" />
               </div>
               <Clock size={20} className="mt-6 text-slate-300" />
               <div className="flex-1 space-y-1.5">
                 <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase">Fin</label>
-                <input type="time" step="1800" value={endTime} onChange={(e) => setEndTime(e.target.value)} required disabled={!hasPermission} className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg font-bold" />
+                <input type="time" step="1800" value={endTime} onChange={(e) => setEndTime(e.target.value)} required disabled={!hasPermission || showOverlapWarning} className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg font-bold dark:text-slate-100" />
               </div>
             </div>
             <div className="text-center pt-2 border-t border-slate-200/50 dark:border-slate-700">
@@ -245,19 +255,50 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
               <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-black">{duration}</span>
             </div>
           </div>
+
+          {showOverlapWarning && (
+            <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20 p-4 rounded-2xl space-y-3 animate-in slide-in-from-top-2 duration-300">
+              <div className="flex items-start gap-3">
+                 <X size={20} className="text-amber-500 shrink-0 mt-0.5" />
+                 <div>
+                    <p className="text-amber-900 dark:text-amber-200 text-sm font-black leading-tight">Attention : Superposition d'activité</p>
+                    <p className="text-amber-700 dark:text-amber-400 text-xs mt-1">Cet intervenant a déjà une intervention prévue sur ce créneau. Souhaitez-vous quand même enregistrer ?</p>
+                 </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleSubmit(null as any, true)}
+                  className="flex-1 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-black uppercase transition-all shadow-lg shadow-amber-200 dark:shadow-none"
+                >
+                  Oui, chevaucher
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowOverlapWarning(false)}
+                  className="flex-1 py-1.5 bg-white dark:bg-slate-800 text-amber-600 border border-amber-200 dark:border-amber-900/50 rounded-xl text-xs font-black uppercase transition-colors"
+                >
+                  Non, ajuster
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
             {isEditing && (isAdmin || isOwner) && (
               <>
-                {!isCompleted && (
+                {!isCompleted && !showOverlapWarning && (
                   <button type="button" onClick={handleValidate} disabled={isSubmitting} className="flex items-center justify-center gap-1.5 px-2 py-2.5 bg-emerald-600 text-white rounded-xl font-black text-xs shadow-lg shadow-emerald-500/20">Valider</button>
                 )}
-                {(isAdmin || !isCompleted) && (
+                {(isAdmin || !isCompleted) && !showOverlapWarning && (
                    <button type="button" onClick={handleDelete} disabled={isSubmitting} className={`flex items-center justify-center gap-1.5 px-2 py-2.5 bg-red-50 text-red-600 border border-red-100 rounded-xl text-xs font-bold ${!isCompleted ? '' : 'col-span-1'}`}>Supprimer</button>
                 )}
               </>
             )}
-            <button type="button" onClick={onClose} disabled={isSubmitting} className={`flex items-center justify-center px-2 py-2.5 bg-slate-50 text-slate-600 border border-slate-200 rounded-xl text-xs font-bold ${(!isEditing || isCompleted) && !isAdmin ? 'col-span-2' : ''}`}>Fermer</button>
-            {hasPermission && (
+            {!showOverlapWarning && (
+              <button type="button" onClick={onClose} disabled={isSubmitting} className={`flex items-center justify-center px-2 py-2.5 bg-slate-50 text-slate-600 border border-slate-200 rounded-xl text-xs font-bold ${(!isEditing || isCompleted) && !isAdmin ? 'col-span-2' : ''}`}>Fermer</button>
+            )}
+            {hasPermission && !showOverlapWarning && (
               <button type="submit" disabled={isSubmitting} className={`flex items-center justify-center px-2 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl text-xs font-black shadow-lg ${!(isEditing && (isAdmin || isOwner)) ? 'col-span-2' : ''}`}>{isEditing ? 'Mettre à jour' : 'Créer'}</button>
             )}
           </div>

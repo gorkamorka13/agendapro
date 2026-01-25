@@ -51,11 +51,7 @@ export async function GET(request: Request) {
           gte: startDate,
           lt: endDate,
         },
-        user: {
-          role: {
-            not: Role.ADMIN
-          }
-        },
+        // On inclut tout le monde (ADMIN et USER) car les admins peuvent aussi intervenir
         status: {
           not: 'CANCELLED'
         }
@@ -130,6 +126,19 @@ export async function GET(request: Request) {
       };
     });
 
+    // 2. Récupérer les dépenses de la période
+    const expenses = await (prisma as any).expense.findMany({
+      where: {
+        date: {
+          gte: startDate,
+          lt: endDate,
+        },
+      },
+      orderBy: { date: 'asc' },
+    });
+
+    const totalExpenses = expenses.reduce((sum: number, exp: any) => sum + exp.amount, 0);
+
     const chartData = Object.entries(chartDataMap).map(([day, hours]) => ({
       day,
       hours: parseFloat(hours.toFixed(2))
@@ -145,6 +154,7 @@ export async function GET(request: Request) {
       chartData,
       dailySummaries: [], // Désactivé temporairement pour simplifier
       distributionData,
+      expenses, // Liste détaillée des dépenses
       summary: {
         realizedHours: realizedTotalMinutes / 60,
         realizedPay: realizedTotalPay,
@@ -152,6 +162,7 @@ export async function GET(request: Request) {
         plannedHours: plannedTotalMinutes / 60,
         plannedPay: plannedTotalPay,
         plannedTravelCost: plannedTotalTravelCost,
+        totalExpenses, // Nouveau total
         totalPay: realizedTotalPay, // Fallback compat
         totalHours: realizedTotalMinutes / 60 // Fallback compat
       },

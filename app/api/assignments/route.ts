@@ -19,9 +19,8 @@ export async function GET() {
   }
 
   try {
-    const whereClause = session.user.role === Role.ADMIN
-      ? {} // L'admin voit tout, donc pas de filtre
-      : { userId: session.user.id }; // L'utilisateur ne voit que ses affectations
+    // Tous les utilisateurs voient désormais l'ensemble des affectations
+    const whereClause = {};
 
     const assignments = await prisma.assignment.findMany({
       where: whereClause,
@@ -55,9 +54,7 @@ export async function GET() {
 
       return {
         id: assignment.id.toString(),
-        title: session.user.role === Role.ADMIN
-          ? assignment.user.name || 'Inconnu'
-          : `${assignment.patient.firstName} ${assignment.patient.lastName}`,
+        title: `${assignment.user.name || 'Inc.'} - ${assignment.patient.firstName} ${assignment.patient.lastName}`,
         start: assignment.startTime,
         end: assignment.endTime,
         backgroundColor,
@@ -93,7 +90,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { userId, patientId, startTime, endTime } = body;
+    const { userId, patientId, startTime, endTime, ignoreConflict } = body;
 
     if (!userId || !patientId || !startTime || !endTime) {
       return new NextResponse('Données manquantes', { status: 400 });
@@ -113,23 +110,25 @@ export async function POST(request: Request) {
       return new NextResponse('Les horaires doivent être des heures pleines ou des demi-heures (ex: 09:00, 09:30).', { status: 400 });
     }
 
-    // Vérifier les chevauchements pour cet intervenant
-    const conflict = await prisma.assignment.findFirst({
-      where: {
-        userId: userId,
-        OR: [
-          {
-            AND: [
-              { startTime: { lt: end } },
-              { endTime: { gt: start } },
-            ],
-          },
-        ],
-      },
-    });
+    // Vérifier les chevauchements pour cet intervenant (sauf si on demande explicitement d'ignorer)
+    if (!ignoreConflict) {
+      const conflict = await prisma.assignment.findFirst({
+        where: {
+          userId: userId,
+          OR: [
+            {
+              AND: [
+                { startTime: { lt: end } },
+                { endTime: { gt: start } },
+              ],
+            },
+          ],
+        },
+      });
 
-    if (conflict) {
-      return new NextResponse('Cet intervenant a déjà une intervention prévue sur ce créneau horaire.', { status: 409 });
+      if (conflict) {
+        return new NextResponse('Cet intervenant a déjà une intervention prévue sur ce créneau horaire.', { status: 409 });
+      }
     }
 
     const newAssignment = await prisma.assignment.create({

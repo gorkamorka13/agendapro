@@ -31,6 +31,12 @@ export async function PUT(
       data.hashedPassword = await bcrypt.hash(password, 12);
     }
 
+    // Sécurité: Empêcher de supprimer les droits admin de l'utilisateur 'admin'
+    const existingUser = await prisma.user.findUnique({ where: { id: params.id } });
+    if (existingUser?.name === 'admin' && role !== Role.ADMIN) {
+      return new NextResponse("Le rôle de l'utilisateur 'admin' ne peut pas être modifié.", { status: 403 });
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: params.id },
       data,
@@ -56,6 +62,11 @@ export async function DELETE(
   }
 
   try {
+    const userToDelete = await prisma.user.findUnique({ where: { id: params.id } });
+    if (userToDelete?.name === 'admin') {
+      return new NextResponse("L'utilisateur principal 'admin' ne peut pas être supprimé.", { status: 403 });
+    }
+
     await prisma.user.delete({
       where: { id: params.id },
     });

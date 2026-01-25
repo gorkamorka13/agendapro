@@ -36,29 +36,31 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { userId, patientId, startTime, endTime } = body;
+    const { userId, patientId, startTime, endTime, ignoreConflict } = body;
 
     const start = new Date(startTime);
     const end = new Date(endTime);
 
-    // Vérifier les chevauchements pour l'intervenant cible (en excluant l'affectation actuelle)
-    const conflict = await prisma.assignment.findFirst({
-      where: {
-        userId: userId,
-        id: { not: id },
-        OR: [
-          {
-            AND: [
-              { startTime: { lt: end } },
-              { endTime: { gt: start } },
-            ],
-          },
-        ],
-      },
-    });
+    // Vérifier les chevauchements (sauf si ignorer est coché)
+    if (!ignoreConflict) {
+      const conflict = await prisma.assignment.findFirst({
+        where: {
+          userId: userId,
+          id: { not: id },
+          OR: [
+            {
+              AND: [
+                { startTime: { lt: end } },
+                { endTime: { gt: start } },
+              ],
+            },
+          ],
+        },
+      });
 
-    if (conflict) {
-      return new NextResponse('Cet intervenant a déjà une intervention prévue sur ce créneau horaire.', { status: 409 });
+      if (conflict) {
+        return new NextResponse('Cet intervenant a déjà une intervention prévue sur ce créneau horaire.', { status: 409 });
+      }
     }
 
     const updatedAssignment = await prisma.assignment.update({

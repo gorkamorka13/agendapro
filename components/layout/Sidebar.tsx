@@ -52,17 +52,15 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
             </Link>
           </li>
 
-          {session?.user?.role === 'USER' && (
-            <li className="mb-2">
-              <Link
-                href="/user/reports"
-                className={`${linkStyle} ${pathname === '/user/reports' ? activeStyle : defaultStyle}`}
-                onClick={() => onClose()}
-              >
-                Rapports & Paie
-              </Link>
-            </li>
-          )}
+          <li className="mb-2">
+            <Link
+              href="/user/reports"
+              className={`${linkStyle} ${pathname === '/user/reports' ? activeStyle : defaultStyle}`}
+              onClick={() => onClose()}
+            >
+              Mes Rapports & Paie
+            </Link>
+          </li>
 
           {isAdmin && (
             <>
@@ -94,6 +92,15 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                   onClick={() => onClose()}
                 >
                   Rapports & Paie
+                </Link>
+              </li>
+              <li className="mb-2">
+                <Link
+                  href="/admin/expenses"
+                  className={`${linkStyle} ${pathname === '/admin/expenses' ? activeStyle : defaultStyle}`}
+                  onClick={() => onClose()}
+                >
+                  Gestion Dépenses
                 </Link>
               </li>
             </>
