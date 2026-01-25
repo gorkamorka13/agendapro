@@ -1,6 +1,9 @@
+import { readFileSync } from 'fs';
+const pkg = JSON.parse(readFileSync('./package.json', 'utf8'));
+
 const nextConfig = {
   env: {
-    APP_VERSION: '0.1.0',
+    APP_VERSION: pkg.version,
     BUILD_DATE: new Date().toLocaleDateString('fr-FR'),
   },
   async redirects() {

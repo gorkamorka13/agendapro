@@ -257,30 +257,41 @@ export default function UserReportsPage() {
       if (barChartElem && pieChartElem && costChartElem) {
         try {
           const [barCanvas, pieCanvas, costCanvas] = await Promise.all([
-            html2canvas(barChartElem, { scale: 2, backgroundColor: '#ffffff' }),
-            html2canvas(pieChartElem, { scale: 2, backgroundColor: '#ffffff' }),
-            html2canvas(costChartElem, { scale: 2, backgroundColor: '#ffffff' })
+            html2canvas(barChartElem, { scale: 2, backgroundColor: '#ffffff', logging: false, useCORS: true }),
+            html2canvas(pieChartElem, { scale: 2, backgroundColor: '#ffffff', logging: false, useCORS: true }),
+            html2canvas(costChartElem, { scale: 2, backgroundColor: '#ffffff', logging: false, useCORS: true })
           ]);
 
-          const barImg = barCanvas.toDataURL('image/png');
-          const pieImg = pieCanvas.toDataURL('image/png');
-          const costImg = costCanvas.toDataURL('image/png');
+          // Helper logic to add image without distortion
+          const addImageAuto = (canvas: HTMLCanvasElement, x: number, y: number, maxWidth: number, maxHeight: number) => {
+            const canvasRatio = canvas.width / canvas.height;
+            let targetWidth = maxWidth;
+            let targetHeight = targetWidth / canvasRatio;
+
+            if (targetHeight > maxHeight) {
+              targetHeight = maxHeight;
+              targetWidth = targetHeight * canvasRatio;
+            }
+
+            doc.addImage(canvas.toDataURL('image/png'), 'PNG', x, y, targetWidth, targetHeight);
+            return targetHeight;
+          };
 
           // Row 1: Bar Chart
           doc.setFontSize(11);
           doc.setTextColor(71, 85, 105);
           doc.text('Activité par jour (Heures)', 14, currentY);
-          doc.addImage(barImg, 'PNG', 14, currentY + 5, 182, 70);
-          currentY += 85;
+          const h1 = addImageAuto(barCanvas, 14, currentY + 5, 182, 70);
+          currentY += h1 + 15;
 
           // Row 2: Two Pie Charts
           doc.text('Répartition des activités', 14, currentY);
           doc.text('Répartition de ma paie', 110, currentY);
 
-          doc.addImage(pieImg, 'PNG', 14, currentY + 5, 85, 55);
-          doc.addImage(costImg, 'PNG', 110, currentY + 5, 85, 55);
+          addImageAuto(pieCanvas, 14, currentY + 5, 85, 60);
+          addImageAuto(costCanvas, 110, currentY + 5, 85, 60);
 
-          currentY += 70;
+          currentY += 75;
         } catch (err) {
           console.error("Erreur capture graphiques:", err);
         }
@@ -363,7 +374,7 @@ export default function UserReportsPage() {
         doc.setDrawColor(226, 232, 240);
         doc.line(14, 285, 196, 285);
 
-        doc.text(`AGENDA PRO - Logiciel de gestion d'activités © 2026`, 14, 290);
+        doc.text(`AGENDA PRO - © Michel ESPARSA - v${process.env.APP_VERSION} - ${process.env.BUILD_DATE}`, 14, 290);
         doc.text(`Page ${i} sur ${pageCount}`, 185, 290);
     }
 
@@ -598,8 +609,8 @@ export default function UserReportsPage() {
                       outerRadius={80}
                       paddingAngle={5}
                       dataKey="value"
-                      label={({ percent }: any) => (percent && percent > 0.05) ? `${((percent || 0) * 100).toFixed(0)}%` : ''}
-                      labelLine={false}
+                      label={({ percent }: any) => percent > 0 ? `${(percent * 100).toFixed(1)}%` : ''}
+                      labelLine={true}
                     >
                       {reportData.distributionData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -612,7 +623,54 @@ export default function UserReportsPage() {
                     />
                     <Legend
                       iconType="circle"
-                      wrapperStyle={{ fontSize: '12px' }}
+                      wrapperStyle={{ fontSize: '11px' }}
+                      formatter={(value: string) => <span className="text-slate-700 dark:text-slate-300">{value}</span>}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* PIE CHART CARD (Cost Breakdown) */}
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+              <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-6 flex items-center gap-2">
+                <Euro size={20} className="text-blue-500 dark:text-blue-400" />
+                Répartition de ma Paie
+              </h3>
+              <div className="h-[300px] w-full" id="cost-chart-container">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={[
+                        {
+                          name: 'Salaire Horaire',
+                          value: parseFloat((reportData.summary.totalPay - reportData.summary.totalTravelCost).toFixed(2)),
+                        },
+                        {
+                          name: 'Frais de déplacement',
+                          value: parseFloat(reportData.summary.totalTravelCost.toFixed(2)),
+                        }
+                      ]}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={80}
+                      paddingAngle={5}
+                      dataKey="value"
+                      label={({ percent }: any) => percent > 0 ? `${(percent * 100).toFixed(1)}%` : ''}
+                      labelLine={true}
+                    >
+                      <Cell fill="#3b82f6" />
+                      <Cell fill="#f59e0b" />
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#1e293b', borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', color: '#f1f5f9' }}
+                      itemStyle={{ color: '#f1f5f9'}}
+                      formatter={(value: any, name: any) => [`${value?.toFixed(2) || 0} €`, name]}
+                    />
+                    <Legend
+                      iconType="circle"
+                      wrapperStyle={{ fontSize: '11px' }}
                       formatter={(value: string) => <span className="text-slate-700 dark:text-slate-300">{value}</span>}
                     />
                   </PieChart>
