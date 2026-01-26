@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { User, Role } from '@prisma/client';
 import { useTitle } from '@/components/TitleContext';
+import { Save, X } from 'lucide-react';
 
 export default function UserManagementPage() {
   const { setTitle } = useTitle();
@@ -345,19 +346,20 @@ export default function UserManagementPage() {
                 </div>
               </div>
 
-              <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-6 border-t border-slate-100 dark:border-slate-800 mt-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-6 border-t border-slate-100 dark:border-slate-800 mt-6">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-8 py-3 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-2xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+                  className="px-8 py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold rounded-2xl border border-slate-300 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition flex items-center justify-center gap-2"
                 >
-                  Annuler
+                  <X size={18} /> Annuler
                 </button>
                 <button
                   type="submit"
-                  className="px-8 py-3 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 font-black shadow-lg shadow-blue-200 dark:shadow-none transition"
+                  className="px-8 py-3 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 font-black shadow-lg shadow-blue-200 dark:shadow-none transition flex items-center justify-center gap-2"
                 >
-                  {editingUser ? 'Enregistrer les modifications' : 'Créer le compte'}
+                  <Save size={18} />
+                  {editingUser ? 'Enregistrer' : 'Créer le compte'}
                 </button>
               </div>
             </form>

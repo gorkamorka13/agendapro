@@ -384,56 +384,97 @@ export default function UserReportsPage() {
         try {
             const barContainer = document.getElementById('bar-chart-container');
             const pieContainer = document.getElementById('pie-chart-container');
+            let maxChartHeight = 0;
 
             if (barContainer) {
                 const canvas = await html2canvas(barContainer, { scale: 2 });
                 const imgData = canvas.toDataURL('image/png');
-                doc.addImage(imgData, 'PNG', 14, currentY, 90, 60);
+                const imgWidth = 92;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                doc.addImage(imgData, 'PNG', 14, currentY, imgWidth, imgHeight);
+                maxChartHeight = Math.max(maxChartHeight, imgHeight);
             }
             if (pieContainer) {
                 const canvas = await html2canvas(pieContainer, { scale: 2 });
                 const imgData = canvas.toDataURL('image/png');
-                doc.addImage(imgData, 'PNG', 106, currentY, 90, 60);
+                const imgWidth = 92;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                doc.addImage(imgData, 'PNG', 106, currentY, imgWidth, imgHeight);
+                maxChartHeight = Math.max(maxChartHeight, imgHeight);
             }
-            currentY += 70;
+            currentY += maxChartHeight + 10;
         } catch (e) {
             console.error("Error capturing charts:", e);
         }
     }
 
-    // --- 7. DETAILED LOGS TABLE ---
+    // --- 7. DETAILED LOGS TABLES (SPLIT) ---
     if (options.detailedLogs && reportData.workedHours.length > 0) {
-      if (currentY > 250) { doc.addPage(); currentY = 20; }
+      const realizedEntries = reportData.workedHours.filter(e => e.isRealized);
+      const plannedEntries = reportData.workedHours.filter(e => !e.isRealized);
 
-      doc.setTextColor(30, 41, 59);
-      doc.setFontSize(14);
-      doc.text('Journal Détaillé de mes Interventions', 14, currentY);
+      // --- 7a. REALIZED TABLE ---
+      if (realizedEntries.length > 0) {
+          if (currentY > 250) { doc.addPage(); currentY = 20; }
+          doc.setTextColor(30, 41, 59);
+          doc.setFontSize(14);
+          doc.setFont('helvetica', 'bold');
+          doc.text('Journal des Interventions RÉALISÉES', 14, currentY);
 
-      autoTable(doc, {
-        startY: currentY + 5,
-        head: [['Date', 'Statut', 'Patient', 'Début', 'Fin', 'Durée', 'Cout']],
-        body: reportData.workedHours.map(entry => [
-          entry.date,
-          entry.isRealized ? 'Vérifié' : 'Projeté',
-          entry.patient,
-          entry.startTime,
-          entry.endTime,
-          `${entry.duration} h`,
-          `${entry.pay} €`
-        ]),
-        headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255] },
-        bodyStyles: { fontSize: 8 },
-        columnStyles: { 5: { halign: 'right' }, 6: { halign: 'right' } }
-      });
+          autoTable(doc, {
+            startY: currentY + 5,
+            head: [['Date', 'Statut', 'Patient', 'Début', 'Fin', 'Durée', 'Cout']],
+            body: realizedEntries.map(entry => [
+              entry.date,
+              'Réalisé',
+              entry.patient,
+              entry.startTime,
+              entry.endTime,
+              `${entry.duration} h`,
+              `${entry.pay} €`
+            ]),
+            headStyles: { fillColor: [16, 185, 129], textColor: [255, 255, 255] }, // Emerald for realized
+            bodyStyles: { fontSize: 8 },
+            alternateRowStyles: { fillColor: [248, 250, 252] },
+            columnStyles: { 5: { halign: 'right' }, 6: { halign: 'right' } }
+          });
+          currentY = (doc as any).lastAutoTable.finalY + 15;
+      }
 
-      currentY = (doc as any).lastAutoTable.finalY + 15;
+      // --- 7b. PLANNED TABLE ---
+      if (plannedEntries.length > 0) {
+          if (currentY > 250) { doc.addPage(); currentY = 20; }
+          doc.setTextColor(30, 41, 59);
+          doc.setFontSize(14);
+          doc.setFont('helvetica', 'bold');
+          doc.text('Journal des Interventions PLANIFIÉES', 14, currentY);
+
+          autoTable(doc, {
+            startY: currentY + 5,
+            head: [['Date', 'Statut', 'Patient', 'Début', 'Fin', 'Durée', 'Cout']],
+            body: plannedEntries.map(entry => [
+              entry.date,
+              'Planifié',
+              entry.patient,
+              entry.startTime,
+              entry.endTime,
+              `${entry.duration} h`,
+              `${entry.pay} €`
+            ]),
+            headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255] }, // Blue for planned
+            bodyStyles: { fontSize: 8 },
+            alternateRowStyles: { fillColor: [248, 250, 252] },
+            columnStyles: { 5: { halign: 'right' }, 6: { halign: 'right' } }
+          });
+          currentY = (doc as any).lastAutoTable.finalY + 15;
+      }
     }
 
     // --- 8. EXPENSES TABLE ---
     if (options.financialSummary && reportData.expenses && reportData.expenses.length > 0) {
         if (currentY > 250) { doc.addPage(); currentY = 20; }
 
-        doc.setTextColor(16, 185, 129); // Emerald 500
+        doc.setTextColor(30, 41, 59); // Slate 900
         doc.setFontSize(14);
         doc.setFont('helvetica', 'bold');
         doc.text('Détail de mes Dépenses', 14, currentY);
@@ -446,7 +487,9 @@ export default function UserReportsPage() {
                 exp.motif,
                 `${exp.amount.toFixed(2)} €`
             ]),
-            headStyles: { fillColor: [16, 185, 129] },
+            headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255] },
+            bodyStyles: { fontSize: 8 },
+            alternateRowStyles: { fillColor: [248, 250, 252] },
             columnStyles: {
                 2: { halign: 'right', fontStyle: 'bold' }
             }
@@ -536,7 +579,7 @@ export default function UserReportsPage() {
       </div>
 
       {/* FILTERS CARD */}
-      <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-wrap items-end gap-4 relative overflow-hidden">
+      <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col md:flex-row md:items-end gap-4 relative overflow-hidden">
         {isLoading && (
           <div className="absolute inset-0 bg-white/50 dark:bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center z-10 animate-in fade-in duration-300">
             <div className="flex items-center gap-2 bg-white dark:bg-slate-800 px-4 py-2 rounded-full shadow-lg border border-slate-100 dark:border-slate-700">
@@ -546,49 +589,53 @@ export default function UserReportsPage() {
           </div>
         )}
 
-        <div className="flex-1 min-w-[200px]">
-           <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5 flex items-center gap-2">
-            <FileText size={14} />
-            <span>Période de Rapport</span>
-          </label>
-          <div className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold dark:text-slate-200 text-sm">
-             {new Date(startDate).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).toUpperCase()}
-          </div>
-        </div>
+        <div className="flex-1 flex flex-col sm:flex-row items-end gap-4 w-full">
+            {/* Period & Download */}
+            <div className="w-full sm:w-64">
+                <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase mb-1.5 flex items-center gap-2 px-1">
+                    <FileText size={14} className="text-blue-500" />
+                    <span>Période de Rapport</span>
+                </label>
+                <div className="flex items-center gap-2">
+                    <div className="flex-1 px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-slate-700 dark:text-slate-200 text-sm truncate">
+                        {new Date(startDate).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).toUpperCase()}
+                    </div>
+                    <button
+                        onClick={() => setIsExportModalOpen(true)}
+                        disabled={!reportData}
+                        className="p-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-200 dark:shadow-none flex-shrink-0"
+                        title="Exporter PDF"
+                    >
+                        <Download size={20} />
+                    </button>
+                </div>
+            </div>
 
-        <div>
-          <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5 flex items-center gap-2">
-            <Calendar size={14} /> Du
-          </label>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-slate-200 font-bold"
-          />
-        </div>
-
-        <div>
-           <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5 flex items-center gap-2">
-            <Calendar size={14} /> Au
-          </label>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-slate-200 font-bold"
-          />
-        </div>
-
-        <div className="h-[46px] flex items-center ml-auto">
-          <button
-            onClick={() => setIsExportModalOpen(true)}
-            disabled={!reportData}
-            className="px-6 py-2.5 bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-slate-700 rounded-xl hover:bg-blue-50 dark:hover:bg-slate-700 font-bold transition-all flex items-center gap-2 shadow-sm"
-          >
-            <Download size={20} />
-            <span className="hidden xs:inline">Exporter PDF</span>
-          </button>
+            {/* Dates */}
+            <div className="flex-1 flex items-center gap-2 w-full">
+                <div className="flex-1">
+                    <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase mb-1.5 flex items-center gap-2 px-1">
+                        <Calendar size={14} className="text-emerald-500" /> <span className="hidden xs:inline">Du</span>
+                    </label>
+                    <input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-slate-200 font-bold text-sm"
+                    />
+                </div>
+                <div className="flex-1">
+                     <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase mb-1.5 flex items-center gap-2 px-1">
+                        <Calendar size={14} className="text-rose-500" /> <span className="hidden xs:inline">Au</span>
+                    </label>
+                    <input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-slate-200 font-bold text-sm"
+                    />
+                </div>
+            </div>
         </div>
       </div>
 
@@ -655,13 +702,15 @@ export default function UserReportsPage() {
                 <div>
                   <span className="text-xs font-medium opacity-80 uppercase tracking-wider">Impact sur Trésorerie</span>
                   <div className="text-2xl font-black">{(reportData.summary.realizedPay + reportData.summary.totalExpenses).toFixed(2)} €</div>
-                  <div className="text-[10px] opacity-60">Total Paie + Dépenses</div>
+                  <div className="text-[10px] opacity-70 mt-1 uppercase font-black">
+                    Total Paie + Dépenses
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* CHART BAR CARD */}
             <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
               <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-6 flex items-center gap-2">
@@ -702,11 +751,11 @@ export default function UserReportsPage() {
               </div>
             </div>
 
-            {/* PIE CHART CARD (Distribution) */}
+            {/* PIE CHART CARD (Distribution Patients) */}
             <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
               <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-6 flex items-center gap-2">
                 <TrendingUp size={20} className="text-blue-500 dark:text-blue-400" />
-                Répartition des Activités
+                Répartition par Patient
               </h3>
               <div className="h-[300px] w-full" id="pie-chart-container">
                 <ResponsiveContainer width="100%" height="100%">
@@ -757,7 +806,7 @@ export default function UserReportsPage() {
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-bold text-slate-400">{entry.date}</span>
                         <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-md ${entry.isRealized ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20' : 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400'}`}>
-                          {entry.isRealized ? 'Vérifié' : 'Projeté'}
+                          {entry.isRealized ? 'Réalisé' : 'Planifié'}
                         </span>
                       </div>
                       <span className="font-bold text-blue-600">{entry.duration} h</span>

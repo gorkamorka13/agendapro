@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Patient } from '@prisma/client';
 import { useTitle } from '@/components/TitleContext';
+import { Trash2, Save, X } from 'lucide-react';
 export default function PatientManagementPage() {
   const { setTitle } = useTitle();
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -268,37 +269,28 @@ export default function PatientManagementPage() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-6 border-t dark:border-slate-800 mt-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pt-6 border-t dark:border-slate-800 mt-6">
                 {editingPatient && (
                   <button
                     type="button"
                     onClick={() => handleDelete(editingPatient.id)}
-                    className="px-5 py-2.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/50 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 font-semibold transition-all flex items-center gap-2"
+                    className="px-5 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 font-bold shadow-lg shadow-red-500/20 transition-all flex items-center justify-center gap-2 text-xs col-span-2 md:col-span-1"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                    Supprimer
+                    <Trash2 size={16} /> Supprimer
                   </button>
                 )}
                 <button
                   type="submit"
-                  className="px-6 py-2.5 bg-blue-600 dark:bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-700 font-semibold shadow-lg transition-all flex items-center gap-2"
+                  className={`px-6 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-bold shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2 text-xs ${!editingPatient ? 'col-span-1' : 'col-span-1'}`}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h5a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h5v5.586l-1.293-1.293zM9 4a1 1 0 012 0v2H9V4z" />
-                  </svg>
-                  {editingPatient ? 'Enregistrer' : 'Créer'}
+                  <Save size={16} /> {editingPatient ? 'Enregistrer' : 'Créer'}
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-6 py-2.5 bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-300 border border-gray-300 dark:border-slate-700 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 font-semibold transition-all flex items-center gap-2"
+                  className={`px-6 py-2.5 bg-slate-100 text-slate-700 border border-slate-300 rounded-xl hover:bg-slate-200 font-bold transition-all flex items-center justify-center gap-2 text-xs ${!editingPatient ? 'col-span-1' : 'col-span-1'}`}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                  </svg>
-                  Annuler
+                  <X size={16} /> Annuler
                 </button>
               </div>
             </form>

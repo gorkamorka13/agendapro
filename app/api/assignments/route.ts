@@ -90,14 +90,34 @@ export async function GET() {
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
 
-  // Seul un administrateur peut créer une affectation
-  if (session?.user?.role !== Role.ADMIN) {
-    return new NextResponse('Accès refusé', { status: 403 });
+  if (!session?.user?.id) {
+    return new NextResponse('Non autorisé', { status: 401 });
   }
 
   try {
     const body = await request.json();
     const { userId, patientId, startTime, endTime, ignoreConflict } = body;
+
+    const isAdmin = session.user.role === Role.ADMIN;
+
+    // Validation des droits
+    if (!isAdmin) {
+      // 1. Uniquement pour soi-même
+      if (userId !== session.user.id) {
+        return new NextResponse('Accès refusé : vous ne pouvez créer des interventions que pour vous-même.', { status: 403 });
+      }
+
+      // 2. Uniquement dans le futur (ou aujourd'hui)
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      const start = new Date(startTime);
+      const startDay = new Date(start);
+      startDay.setHours(0, 0, 0, 0);
+
+      if (startDay < now) {
+        return new NextResponse('Accès refusé : vous ne pouvez pas créer d\'interventions dans le passé.', { status: 403 });
+      }
+    }
 
     if (!userId || !patientId || !startTime || !endTime) {
       return new NextResponse('Données manquantes', { status: 400 });

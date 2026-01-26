@@ -94,6 +94,7 @@ interface ReportData {
   chartData: ChartEntry[];
   dailySummaries: DailySummary[];
   distributionData: DistributionEntry[];
+  teamDistributionData: DistributionEntry[]; // NEW
   expenses: ExpenseEntry[];
   summary: {
     realizedHours: number;
@@ -414,87 +415,162 @@ export default function ReportsPage() {
         try {
             const barContainer = document.getElementById('bar-chart-container');
             const pieContainer = document.getElementById('pie-chart-container');
+            const teamPieContainer = document.getElementById('team-pie-chart-container');
+            let maxChartHeight = 0;
 
             if (barContainer) {
                 const canvas = await html2canvas(barContainer, { scale: 2 });
                 const imgData = canvas.toDataURL('image/png');
-                doc.addImage(imgData, 'PNG', 14, currentY, 90, 60);
+                const imgWidth = 60;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                doc.addImage(imgData, 'PNG', 14, currentY, imgWidth, imgHeight);
+                maxChartHeight = Math.max(maxChartHeight, imgHeight);
             }
             if (pieContainer) {
                 const canvas = await html2canvas(pieContainer, { scale: 2 });
                 const imgData = canvas.toDataURL('image/png');
-                doc.addImage(imgData, 'PNG', 106, currentY, 90, 60);
+                const imgWidth = 60;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                doc.addImage(imgData, 'PNG', 76, currentY, imgWidth, imgHeight);
+                maxChartHeight = Math.max(maxChartHeight, imgHeight);
             }
-            currentY += 70;
+            if (teamPieContainer) {
+                const canvas = await html2canvas(teamPieContainer, { scale: 2 });
+                const imgData = canvas.toDataURL('image/png');
+                const imgWidth = 60;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                doc.addImage(imgData, 'PNG', 138, currentY, imgWidth, imgHeight);
+                maxChartHeight = Math.max(maxChartHeight, imgHeight);
+            }
+            currentY += maxChartHeight + 10;
         } catch (e) {
             console.error("Error capturing charts:", e);
         }
     }
 
-    // --- 7. DETAILED LOGS TABLE ---
+    // --- 7. DETAILED LOGS TABLES (SPLIT) ---
     if (options.detailedLogs && reportData.workedHours.length > 0) {
-      if (currentY > 250) { doc.addPage(); currentY = 20; }
+      const realizedEntries = reportData.workedHours.filter(e => e.isRealized);
+      const plannedEntries = reportData.workedHours.filter(e => !e.isRealized);
 
-      doc.setTextColor(30, 41, 59);
-      doc.setFontSize(14);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Journal Détaillé des Interventions', 14, currentY);
+      // --- 7a. REALIZED TABLE ---
+      if (realizedEntries.length > 0) {
+          if (currentY > 250) { doc.addPage(); currentY = 20; }
+          doc.setTextColor(30, 41, 59);
+          doc.setFontSize(14);
+          doc.setFont('helvetica', 'bold');
+          doc.text('Journal des Interventions RÉALISÉES', 14, currentY);
 
-      autoTable(doc, {
-        startY: currentY + 5,
-        head: [['Date', 'Statut', 'Intervenant', 'Patient', 'Début', 'Fin', 'Durée', 'Cout']],
-        body: reportData.workedHours.map(entry => [
-          entry.date,
-          entry.isRealized ? 'Vérifié' : 'Projeté',
-          entry.worker,
-          entry.patient,
-          entry.startTime,
-          entry.endTime,
-          `${entry.duration} h`,
-          `${entry.pay} €`
-        ]),
-        headStyles: {
-          fillColor: [30, 41, 59],
-          textColor: [255, 255, 255],
-          fontStyle: 'bold',
-          halign: 'center'
-        },
-        bodyStyles: {
-          fontSize: 8,
-          textColor: [51, 65, 85]
-        },
-        alternateRowStyles: {
-          fillColor: [248, 250, 252]
-        },
-        columnStyles: {
-          6: { halign: 'right', fontStyle: 'bold' },
-          7: { halign: 'right', fontStyle: 'bold', textColor: [37, 99, 235] }
-        },
-        margin: { top: 20 },
-      });
+          autoTable(doc, {
+            startY: currentY + 5,
+            head: [['Date', 'Statut', 'Intervenant', 'Patient', 'Début', 'Fin', 'Durée', 'Cout']],
+            body: realizedEntries.map(entry => [
+              entry.date,
+              'Réalisé',
+              entry.worker,
+              entry.patient,
+              entry.startTime,
+              entry.endTime,
+              `${entry.duration} h`,
+              `${entry.pay} €`
+            ]),
+            headStyles: {
+              fillColor: [16, 185, 129], // Emerald for realized
+              textColor: [255, 255, 255],
+              fontStyle: 'bold',
+              halign: 'center'
+            },
+            bodyStyles: {
+              fontSize: 8,
+              textColor: [51, 65, 85]
+            },
+            alternateRowStyles: {
+              fillColor: [248, 250, 252]
+            },
+            columnStyles: {
+              6: { halign: 'right', fontStyle: 'bold' },
+              7: { halign: 'right', fontStyle: 'bold', textColor: [37, 99, 235] }
+            },
+            margin: { top: 20 },
+          });
+          currentY = (doc as any).lastAutoTable.finalY + 15;
+      }
 
-      currentY = (doc as any).lastAutoTable.finalY + 15;
+      // --- 7b. PLANNED TABLE ---
+      if (plannedEntries.length > 0) {
+          if (currentY > 250) { doc.addPage(); currentY = 20; }
+          doc.setTextColor(30, 41, 59);
+          doc.setFontSize(14);
+          doc.setFont('helvetica', 'bold');
+          doc.text('Journal des Interventions PLANIFIÉES', 14, currentY);
+
+          autoTable(doc, {
+            startY: currentY + 5,
+            head: [['Date', 'Statut', 'Intervenant', 'Patient', 'Début', 'Fin', 'Durée', 'Cout']],
+            body: plannedEntries.map(entry => [
+              entry.date,
+              'Planifié',
+              entry.worker,
+              entry.patient,
+              entry.startTime,
+              entry.endTime,
+              `${entry.duration} h`,
+              `${entry.pay} €`
+            ]),
+            headStyles: {
+              fillColor: [37, 99, 235], // Blue for planned
+              textColor: [255, 255, 255],
+              fontStyle: 'bold',
+              halign: 'center'
+            },
+            bodyStyles: {
+              fontSize: 8,
+              textColor: [51, 65, 85]
+            },
+            alternateRowStyles: {
+              fillColor: [248, 250, 252]
+            },
+            columnStyles: {
+              6: { halign: 'right', fontStyle: 'bold' },
+              7: { halign: 'right', fontStyle: 'bold', textColor: [37, 99, 235] }
+            },
+            margin: { top: 20 },
+          });
+          currentY = (doc as any).lastAutoTable.finalY + 15;
+      }
     }
 
     // --- 8. EXPENSES TABLE ---
     if (options.financialSummary && reportData.expenses && reportData.expenses.length > 0) {
         if (currentY > 250) { doc.addPage(); currentY = 20; }
 
-        doc.setTextColor(16, 185, 129); // Emerald 500
+        doc.setTextColor(30, 41, 59); // Slate 900
         doc.setFontSize(14);
         doc.setFont('helvetica', 'bold');
         doc.text('Détail des Dépenses de Fonctionnement', 14, currentY);
 
         autoTable(doc, {
             startY: currentY + 5,
-            head: [['Date', 'Bénéficiaire', 'Motif de la dépense', 'Montant']],
+            head: [['Date', 'Beneficiaire', 'Motif de la dépense', 'Montant']],
             body: reportData.expenses.map(exp => [
                 new Date(exp.date).toLocaleDateString('fr-FR'),
                 (exp as any).user?.name || '-',
                 exp.motif,
                 `${exp.amount.toFixed(2)} €`
             ]),
-            headStyles: { fillColor: [16, 185, 129] },
+            headStyles: {
+                fillColor: [30, 41, 59],
+                textColor: [255, 255, 255],
+                fontStyle: 'bold',
+                halign: 'center'
+            },
+            bodyStyles: {
+                fontSize: 8,
+                textColor: [51, 65, 85]
+            },
+            alternateRowStyles: {
+                fillColor: [248, 250, 252]
+            },
             columnStyles: {
                 3: { halign: 'right', fontStyle: 'bold' }
             }
@@ -584,7 +660,7 @@ export default function ReportsPage() {
       </div>
 
       {/* FILTERS CARD */}
-      <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-wrap items-end gap-4 relative overflow-hidden">
+      <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col gap-4 relative overflow-hidden">
         {isLoading && (
           <div className="absolute inset-0 bg-white/50 dark:bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center z-10 animate-in fade-in duration-300">
             <div className="flex items-center gap-2 bg-white dark:bg-slate-800 px-4 py-2 rounded-full shadow-lg border border-slate-100 dark:border-slate-700">
@@ -594,62 +670,77 @@ export default function ReportsPage() {
           </div>
         )}
 
-        <div className="flex-1 min-w-[200px]">
-          <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5 flex items-center gap-2">
-            <UserIcon size={14} />
-            <span>Intervenant</span>
-            {selectedUserId && selectedUserId !== 'all' && (
-              <span
-                className="w-2.5 h-2.5 rounded-full border border-white/20 shadow-sm transition-colors duration-300"
-                style={{ backgroundColor: (users.find(u => u.id === selectedUserId) as any)?.color || '#3b82f6' }}
-              />
-            )}
-          </label>
-          <select
-            value={selectedUserId}
-            onChange={(e) => setSelectedUserId(e.target.value)}
-            className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-slate-200"
-          >
-            <option value="all">Tous les intervenants</option>
-            {users.map((user) => (
-              <option key={user.id} value={user.id}>{user.name}</option>
-            ))}
-          </select>
-        </div>
+        <div className="flex flex-col lg:flex-row items-end gap-4 w-full">
+            {/* Intervenant */}
+            <div className="flex-1 w-full min-w-0">
+                <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase mb-1.5 flex items-center gap-2 px-1">
+                    <UserIcon size={14} className="text-blue-500" />
+                    <span>Sélection Intervenant</span>
+                    {selectedUserId && selectedUserId !== 'all' && (
+                        <span
+                            className="w-2.5 h-2.5 rounded-full border border-white/20 shadow-sm transition-colors duration-300"
+                            style={{ backgroundColor: (users.find(u => u.id === selectedUserId) as any)?.color || '#3b82f6' }}
+                        />
+                    )}
+                </label>
+                <select
+                    value={selectedUserId}
+                    onChange={(e) => setSelectedUserId(e.target.value)}
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-slate-200 font-bold text-sm"
+                >
+                    <option value="all">Tous les intervenants</option>
+                    {users.map((user) => (
+                        <option key={user.id} value={user.id}>{user.name}</option>
+                    ))}
+                </select>
+            </div>
 
-        <div>
-          <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5 flex items-center gap-2">
-            <Calendar size={14} /> Du
-          </label>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-slate-200"
-          />
-        </div>
+            {/* Period & Download */}
+            <div className="w-full lg:w-64">
+                <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase mb-1.5 flex items-center gap-2 px-1">
+                    <FileText size={14} className="text-blue-500" />
+                    <span>Période</span>
+                </label>
+                <div className="flex items-center gap-2">
+                    <div className="flex-1 px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-slate-700 dark:text-slate-200 text-sm truncate">
+                        {new Date(startDate).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).toUpperCase()}
+                    </div>
+                    <button
+                        onClick={() => setIsExportModalOpen(true)}
+                        disabled={!reportData}
+                        className="p-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-200 dark:shadow-none flex-shrink-0"
+                        title="Exporter PDF"
+                    >
+                        <Download size={20} />
+                    </button>
+                </div>
+            </div>
 
-        <div>
-           <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5 flex items-center gap-2">
-            <Calendar size={14} /> Au
-          </label>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-slate-200"
-          />
-        </div>
-
-        <div className="h-[46px] flex items-center ml-auto">
-          <button
-            onClick={() => setIsExportModalOpen(true)}
-            disabled={!reportData}
-            className="px-6 py-2.5 bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-slate-700 rounded-xl hover:bg-blue-50 dark:hover:bg-slate-700 font-bold transition-all flex items-center gap-2 shadow-sm"
-          >
-            <Download size={20} />
-            <span className="hidden xs:inline">Exporter PDF</span>
-          </button>
+            {/* Dates */}
+            <div className="flex items-center gap-2 w-full lg:w-auto">
+                <div className="flex-1 lg:w-36">
+                    <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase mb-1.5 flex items-center gap-2 px-1 truncate">
+                        <Calendar size={14} className="text-emerald-500" /> Du
+                    </label>
+                    <input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-slate-200 font-bold text-xs"
+                    />
+                </div>
+                <div className="flex-1 lg:w-36">
+                     <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase mb-1.5 flex items-center gap-2 px-1 truncate">
+                        <Calendar size={14} className="text-rose-500" /> Au
+                    </label>
+                    <input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-slate-200 font-bold text-xs"
+                    />
+                </div>
+            </div>
         </div>
       </div>
 
@@ -664,7 +755,7 @@ export default function ReportsPage() {
                 <span className="text-sm font-medium">Heures Réalisées</span>
               </div>
               <div className="text-2xl font-bold text-slate-800 dark:text-slate-100">{reportData.summary.realizedHours.toFixed(2)} h</div>
-              <div className="text-[10px] text-slate-400 mt-1 uppercase font-bold">Plannifiées: {reportData.summary.plannedHours.toFixed(2)} h</div>
+              <div className="text-[10px] text-slate-400 mt-1 uppercase font-bold">Planifiées: {reportData.summary.plannedHours.toFixed(2)} h</div>
             </div>
 
             <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
@@ -720,7 +811,7 @@ export default function ReportsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* CHART BAR CARD */}
             <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
               <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-6 flex items-center gap-2">
@@ -761,11 +852,11 @@ export default function ReportsPage() {
               </div>
             </div>
 
-            {/* PIE CHART CARD (Evaluation Graph) */}
+            {/* PIE CHART CARD (Distribution Patients) */}
             <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
               <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-6 flex items-center gap-2">
                 <TrendingUp size={20} className="text-blue-500 dark:text-blue-400" />
-                Répartition des Activités
+                {selectedUserId === 'all' ? 'Répartition Heures par Intervenant' : 'Répartition Heures par Patient'}
               </h3>
               <div className="h-[300px] w-full" id="pie-chart-container">
                 <ResponsiveContainer width="100%" height="100%">
@@ -781,7 +872,46 @@ export default function ReportsPage() {
                       label={({ percent }: any) => percent > 0 ? `${(percent * 100).toFixed(1)}%` : ''}
                       labelLine={true}
                     >
-                      {reportData.distributionData.map((entry, index) => (
+                      {reportData.distributionData.map((entry: DistributionEntry, index: number) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#1e293b', borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', color: '#f1f5f9' }}
+                      itemStyle={{ color: '#f1f5f9'}}
+                      formatter={(value: any, name: any) => [`${value?.toFixed(2) || 0} h`, name || 'Total']}
+                    />
+                    <Legend
+                      iconType="circle"
+                      wrapperStyle={{ fontSize: '11px' }}
+                      formatter={(value: string) => <span className="text-slate-700 dark:text-slate-300">{value}</span>}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* NEW: PIE CHART CARD (Distribution Intervenants - Team Weight) */}
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+              <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-6 flex items-center gap-2">
+                <TrendingUp size={20} className="text-blue-500 dark:text-blue-400" />
+                Poids Relatif de l'Équipe
+              </h3>
+              <div className="h-[300px] w-full" id="team-pie-chart-container">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={reportData.teamDistributionData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={80}
+                      paddingAngle={5}
+                      dataKey="value"
+                      label={({ percent }: any) => percent > 0 ? `${(percent * 100).toFixed(1)}%` : ''}
+                      labelLine={true}
+                    >
+                      {reportData.teamDistributionData.map((entry: DistributionEntry, index: number) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
@@ -816,7 +946,7 @@ export default function ReportsPage() {
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-bold text-slate-400">{entry.date}</span>
                         <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-md ${entry.isRealized ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20' : 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400'}`}>
-                          {entry.isRealized ? 'Vérifié' : 'Projeté'}
+                          {entry.isRealized ? 'Réalisé' : 'Planifié'}
                         </span>
                       </div>
                       <span className="font-bold text-blue-600">{entry.duration} h</span>

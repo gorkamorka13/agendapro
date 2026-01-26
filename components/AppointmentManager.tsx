@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Calendar, Plus, Trash2, Edit2, X, Search, Clock, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { useSession } from 'next-auth/react';
 
 interface Props {
   isOpen: boolean;
@@ -21,6 +22,8 @@ interface Appointment {
 }
 
 export default function AppointmentManager({ isOpen, onClose, onEdit, onCreate }: Props) {
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === 'ADMIN';
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -87,12 +90,14 @@ export default function AppointmentManager({ isOpen, onClose, onEdit, onCreate }
                     className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl outline-none text-sm font-medium dark:text-slate-200"
                 />
             </div>
-            <button
-                onClick={onCreate}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-colors"
-            >
-                <Plus size={16} /> <span className="hidden sm:inline">Nouveau</span>
-            </button>
+            {isAdmin && (
+                <button
+                    onClick={onCreate}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-colors"
+                >
+                    <Plus size={16} /> <span className="hidden sm:inline">Nouveau</span>
+                </button>
+            )}
         </div>
 
         {/* List */}
@@ -126,15 +131,17 @@ export default function AppointmentManager({ isOpen, onClose, onEdit, onCreate }
                                 <div className="flex items-center gap-1"><MapPin size={12} /> <span className="truncate max-w-[150px]">{appt.location}</span></div>
                             </div>
                         </div>
-                        <div className="flex items-center gap-2 ml-4">
-                            <button
-                                onClick={() => onEdit(String(appt.id))}
-                                className="p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg transition-colors shadow-sm"
-                                title="Modifier"
-                            >
-                                <Edit2 size={16} />
-                            </button>
-                        </div>
+                        {isAdmin && (
+                            <div className="flex items-center gap-2 ml-4">
+                                <button
+                                    onClick={() => onEdit(String(appt.id))}
+                                    className="p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg transition-colors shadow-sm"
+                                    title="Modifier"
+                                >
+                                    <Edit2 size={16} />
+                                </button>
+                            </div>
+                        )}
                     </div>
                 ))
             )}

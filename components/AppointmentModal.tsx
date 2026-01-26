@@ -235,7 +235,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               required
-              disabled={isCompleted && !isAdmin}
+              disabled={!isAdmin}
               placeholder="Rendezvous medecin, visite..."
               className="w-full p-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-medium text-slate-700 dark:text-slate-200"
             />
@@ -251,7 +251,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 required
-                disabled={isCompleted && !isAdmin}
+                disabled={!isAdmin}
                 placeholder="Ex: Bureau, Domicile..."
                 className="w-full p-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-medium text-slate-700 dark:text-slate-200"
               />
@@ -260,7 +260,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
               <label className="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase flex items-center gap-2">
                 <UserIcon size={12} className="text-blue-500" /> Intervenant
               </label>
-              <select value={userId} onChange={(e) => setUserId(e.target.value)} required disabled={isCompleted && !isAdmin} className="w-full p-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-medium text-slate-700 dark:text-slate-200">
+              <select value={userId} onChange={(e) => setUserId(e.target.value)} required disabled={!isAdmin} className="w-full p-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-medium text-slate-700 dark:text-slate-200">
                 <option value="">Sélectionner...</option>
                 {users.map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}
               </select>
@@ -271,19 +271,19 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
             <label className="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase flex items-center gap-2">
               <Calendar size={12} className="text-indigo-500" /> Date
             </label>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required disabled={isCompleted && !isAdmin} className="w-full p-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-bold text-slate-700 dark:text-slate-200" />
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required disabled={!isAdmin} className="w-full p-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-bold text-slate-700 dark:text-slate-200" />
           </div>
 
           <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 space-y-3">
             <div className="flex items-center justify-between gap-3">
               <div className="flex-1 space-y-1.5">
                 <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase">Début</label>
-                <input type="time" step="1800" value={startTime} onChange={(e) => setStartTime(e.target.value)} required disabled={isCompleted && !isAdmin} className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg font-bold dark:text-slate-100" />
+                <input type="time" step="1800" value={startTime} onChange={(e) => setStartTime(e.target.value)} required disabled={!isAdmin} className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg font-bold dark:text-slate-100" />
               </div>
               <Clock size={20} className="mt-6 text-slate-300" />
               <div className="flex-1 space-y-1.5">
                 <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase">Fin</label>
-                <input type="time" step="1800" value={endTime} onChange={(e) => setEndTime(e.target.value)} required disabled={isCompleted && !isAdmin} className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg font-bold dark:text-slate-100" />
+                <input type="time" step="1800" value={endTime} onChange={(e) => setEndTime(e.target.value)} required disabled={!isAdmin} className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg font-bold dark:text-slate-100" />
               </div>
             </div>
             <div className="text-center pt-2 border-t border-slate-200/50 dark:border-slate-700">
@@ -298,6 +298,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
+              disabled={!isAdmin}
               className="w-full p-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl outline-none text-sm text-slate-700 dark:text-slate-200 resize-none"
             />
           </div>
@@ -330,12 +331,12 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className={`flex items-center justify-center gap-1.5 px-4 py-3 bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold hover:bg-slate-200 transition-colors ${!isEditing || (isCompleted && !isAdmin) ? 'col-span-2' : ''}`}
+              className={`flex items-center justify-center gap-1.5 px-4 py-3 bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold hover:bg-slate-200 transition-colors ${!isAdmin ? 'col-span-4' : (isEditing ? 'col-span-1' : 'col-span-2')}`}
             >
               <X size={16} /> Fermer
             </button>
 
-            {(!isCompleted || isAdmin) && (
+            {isAdmin && (
               <button
                 type="submit"
                 disabled={isSubmitting}

@@ -126,6 +126,10 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
     const id = parseInt(params.id, 10);
     const assignment = await prisma.assignment.findUnique({
       where: { id },
+      include: {
+        user: true,
+        patient: true,
+      }
     });
     if (!assignment) {
       return new NextResponse('Affectation non trouvée', { status: 404 });

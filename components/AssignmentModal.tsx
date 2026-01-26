@@ -34,7 +34,12 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
   const isCompleted = status === 'COMPLETED';
   const isAdmin = session?.user?.role === 'ADMIN';
   const isOwner = isEditing && session?.user?.id === userId;
-  const hasPermission = isAdmin || (isOwner && !isCompleted);
+
+  // Permission logic:
+  // - Admins can do anything
+  // - Creation is allowed for everyone (initial userId will be set to self)
+  // - Modification is allowed only for owners if not completed
+  const hasPermission = isAdmin || !isEditing || (isOwner && !isCompleted);
 
   const formatLocalDate = (d: Date) => {
     const year = d.getFullYear();
@@ -85,6 +90,16 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
             setPatientId(data.patientId.toString());
             setStatus(data.status);
 
+            // S'assurer que l'intervenant actuel est dans la liste des choix
+            if (data.user && !users.find(u => u.id === data.user.id)) {
+                setUsers(prev => [...prev, data.user]);
+            }
+
+            // S'assurer que le patient actuel est dans la liste
+            if (data.patient && !patients.find(p => p.id === data.patient.id)) {
+                setPatients(prev => [...prev, data.patient]);
+            }
+
             const start = new Date(data.startTime);
             const end = new Date(data.endTime);
 
@@ -125,6 +140,24 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
       const startObj = new Date(`${date}T${startTime.replace('h', ':')}:00`);
       const endObj = new Date(`${date}T${endTime.replace('h', ':')}:00`);
       if (endObj < startObj) endObj.setDate(endObj.getDate() + 1);
+
+      // Business Rule Validation for Non-Admins
+      if (!isAdmin) {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const selectedDateObj = new Date(date);
+          selectedDateObj.setHours(0, 0, 0, 0);
+
+          if (selectedDateObj < today) {
+              alert("Vous ne pouvez pas créer d'intervension dans le passé.");
+              return;
+          }
+
+          if (userId !== session?.user?.id) {
+              alert("Vous ne pouvez créer d'interventions que pour vous-même.");
+              return;
+          }
+      }
 
       const url = isEditing ? `/api/assignments/${assignmentId}` : '/api/assignments';
       const method = isEditing ? 'PUT' : 'POST';
@@ -227,7 +260,13 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
                   />
                 )}
               </label>
-              <select value={userId} onChange={(e) => setUserId(e.target.value)} required disabled={(isCompleted && !isAdmin) || showOverlapWarning} className="w-full p-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-medium text-slate-700 dark:text-slate-200">
+              <select
+                value={userId}
+                onChange={(e) => setUserId(e.target.value)}
+                required
+                disabled={!isAdmin || isCompleted || showOverlapWarning}
+                className="w-full p-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-medium text-slate-700 dark:text-slate-200 disabled:opacity-70 disabled:cursor-not-allowed"
+              >
                 <option value="">Sélectionner...</option>
                 {users.map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}
               </select>
@@ -242,7 +281,15 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
           </div>
           <div className="space-y-1.5">
             <label className="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase flex items-center gap-2"><Calendar size={12} className="text-indigo-500" /> Date</label>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required disabled={!hasPermission || showOverlapWarning} className="w-full p-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-bold text-slate-700 dark:text-slate-200" />
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              required
+              min={!isAdmin ? formatLocalDate(new Date()) : undefined}
+              disabled={!hasPermission || showOverlapWarning}
+              className="w-full p-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-bold text-slate-700 dark:text-slate-200"
+            />
           </div>
           <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 space-y-3">
             <div className="flex items-center justify-between gap-3">
@@ -320,7 +367,7 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
                 type="button"
                 onClick={onClose}
                 disabled={isSubmitting}
-                className={`flex items-center justify-center gap-1.5 px-2 py-3 bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all ${isEditing ? '' : 'flex-1'}`}
+                className={`flex items-center justify-center gap-1.5 px-2 py-3 bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all ${!hasPermission ? 'col-span-2 md:col-span-4' : 'col-span-1'}`}
               >
                 <X size={16} /> Fermer
               </button>
@@ -329,7 +376,7 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className={`flex items-center justify-center gap-2 px-2 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl text-xs font-black shadow-lg shadow-blue-500/20 hover:from-blue-700 hover:to-blue-800 transition-all ${isEditing ? '' : 'flex-1'}`}
+                className={`flex items-center justify-center gap-2 px-2 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl text-xs font-black shadow-lg shadow-blue-500/20 hover:from-blue-700 hover:to-blue-800 transition-all ${isEditing ? 'col-span-1' : 'col-span-1 md:col-span-3'}`}
               >
                 <Save size={16} /> {isEditing ? 'Mettre à jour' : 'Créer'}
               </button>

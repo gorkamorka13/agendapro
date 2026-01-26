@@ -44,30 +44,18 @@ export async function GET(request: Request) {
   }
 
   try {
-    // 1. Récupérer les interventions de la période (Toutes les affectations, pas seulement validées)
-    const assignmentsQuery: any = {
+    // 1. Récupérer TOUTES les interventions de l'équipe pour le calcul du poids relatif
+    const allAssignments = await prisma.assignment.findMany({
       where: {
-        startTime: {
-          gte: startDate,
-          lt: endDate,
-        },
-        // On inclut tout le monde (ADMIN et USER) car les admins peuvent aussi intervenir
-        status: {
-          not: 'CANCELLED'
-        }
+        startTime: { gte: startDate, lt: endDate },
+        status: { not: 'CANCELLED' }
       },
       include: {
         patient: true,
         user: true,
-        workedHours: true // Pour savoir si c'est déjà validé
+        workedHours: true
       },
-    };
-
-    if (userId !== 'all') {
-      assignmentsQuery.where.userId = userId;
-    }
-
-    const assignments = await prisma.assignment.findMany(assignmentsQuery) as any[];
+    }) as any[];
 
     let realizedTotalMinutes = 0;
     let realizedTotalPay = 0;
@@ -78,10 +66,14 @@ export async function GET(request: Request) {
     let plannedTotalTravelCost = 0;
 
     const chartDataMap: Record<string, number> = {};
-    const distributionDataMap: Record<string, number> = {};
-    const dailySummariesMap: Record<string, any> = {};
+    const distributionDataMap: Record<string, number> = {}; // Patient distribution (if single user) or worker (if all)
+    const teamDistributionDataMap: Record<string, number> = {}; // Always worker distribution
 
-    const detailedEntries = assignments.map(assignment => {
+    const filteredAssignments = userId === 'all'
+      ? allAssignments
+      : allAssignments.filter(a => a.userId === userId);
+
+    const detailedEntries = filteredAssignments.map(assignment => {
       const start = new Date(assignment.startTime);
       const end = new Date(assignment.endTime);
       const durationMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
@@ -103,11 +95,11 @@ export async function GET(request: Request) {
         plannedTotalTravelCost += travelCost;
       }
 
-      // Données Graphique (on cumule tout pour le profil d'activité)
+      // Données Graphique (profil d'activité de l'utilisateur ou de l'équipe selon le filtre)
       const dayKey = start.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
       chartDataMap[dayKey] = (chartDataMap[dayKey] || 0) + (durationMinutes / 60);
 
-      // Répartition
+      // Répartition (selon le filtre)
       const distributionKey = userId === 'all'
         ? user.name || 'Inconnu'
         : `${assignment.patient.firstName} ${assignment.patient.lastName}`;
@@ -124,6 +116,15 @@ export async function GET(request: Request) {
         status: assignment.status,
         isRealized
       };
+    });
+
+    // Calcul de la répartition de TOUTE l'équipe
+    allAssignments.forEach(assignment => {
+      const start = new Date(assignment.startTime);
+      const end = new Date(assignment.endTime);
+      const durationHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+      const workerName = assignment.user.name || 'Inconnu';
+      teamDistributionDataMap[workerName] = (teamDistributionDataMap[workerName] || 0) + durationHours;
     });
 
     // 2. Récupérer les dépenses de la période
@@ -156,12 +157,18 @@ export async function GET(request: Request) {
       value: parseFloat(value.toFixed(2))
     }));
 
+    const teamDistributionData = Object.entries(teamDistributionDataMap).map(([name, value]) => ({
+      name,
+      value: parseFloat(value.toFixed(2))
+    }));
+
     return NextResponse.json({
-      workedHours: detailedEntries, // On garde le nom de clé pour la compatibilité frontend
+      workedHours: detailedEntries,
       chartData,
-      dailySummaries: [], // Désactivé temporairement pour simplifier
+      dailySummaries: [],
       distributionData,
-      expenses, // Liste détaillée des dépenses
+      teamDistributionData,
+      expenses,
       summary: {
         realizedHours: realizedTotalMinutes / 60,
         realizedPay: realizedTotalPay,
@@ -170,9 +177,9 @@ export async function GET(request: Request) {
         plannedPay: plannedTotalPay,
         plannedTravelCost: plannedTotalTravelCost,
         totalExpenses,
-        totalPay: realizedTotalPay, // Paie effectivement due
+        totalPay: realizedTotalPay,
         totalHours: realizedTotalMinutes / 60,
-        expectedPay: plannedTotalPay // Paie à venir
+        expectedPay: plannedTotalPay
       },
     });
 
