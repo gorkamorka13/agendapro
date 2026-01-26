@@ -16,6 +16,7 @@ export const metadata: Metadata = {
     shortcut: '/agendapro.png',
     apple: '/agendapro.png',
   },
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({
