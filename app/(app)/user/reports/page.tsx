@@ -142,11 +142,15 @@ export default function UserReportsPage() {
 
   const handleYearSelect = (year: number) => {
     setSelectedYear(year);
-    // Extrait le mois actuel de startDate pour le basculer sur la nouvelle année
-    const [_, mStr] = startDate.split('-');
-    const currentMonthIndex = parseInt(mStr, 10) - 1;
-    handleMonthSelect(currentMonthIndex, year);
+    // Trouver le premier mois disponible pour cette année
+    const firstMonthForYear = activeMonths.find(am => am.year === year);
+    if (firstMonthForYear) {
+      handleMonthSelect(firstMonthForYear.month, year);
+    }
   };
+
+  // Extraire les années disponibles depuis activeMonths
+  const availableYears = Array.from(new Set(activeMonths.map(am => am.year))).sort((a, b) => b - a);
 
   // Liste des mois pour le sélecteur
   const allMonths = [
@@ -172,6 +176,7 @@ export default function UserReportsPage() {
           const res = await fetch(`/api/reports/active-months?userId=${session.user.id}`);
           if (res.ok) {
             const data = await res.json();
+            console.log('Active months received:', data);
             setActiveMonths(data);
 
             const isCurrentMonthActive = data.some((m: any) => m.year === selectedYear && m.month === now.getMonth());
@@ -375,49 +380,67 @@ export default function UserReportsPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-6 transition-colors duration-300">
 
-      {/* YEAR & MONTH SELECTOR */}
-      <div className="flex flex-wrap items-center gap-4">
-        <div className="flex bg-white dark:bg-slate-800 p-1 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700">
-           {[2025, 2026].map(year => (
-             <button
-                key={year}
-                onClick={() => handleYearSelect(year)}
-                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  selectedYear === year ? 'bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-900 shadow-md' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
-                }`}
-             >
-                {year}
-             </button>
-           ))}
-        </div>
+      {/* COMPACT MONTH/YEAR SELECTOR */}
+      <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+        <div className="flex flex-col sm:flex-row gap-3">
+          {/* Year Selector */}
+          <div className="flex-shrink-0">
+            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-2">
+              Année
+            </label>
+            <select
+              value={selectedYear}
+              onChange={(e) => handleYearSelect(parseInt(e.target.value))}
+              className="w-full sm:w-32 px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer"
+            >
+              {availableYears.length > 0 ? (
+                availableYears.map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))
+              ) : (
+                <option value={selectedYear}>{selectedYear}</option>
+              )}
+            </select>
+          </div>
 
-        <div className="flex-1 overflow-x-auto pb-1 scrollbar-none">
-          <div className="flex gap-2 min-w-max">
-            {allMonths.map((m) => {
-              const [yStr, mStr] = startDate.split('-');
-              const year = parseInt(yStr, 10);
-              const monthIndex = parseInt(mStr, 10) - 1;
+          {/* Month Grid */}
+          <div className="flex-1">
+            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-2">
+              Mois
+            </label>
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-2">
+              {(() => {
+                const filteredMonths = allMonths.filter((m) =>
+                  activeMonths.some((am) => am.year === selectedYear && am.month === m.value)
+                );
+                console.log('Selected year:', selectedYear);
+                console.log('Filtered months for year:', filteredMonths.map(m => m.name));
+                console.log('Active months:', activeMonths);
 
-              const isActive = year === selectedYear && monthIndex === m.value;
-              const hasActivity = activeMonths.some((am) => am.year === selectedYear && am.month === m.value);
+                return filteredMonths.map((m) => {
+                  const [yStr, mStr] = startDate.split('-');
+                  const year = parseInt(yStr, 10);
+                  const monthIndex = parseInt(mStr, 10) - 1;
 
-              return (
-                <button
-                  key={m.value}
-                  onClick={() => handleMonthSelect(m.value)}
-                  className={`px-4 py-2 rounded-xl text-sm font-bold transition-all relative ${
-                    isActive
-                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 dark:shadow-none'
-                      : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-100 dark:border-slate-700'
-                  }`}
-                >
-                  {m.name}
-                  {hasActivity && !isActive && (
-                    <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-blue-500 rounded-full" />
-                  )}
-                </button>
-              );
-            })}
+                  const isActive = year === selectedYear && monthIndex === m.value;
+
+                  return (
+                    <button
+                      key={m.value}
+                      onClick={() => handleMonthSelect(m.value)}
+                      className={`relative px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+                        isActive
+                          ? 'bg-blue-600 text-white shadow-md'
+                          : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 border border-blue-200 dark:border-blue-800'
+                      }`}
+                      title={m.name}
+                    >
+                      {m.name.substring(0, 3)}
+                    </button>
+                  );
+                });
+              })()}
+            </div>
           </div>
         </div>
       </div>
