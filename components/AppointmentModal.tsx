@@ -197,24 +197,24 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center z-50 p-2 sm:p-4 animate-in fade-in duration-200">
       <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 dark:border-slate-800 flex flex-col max-h-[90vh]">
-        <div className="bg-amber-50 dark:bg-amber-500/10 px-4 sm:px-8 py-4 sm:py-6 border-b border-amber-100 dark:border-amber-500/20 flex justify-between items-center">
+        <div className="bg-slate-50 dark:bg-slate-900/50 px-4 sm:px-8 py-4 sm:py-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
           <div className="flex-1">
             <div className="flex items-center gap-3">
-                <h2 className="text-xl sm:text-2xl font-black text-amber-800 dark:text-amber-400 tracking-tight flex items-center gap-2">
-                <Calendar size={24} />
+                <h2 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tight flex items-center gap-2">
+                <Calendar size={24} className="text-blue-600 dark:text-blue-400" />
                 {isEditing ? 'Modifier le rendez-vous' : 'Nouveau rendez-vous'}
                 </h2>
                 {isEditing && (
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${isCompleted ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400'}`}>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${isCompleted ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'}`}>
                         {isCompleted ? 'Réalisé' : 'Planifié'}
                     </span>
                 )}
             </div>
-            <p className="text-amber-700/60 dark:text-amber-400/60 text-xs sm:text-sm font-medium mt-0.5">
+            <p className="text-slate-500 dark:text-slate-400/80 text-xs sm:text-sm font-medium mt-0.5">
               Gestion des activités hors-interventions
             </p>
           </div>
-          <button onClick={onClose} className="p-1.5 sm:p-2 hover:bg-amber-100 dark:hover:bg-amber-500/20 rounded-full transition-colors text-amber-600">
+          <button onClick={onClose} className="p-1.5 sm:p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
             <X size={20} className="sm:w-6 sm:h-6" />
           </button>
         </div>
@@ -228,7 +228,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
 
           <div className="space-y-1.5">
             <label className="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase flex items-center gap-2">
-              <Info size={12} className="text-amber-500" /> Objet du rendez-vous
+              <Info size={12} className="text-blue-500" /> Objet du rendez-vous
             </label>
             <input
               type="text"
@@ -288,7 +288,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
             </div>
             <div className="text-center pt-2 border-t border-slate-200/50 dark:border-slate-700">
               <span className="text-[10px] font-black text-slate-400 uppercase mr-2">Durée :</span>
-              <span className="bg-amber-600 text-white px-3 py-1 rounded-full text-xs font-black">{duration}</span>
+              <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-black">{duration}</span>
             </div>
           </div>
 
@@ -332,7 +332,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className={`flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-xl text-xs font-black shadow-lg shadow-amber-500/20 hover:from-amber-700 hover:to-amber-800 transition-all ${!isEditing ? 'col-span-2' : ''}`}
+                className={`flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl text-xs font-black shadow-lg shadow-blue-500/20 hover:from-blue-700 hover:to-blue-800 transition-all ${!isEditing ? 'col-span-2' : ''}`}
               >
                 <Save size={16} /> {isEditing ? 'Mettre à jour' : 'Enregistrer'}
               </button>
