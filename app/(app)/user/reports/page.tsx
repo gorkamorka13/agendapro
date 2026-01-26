@@ -276,38 +276,137 @@ export default function UserReportsPage() {
 
     currentY += 15;
 
-    // --- 4. FINANCIAL SUMMARY CARDS ---
+    // --- 4. FINANCIAL SUMMARY ( DASHBOARD CARDS ) ---
     if (options.financialSummary) {
       if (currentY > 230) { doc.addPage(); currentY = 20; }
 
+      const cardW = 44; // approx 1/4 of content area
+      const cardH = 25;
+      const spacing = 2;
+      const startX = 14;
+
+      // ROW 1
+      // 1. Hours Card
+      doc.setFillColor(241, 245, 249); // Slate 100
+      doc.roundedRect(startX, currentY, cardW, cardH, 3, 3, 'F');
+      doc.setFontSize(7); doc.setTextColor(100, 116, 139);
+      doc.text('HEURES RÉALISÉES', startX + 5, currentY + 7);
+      doc.setFontSize(11); doc.setTextColor(30, 41, 59); doc.setFont('helvetica', 'bold');
+      doc.text(`${reportData.summary.realizedHours.toFixed(2)} h`, startX + 5, currentY + 14);
+      doc.setFontSize(6); doc.setTextColor(100, 116, 139); doc.setFont('helvetica', 'normal');
+      doc.text(`PLANIFIÉES: ${reportData.summary.plannedHours.toFixed(2)} h`, startX + 5, currentY + 20);
+
+      // 2. Travel Card
       doc.setFillColor(241, 245, 249);
-      doc.roundedRect(14, currentY, 182, 30, 2, 2, 'F');
+      doc.roundedRect(startX + cardW + spacing, currentY, cardW, cardH, 3, 3, 'F');
+      doc.setFontSize(7); doc.setTextColor(100, 116, 139);
+      doc.text('FRAIS DE DÉPLACEMENT', startX + cardW + spacing + 5, currentY + 7);
+      doc.setFontSize(11); doc.setTextColor(30, 41, 59); doc.setFont('helvetica', 'bold');
+      doc.text(`${reportData.summary.realizedTravelCost.toFixed(2)} €`, startX + cardW + spacing + 5, currentY + 14);
+      doc.setFontSize(6); doc.setTextColor(100, 116, 139); doc.setFont('helvetica', 'normal');
+      doc.text(`À VENIR: ${reportData.summary.plannedTravelCost.toFixed(2)} €`, startX + cardW + spacing + 5, currentY + 20);
 
-      const col1 = 25, col2 = 85, col3 = 145;
+      // 3. Realized Pay (Emerald)
+      doc.setFillColor(16, 185, 129); // Emerald 500
+      doc.roundedRect(startX + (cardW + spacing) * 2, currentY, cardW, cardH, 3, 3, 'F');
+      doc.setFontSize(7); doc.setTextColor(255, 255, 255);
+      doc.text('MA PAIE RÉALISÉE', startX + (cardW + spacing) * 2 + 5, currentY + 7);
+      doc.setFontSize(11); doc.setFont('helvetica', 'bold');
+      doc.text(`${reportData.summary.realizedPay.toFixed(2)} €`, startX + (cardW + spacing) * 2 + 5, currentY + 14);
+      doc.setFontSize(5); doc.setFont('helvetica', 'normal');
+      doc.text(`DONT ${reportData.summary.realizedTravelCost.toFixed(2)} € DE DÉPLACEMENT`, startX + (cardW + spacing) * 2 + 5, currentY + 20);
 
-      doc.setFontSize(9);
-      doc.setTextColor(100, 116, 139);
-      doc.text('HEURES RÉALISÉES', col1, currentY + 10);
-      doc.text('DÉPLACEMENT', col2, currentY + 10);
-      doc.text('MA PAYE RÉALISÉE', col3, currentY + 10);
+      // 4. Upcoming Pay (Blue)
+      doc.setFillColor(37, 99, 235); // Blue 600
+      doc.roundedRect(startX + (cardW + spacing) * 3, currentY, cardW, cardH, 3, 3, 'F');
+      doc.setFontSize(7); doc.setTextColor(255, 255, 255);
+      doc.text('MA PAIE À VENIR', startX + (cardW + spacing) * 3 + 5, currentY + 7);
+      doc.setFontSize(11); doc.setFont('helvetica', 'bold');
+      doc.text(`${reportData.summary.plannedPay.toFixed(2)} €`, startX + (cardW + spacing) * 3 + 5, currentY + 14);
+      doc.setFontSize(5); doc.setFont('helvetica', 'normal');
+      doc.text(`DONT ${reportData.summary.plannedTravelCost.toFixed(2)} € DE FRAIS PRÉVUS`, startX + (cardW + spacing) * 3 + 5, currentY + 20);
 
-      doc.setTextColor(30, 41, 59);
-      doc.setFontSize(14);
-      doc.setFont('helvetica', 'bold');
-      doc.text(`${reportData.summary.realizedHours.toFixed(2)} h`, col1, currentY + 20);
-      doc.text(`${reportData.summary.realizedTravelCost.toFixed(2)} €`, col2, currentY + 20);
+      currentY += cardH + spacing;
 
-      doc.setTextColor(37, 99, 235);
-      doc.text(`${reportData.summary.realizedPay.toFixed(2)} €`, col3, currentY + 20);
+      // ROW 2
+      const largeCardW = (cardW * 2) + spacing;
+      // 5. Expenses
+      doc.setFillColor(30, 41, 59); // Slate 800
+      doc.roundedRect(startX, currentY, largeCardW, cardH, 3, 3, 'F');
+      doc.setFontSize(7); doc.setTextColor(148, 163, 184);
+      doc.text('TOTAL MES DÉPENSES', startX + 5, currentY + 7);
+      doc.setFontSize(14); doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold');
+      doc.text(`${reportData.summary.totalExpenses.toFixed(2)} €`, startX + 5, currentY + 18);
 
-      currentY += 45;
+      // 6. Impact Trésorerie (Rose/Crimson)
+      doc.setFillColor(190, 18, 60); // Rose 700
+      doc.roundedRect(startX + largeCardW + spacing, currentY, largeCardW, cardH, 3, 3, 'F');
+      doc.setFontSize(7); doc.setTextColor(244, 244, 245); // Slate 50
+      doc.text('COUT TOTAL POUR STRUCTURE', startX + largeCardW + spacing + 5, currentY + 7);
+      doc.setFontSize(14); doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold');
+      doc.text(`${(reportData.summary.realizedPay + reportData.summary.totalExpenses).toFixed(2)} €`, startX + largeCardW + spacing + 5, currentY + 16);
+      doc.setFontSize(6); doc.setTextColor(244, 244, 245); doc.setFont('helvetica', 'normal');
+      doc.text('TOTAL PAIE + DÉPENSES', startX + largeCardW + spacing + 5, currentY + 22);
+
+      currentY += cardH + 15;
     }
 
-    // --- 5. DETAILED LOGS TABLE ---
+    // --- 5. DAILY AMPLITUDE ---
+    if (options.dailyAmplitude && reportData.dailySummaries.length > 0) {
+      if (currentY > 250) { doc.addPage(); currentY = 20; }
+      doc.setTextColor(30, 41, 59);
+      doc.setFontSize(14);
+      doc.text('Synthèse Quotidienne / Amplitude', 14, currentY);
+
+      autoTable(doc, {
+        startY: currentY + 5,
+        head: [['Date', 'Premier Début', 'Dernière Fin', 'Amplitude Totale']],
+        body: reportData.dailySummaries.map(s => [
+          s.date,
+          s.firstStart,
+          s.lastEnd,
+          `${s.totalHours} h`
+        ]),
+        headStyles: { fillColor: [51, 65, 85] },
+        bodyStyles: { fontSize: 9 }
+      });
+      currentY = (doc as any).lastAutoTable.finalY + 15;
+    }
+
+    // --- 6. EVALUATION ANALYTICS (Charts) ---
+    if (options.evaluationAnalytics) {
+        if (currentY > 150) { doc.addPage(); currentY = 20; }
+        doc.setTextColor(30, 41, 59);
+        doc.setFontSize(14);
+        doc.text('Analyses de l\'Activité', 14, currentY);
+        currentY += 10;
+
+        try {
+            const barContainer = document.getElementById('bar-chart-container');
+            const pieContainer = document.getElementById('pie-chart-container');
+
+            if (barContainer) {
+                const canvas = await html2canvas(barContainer, { scale: 2 });
+                const imgData = canvas.toDataURL('image/png');
+                doc.addImage(imgData, 'PNG', 14, currentY, 90, 60);
+            }
+            if (pieContainer) {
+                const canvas = await html2canvas(pieContainer, { scale: 2 });
+                const imgData = canvas.toDataURL('image/png');
+                doc.addImage(imgData, 'PNG', 106, currentY, 90, 60);
+            }
+            currentY += 70;
+        } catch (e) {
+            console.error("Error capturing charts:", e);
+        }
+    }
+
+    // --- 7. DETAILED LOGS TABLE ---
     if (options.detailedLogs && reportData.workedHours.length > 0) {
       if (currentY > 250) { doc.addPage(); currentY = 20; }
 
       doc.setTextColor(30, 41, 59);
+      doc.setFontSize(14);
       doc.text('Journal Détaillé de mes Interventions', 14, currentY);
 
       autoTable(doc, {
@@ -330,7 +429,7 @@ export default function UserReportsPage() {
       currentY = (doc as any).lastAutoTable.finalY + 15;
     }
 
-    // --- 6. EXPENSES TABLE ---
+    // --- 8. EXPENSES TABLE ---
     if (options.financialSummary && reportData.expenses && reportData.expenses.length > 0) {
         if (currentY > 250) { doc.addPage(); currentY = 20; }
 

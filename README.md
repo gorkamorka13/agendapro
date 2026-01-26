@@ -15,10 +15,11 @@ Une plateforme web premium de pointe dédiée à la planification et à la gesti
 - Mode Smartphone optimisé avec polices de caractères agrandies pour le terrain.
 - Personnalisation visuelle : Couleurs par intervenant avec adaptation automatique du contraste du texte (noir/blanc).
 
-#### 🗂️ **Gestion des Rendez-vous (Hors Patients)**
-- Distinction claire entre **Interventions** (Soins/Patients) et **Rendez-vous Administratifs** (Réunions, Formations).
+#### 🗂️ **Gestion des Rendez-vous (CRUD Complet)**
+- Système dédié pour les activités hors-interventions (Réunions, formations, etc.).
+- **Interface Manager** : Liste complète des rendez-vous avec recherche et filtrage.
+- **Cycle de Vie** : Création, modification et suppression simplifiées via une interface unifiée.
 - Suivi du statut : **Planifié** (Grisé) vs **Réalisé** (Pleine couleur).
-- Interface de création dédiée pour les tâches administratives.
 
 #### 👥 **Administration & Utilisateurs**
 - **Rôles Unifiés** : Les administrateurs peuvent également être des intervenants actifs.
@@ -27,12 +28,13 @@ Une plateforme web premium de pointe dédiée à la planification et à la gesti
 
 #### 📊 **Système de Reporting & Analytics Premium**
 - Panneaux de bord unifiés pour Administrateurs et Intervenants.
-- **Visualisation de Données** : Graphiques d'activité quotidiens et répartition par patient/activité.
+- **Sélecteur de Période Unifié** : Système intelligent de sélection Année/Mois basé sur l'activité réelle.
+- **Visualisation de Données** : Graphiques d'activité quotidiens et répartition par patient/activité (Recharts).
 - **Synthèse Financière Haute Précision** :
   - Distinction entre frais de déplacement **réalisés** et **prévisionnels**.
   - Calcul de la paie en temps réel.
   - Indicateur d'**Impact sur la Trésorerie** (Paies + Dépenses).
-- **Export PDF Professionnel** : Version haute définition avec en-têtesSlate, logos et pieds de page numérotés.
+- **Export PDF Professionnel** : Version haute définition avec en-têtes Slate, logos et pieds de page numérotés.
 
 #### 🧾 **Gestion des Dépenses de Fonctionnement**
 - Enregistrement complet des frais opérationnels.
@@ -40,11 +42,11 @@ Une plateforme web premium de pointe dédiée à la planification et à la gesti
 - Workflow de validation : Toutes les dépenses sont certifiées par l'administrateur.
 - Suivi historique détaillé avec motifs et montants précis.
 
-## 🛠️ Stack Technologique
+## 🛠️ Stack Technologique (Stable)
 
 ### Frontend
-- **Framework**: [Next.js 14](https://nextjs.org) (App Router)
-- **Logique UI**: React 18
+- **Framework**: [Next.js 14.2.14](https://nextjs.org) (App Router)
+- **Logique UI**: React 18.3.1 (Choisi pour une compatibilité maximale avec les bibliothèques de graphiques)
 - **Styling**: Tailwind CSS & Design System HSL sur-mesure.
 - **Graphiques**: Recharts (Modern SVG Charts)
 - **Icônes**: Lucide React
@@ -53,7 +55,7 @@ Une plateforme web premium de pointe dédiée à la planification et à la gesti
 ### Backend & Data
 - **Runtime**: Node.js
 - **Base de données**: PostgreSQL
-- **ORM**: Prisma (Gestion relationnelle avancée avec suppression en cascade)
+- **ORM**: Prisma 6 (Gestion relationnelle avancée avec suppression en cascade)
 - **Authentification**: NextAuth.js v4 (Sessions sécurisées)
 
 ## 🚀 Installation & Déploiement
