@@ -2,6 +2,14 @@ import { readFileSync } from 'fs';
 const pkg = JSON.parse(readFileSync('./package.json', 'utf8'));
 
 const nextConfig = {
+  transpilePackages: [
+    '@fullcalendar/core',
+    '@fullcalendar/react',
+    '@fullcalendar/daygrid',
+    '@fullcalendar/timegrid',
+    '@fullcalendar/interaction',
+    'recharts',
+  ],
   env: {
     APP_VERSION: pkg.version,
     BUILD_DATE: new Date().toLocaleDateString('fr-FR'),
