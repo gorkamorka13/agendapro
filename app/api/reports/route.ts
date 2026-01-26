@@ -78,7 +78,7 @@ export async function GET(request: Request) {
       const end = new Date(assignment.endTime);
       const durationMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
 
-      const isRealized = assignment.status === 'COMPLETED' || !!assignment.workedHours;
+      const isRealized = assignment.status === 'COMPLETED' || !!assignment.workedHours || end < new Date();
 
       const user = assignment.user;
       const hourlyRate = user.hourlyRate || 0;

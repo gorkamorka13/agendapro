@@ -303,7 +303,19 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
             />
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+          <div className="flex flex-wrap gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+            {/* 1. Mettre à jour / Enregistrer */}
+            {isAdmin && (
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl text-xs font-black shadow-lg shadow-blue-500/20 hover:from-blue-700 hover:to-blue-800 transition-all order-1"
+              >
+                <Save size={16} /> {isEditing ? 'Mettre à jour' : 'Enregistrer'}
+              </button>
+            )}
+
+            {/* 2. Valider & Supprimer (si admin + modification) */}
             {isEditing && isAdmin && (
               <>
                 {!isCompleted && (
@@ -311,7 +323,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
                     type="button"
                     onClick={handleValidate}
                     disabled={isSubmitting}
-                    className="flex items-center justify-center gap-1.5 px-2 py-3 bg-emerald-600 text-white rounded-xl font-black text-xs shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 transition-all"
+                    className="flex-1 flex items-center justify-center gap-1.5 px-2 py-3 bg-emerald-600 text-white rounded-xl font-black text-xs shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 transition-all order-2"
                   >
                     <CheckCircle size={16} /> Valider
                   </button>
@@ -320,31 +332,22 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
                     type="button"
                     onClick={handleDelete}
                     disabled={isSubmitting}
-                    className={`flex items-center justify-center gap-1.5 px-2 py-3 bg-red-600 text-white rounded-xl text-xs font-black shadow-lg shadow-red-500/20 hover:bg-red-700 transition-all ${!isCompleted ? '' : 'col-span-1'}`}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-2 py-3 bg-red-600 text-white rounded-xl text-xs font-black shadow-lg shadow-red-500/20 hover:bg-red-700 transition-all order-3"
                 >
                     <Trash2 size={16} /> Supprimer
                 </button>
               </>
             )}
 
+            {/* 3. Fermer */}
             <button
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className={`flex items-center justify-center gap-1.5 px-4 py-3 bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold hover:bg-slate-200 transition-colors ${!isAdmin ? 'col-span-4' : (isEditing ? 'col-span-1' : 'col-span-2')}`}
+              className="flex-1 flex items-center justify-center gap-1.5 px-4 py-3 bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold hover:bg-slate-200 transition-colors order-4"
             >
               <X size={16} /> Fermer
             </button>
-
-            {isAdmin && (
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className={`flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl text-xs font-black shadow-lg shadow-blue-500/20 hover:from-blue-700 hover:to-blue-800 transition-all ${!isEditing ? 'col-span-2' : ''}`}
-              >
-                <Save size={16} /> {isEditing ? 'Mettre à jour' : 'Enregistrer'}
-              </button>
-            )}
           </div>
         </form>
       </div>

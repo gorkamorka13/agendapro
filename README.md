@@ -12,6 +12,7 @@ Une plateforme web premium de pointe dédiée à la planification et à la gesti
 - Interface visuelle haute performance (FullCalendar).
 - Planification multi-vues : Mois, Semaine, Jour.
 - **Détection de Conflits** : Alertes intelligentes en cas de chevauchement d'interventions.
+- **Annulations Visuelles** : Nouveau statut **"Annulé"** avec hachurage sombre dynamique sur la couleur de l'intervenant.
 - Mode Smartphone optimisé avec polices de caractères agrandies pour le terrain.
 - Personnalisation visuelle : Couleurs par intervenant avec adaptation automatique du contraste du texte (noir/blanc).
 
@@ -19,17 +20,19 @@ Une plateforme web premium de pointe dédiée à la planification et à la gesti
 - Système dédié pour les activités hors-interventions (Réunions, formations, etc.).
 - **Interface Manager** : Liste complète des rendez-vous avec recherche et filtrage.
 - **Cycle de Vie** : Création, modification et suppression simplifiées via une interface unifiée.
-- Suivi du statut : **Planifié** (Grisé) vs **Réalisé** (Pleine couleur).
+- Suivi du statut : **Planifié**, **Réalisé** (Pleine couleur) et **Annulé** (Hachuré).
 
 #### 👥 **Administration & Utilisateurs**
 - **Rôles Unifiés** : Les administrateurs peuvent également être des intervenants actifs.
 - **Gestion Premium** : Attribution de couleurs personnalisées pour chaque membre de l'équipe.
 - **Sécurité Critique** : Protection native des comptes administrateurs essentiels contre la suppression ou la rétrogradation.
+- **Contrôle d'Annulation** : Seuls les administrateurs peuvent marquer une intervention comme annulée.
 
-#### 📊 **Système de Reporting & Analytics Premium**
-- Panneaux de bord unifiés pour Administrateurs et Intervenants.
+#### 📊 **Synthèse & Analytics Premium (Ex-Rapports)**
+- Panneaux de bord unifiés pour Administrateurs et Intervenants sous l'onglet **Synthèse**.
 - **Sélecteur de Période Unifié** : Système intelligent de sélection Année/Mois basé sur l'activité réelle.
 - **Visualisation de Données** : Graphiques d'activité quotidiens et répartition par patient/activité (Recharts).
+- **Exclusion des Annulations** : Les interventions hachurées sont automatiquement exclues des calculs financiers et horaires.
 - **Synthèse Financière Haute Précision** :
   - Distinction entre frais de déplacement **réalisés** et **prévisionnels**.
   - Calcul de la paie en temps réel.

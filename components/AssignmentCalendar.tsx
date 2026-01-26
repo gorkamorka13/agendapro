@@ -127,7 +127,7 @@ export default function AssignmentCalendar() {
 
   return (
     <div
-      className="bg-white dark:bg-slate-800 p-2 sm:p-4 md:p-6 rounded-lg shadow-md transition-colors [&_.fc-toolbar-title]:text-[13px] [&_.fc-toolbar-title]:sm:text-xl [&_.fc-button]:text-[11px] [&_.fc-button]:sm:text-xs [&_.fc-button]:px-1.5 [&_.fc-button]:sm:px-2 [&_.fc-header-toolbar]:flex-wrap [&_.fc-header-toolbar]:justify-center [&_.fc-header-toolbar]:gap-2 overflow-hidden"
+      className="bg-white dark:bg-slate-800 py-2 px-[6px] sm:py-4 sm:px-[14px] md:py-6 md:px-[22px] rounded-lg shadow-md transition-colors [&_.fc-toolbar-title]:text-[12px] [&_.fc-toolbar-title]:sm:text-xl [&_.fc-toolbar-title]:capitalize [&_.fc-button]:text-[10px] [&_.fc-button]:sm:text-xs [&_.fc-button]:px-1.5 [&_.fc-button]:sm:px-2 [&_.fc-header-toolbar]:flex-wrap [&_.fc-header-toolbar]:justify-center [&_.fc-header-toolbar]:gap-2 [&_.fc-daygrid-day-frame]:!justify-start [&_.fc-daygrid-event-harness]:!mb-[1px] overflow-hidden"
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
@@ -137,9 +137,9 @@ export default function AssignmentCalendar() {
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
         initialView="dayGridMonth"
         displayEventTime={false}
-        height="auto"
-        contentHeight="auto"
-        aspectRatio={typeof window !== 'undefined' && window.innerWidth < 400 ? 0.65 : (typeof window !== 'undefined' && window.innerWidth < 768 ? 0.8 : 1.35)}
+        height={typeof window !== 'undefined' && window.innerWidth < 768 ? '85vh' : 'auto'}
+        contentHeight={typeof window !== 'undefined' && window.innerWidth < 768 ? '85vh' : 'auto'}
+        aspectRatio={typeof window !== 'undefined' && window.innerWidth < 400 ? 0.55 : (typeof window !== 'undefined' && window.innerWidth < 768 ? 0.7 : 1.35)}
         headerToolbar={typeof window !== 'undefined' && window.innerWidth < 640 ? {
           left: 'prev,next',
           center: 'title',
@@ -202,8 +202,9 @@ export default function AssignmentCalendar() {
         }}
         eventContent={(eventInfo) => {
           const status = eventInfo.event.extendedProps.status;
-          const isCompleted = status === 'COMPLETED';
           const isCancelled = status === 'CANCELLED';
+          const isPast = eventInfo.event.end && new Date(eventInfo.event.end) < new Date();
+          const isCompleted = (status === 'COMPLETED' || isPast) && !isCancelled;
           const bgColor = eventInfo.event.backgroundColor || '#3b82f6';
 
           // Fonction pour déterminer si le texte doit être noir ou blanc selon le contraste
@@ -222,11 +223,11 @@ export default function AssignmentCalendar() {
 
           return (
             <div
-              className={`px-1 sm:px-1.5 py-0.5 rounded-md shadow-sm w-full h-full overflow-hidden flex items-center gap-1 border-l-4 transition-all duration-300 ${
+              className={`px-0.5 py-0.5 rounded-md shadow-sm w-full h-full overflow-hidden flex items-center gap-0.5 border-l-2 transition-all duration-300 ${
                 isCompleted
                   ? 'opacity-100 ring-1 ring-white/30 scale-[1.02]'
                   : isCancelled
-                    ? 'opacity-20 grayscale'
+                    ? 'opacity-100 bg-hatched-pattern'
                     : 'opacity-40 border-dashed border-white/40'
               }`}
               style={{
@@ -235,20 +236,13 @@ export default function AssignmentCalendar() {
               }}
             >
               <div
-                className={`flex-1 font-black leading-tight truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)] ${isCancelled ? 'line-through' : ''} ${
-                  isDayView && isMobile ? 'text-[14px]' : 'text-[10px] sm:text-[12px]'
+                className={`flex-1 font-black leading-tight truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)] ${
+                  isDayView && isMobile ? 'text-[14px]' : 'text-[9px] sm:text-[12px]'
                 }`}
                 style={{ color: textColor }}
               >
                 {eventInfo.event.title}
               </div>
-              {isCompleted && (
-                <div className="flex-shrink-0 drop-shadow-md" style={{ color: textColor }}>
-                   <svg className={`${isDayView && isMobile ? 'w-4 h-4' : 'w-3 h-3 sm:w-4 sm:h-4'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={5} d="M5 13l4 4L19 7" />
-                   </svg>
-                </div>
-              )}
             </div>
           );
         }}

@@ -227,7 +227,7 @@ export default function ReportsPage() {
       }
     };
     fetchUsers();
-    setTitle("Rapports & Analytics");
+    setTitle("Synthèse");
   }, [setTitle, selectedUserId]);
 
   // Génération automatique du rapport
@@ -695,24 +695,14 @@ export default function ReportsPage() {
                 </select>
             </div>
 
-            {/* Period & Download */}
-            <div className="w-full lg:w-64">
+            {/* Period */}
+            <div className="w-full lg:w-48">
                 <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase mb-1.5 flex items-center gap-2 px-1">
                     <FileText size={14} className="text-blue-500" />
                     <span>Période</span>
                 </label>
-                <div className="flex items-center gap-2">
-                    <div className="flex-1 px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-slate-700 dark:text-slate-200 text-sm truncate">
-                        {new Date(startDate).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).toUpperCase()}
-                    </div>
-                    <button
-                        onClick={() => setIsExportModalOpen(true)}
-                        disabled={!reportData}
-                        className="p-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-200 dark:shadow-none flex-shrink-0"
-                        title="Exporter PDF"
-                    >
-                        <Download size={20} />
-                    </button>
+                <div className="px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-slate-700 dark:text-slate-200 text-sm truncate">
+                    {new Date(startDate).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).toUpperCase()}
                 </div>
             </div>
 
@@ -741,6 +731,16 @@ export default function ReportsPage() {
                     />
                 </div>
             </div>
+
+            {/* Download Button */}
+            <button
+                onClick={() => setIsExportModalOpen(true)}
+                disabled={!reportData}
+                className="p-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-200 dark:shadow-none mb-[1px]"
+                title="Exporter PDF"
+            >
+                <Download size={20} />
+            </button>
         </div>
       </div>
 
@@ -843,9 +843,10 @@ export default function ReportsPage() {
                       formatter={(value: any) => [`${value?.toFixed(2) || 0} h`, 'Heures']}
                     />
                     <Bar dataKey="hours" radius={[6, 6, 0, 0]}>
-                      {reportData.chartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={'#3b82f6'} />
-                      ))}
+                      {reportData.chartData.map((entry, index) => {
+                        const selectedUser = users.find(u => u.id === selectedUserId);
+                        return <Cell key={`cell-${index}`} fill={selectedUser?.color || '#3b82f6'} />;
+                      })}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -872,9 +873,15 @@ export default function ReportsPage() {
                       label={({ percent }: any) => percent > 0 ? `${(percent * 100).toFixed(1)}%` : ''}
                       labelLine={true}
                     >
-                      {reportData.distributionData.map((entry: DistributionEntry, index: number) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
+                      {reportData.distributionData.map((entry: DistributionEntry, index: number) => {
+                        // Si "Tous les intervenants" est sélectionné, on cherche la couleur de l'intervenant par son nom
+                        if (selectedUserId === 'all') {
+                          const user = users.find(u => u.name === entry.name);
+                          if (user?.color) return <Cell key={`cell-${index}`} fill={user.color} />;
+                        }
+                        // Sinon (répartition par patient ou pas de couleur trouvée), on utilise les couleurs par défaut
+                        return <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />;
+                      })}
                     </Pie>
                     <Tooltip
                       contentStyle={{ backgroundColor: '#1e293b', borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', color: '#f1f5f9' }}
@@ -911,9 +918,10 @@ export default function ReportsPage() {
                       label={({ percent }: any) => percent > 0 ? `${(percent * 100).toFixed(1)}%` : ''}
                       labelLine={true}
                     >
-                      {reportData.teamDistributionData.map((entry: DistributionEntry, index: number) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
+                      {reportData.teamDistributionData.map((entry: DistributionEntry, index: number) => {
+                        const user = users.find(u => u.name === entry.name);
+                        return <Cell key={`cell-${index}`} fill={user?.color || COLORS[index % COLORS.length]} />;
+                      })}
                     </Pie>
                     <Tooltip
                       contentStyle={{ backgroundColor: '#1e293b', borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', color: '#f1f5f9' }}

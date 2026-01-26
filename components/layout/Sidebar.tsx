@@ -58,7 +58,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
               className={`${linkStyle} ${pathname === '/user/reports' ? activeStyle : defaultStyle}`}
               onClick={() => onClose()}
             >
-              Mes Rapports & Paie
+              Synthèse
             </Link>
           </li>
 
@@ -109,7 +109,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                   className={`${linkStyle} ${pathname === '/admin/reports' ? activeStyle : defaultStyle}`}
                   onClick={() => onClose()}
                 >
-                  Rapports & Paie
+                  Synthèse
                 </Link>
               </li>
             </>

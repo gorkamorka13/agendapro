@@ -21,22 +21,35 @@ export async function GET() {
       },
     });
 
-    const formattedAppointments = appointments.map((apt) => ({
-      id: `apt-${apt.id}`,
-      title: `RDV: ${apt.subject} (${apt.user.name})`,
-      start: apt.startTime,
-      end: apt.endTime,
-      backgroundColor: '#f59e0b', // Amber 500
-      borderColor: '#d97706', // Amber 600
-      extendedProps: {
-        type: 'APPOINTMENT',
-        subject: apt.subject,
-        location: apt.location,
-        workerName: apt.user.name,
-        notes: apt.notes,
-        status: apt.status,
-      },
-    }));
+    // Fonction déterministe pour générer une couleur à partir de l'ID utilisateur
+    const getUserColor = (id: string) => {
+      let hash = 0;
+      for (let i = 0; i < id.length; i++) {
+        hash = id.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+      return '#' + '00000'.substring(0, 6 - c.length) + c;
+    };
+
+    const formattedAppointments = appointments.map((apt) => {
+      const backgroundColor = apt.user.color || getUserColor(apt.userId);
+      return {
+        id: `apt-${apt.id}`,
+        title: `RDV: ${apt.subject}`,
+        start: apt.startTime,
+        end: apt.endTime,
+        backgroundColor: backgroundColor,
+        borderColor: backgroundColor,
+        extendedProps: {
+          type: 'APPOINTMENT',
+          subject: apt.subject,
+          location: apt.location,
+          workerName: apt.user.name,
+          notes: apt.notes,
+          status: apt.status,
+        },
+      };
+    });
 
     return NextResponse.json(formattedAppointments);
   } catch (error) {

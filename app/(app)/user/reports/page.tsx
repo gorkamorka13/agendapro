@@ -201,7 +201,7 @@ export default function UserReportsPage() {
   };
 
   useEffect(() => {
-    setTitle("Mes Rapports & Paie");
+    setTitle("Synthèse");
   }, [setTitle]);
 
   // Génération automatique du rapport
@@ -590,24 +590,14 @@ export default function UserReportsPage() {
         )}
 
         <div className="flex-1 flex flex-col sm:flex-row items-end gap-4 w-full">
-            {/* Period & Download */}
-            <div className="w-full sm:w-64">
+            {/* Period */}
+            <div className="w-full sm:w-48">
                 <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase mb-1.5 flex items-center gap-2 px-1">
                     <FileText size={14} className="text-blue-500" />
-                    <span>Période de Rapport</span>
+                    <span>Période</span>
                 </label>
-                <div className="flex items-center gap-2">
-                    <div className="flex-1 px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-slate-700 dark:text-slate-200 text-sm truncate">
-                        {new Date(startDate).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).toUpperCase()}
-                    </div>
-                    <button
-                        onClick={() => setIsExportModalOpen(true)}
-                        disabled={!reportData}
-                        className="p-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-200 dark:shadow-none flex-shrink-0"
-                        title="Exporter PDF"
-                    >
-                        <Download size={20} />
-                    </button>
+                <div className="px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-slate-700 dark:text-slate-200 text-sm truncate">
+                    {new Date(startDate).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).toUpperCase()}
                 </div>
             </div>
 
@@ -636,6 +626,16 @@ export default function UserReportsPage() {
                     />
                 </div>
             </div>
+
+            {/* Download Button */}
+            <button
+                onClick={() => setIsExportModalOpen(true)}
+                disabled={!reportData}
+                className="p-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-200 dark:shadow-none mb-[1px]"
+                title="Exporter PDF"
+            >
+                <Download size={20} />
+            </button>
         </div>
       </div>
 
@@ -743,7 +743,7 @@ export default function UserReportsPage() {
                     />
                     <Bar dataKey="hours" radius={[6, 6, 0, 0]}>
                       {reportData.chartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={'#3b82f6'} />
+                        <Cell key={`cell-${index}`} fill={(session?.user as any)?.color || '#3b82f6'} />
                       ))}
                     </Bar>
                   </BarChart>

@@ -269,26 +269,26 @@ export default function PatientManagementPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pt-6 border-t dark:border-slate-800 mt-6">
+              <div className="flex flex-wrap gap-3 pt-6 border-t dark:border-slate-800 mt-6">
+                <button
+                  type="submit"
+                  className="flex-1 px-6 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-bold shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2 text-xs order-1"
+                >
+                  <Save size={16} /> {editingPatient ? 'Enregistrer' : 'Créer'}
+                </button>
                 {editingPatient && (
                   <button
                     type="button"
                     onClick={() => handleDelete(editingPatient.id)}
-                    className="px-5 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 font-bold shadow-lg shadow-red-500/20 transition-all flex items-center justify-center gap-2 text-xs col-span-2 md:col-span-1"
+                    className="flex-1 px-5 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 font-bold shadow-lg shadow-red-500/20 transition-all flex items-center justify-center gap-2 text-xs order-2"
                   >
                     <Trash2 size={16} /> Supprimer
                   </button>
                 )}
                 <button
-                  type="submit"
-                  className={`px-6 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-bold shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2 text-xs ${!editingPatient ? 'col-span-1' : 'col-span-1'}`}
-                >
-                  <Save size={16} /> {editingPatient ? 'Enregistrer' : 'Créer'}
-                </button>
-                <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className={`px-6 py-2.5 bg-slate-100 text-slate-700 border border-slate-300 rounded-xl hover:bg-slate-200 font-bold transition-all flex items-center justify-center gap-2 text-xs ${!editingPatient ? 'col-span-1' : 'col-span-1'}`}
+                  className="flex-1 px-6 py-2.5 bg-slate-100 text-slate-700 border border-slate-300 rounded-xl hover:bg-slate-200 font-bold transition-all flex items-center justify-center gap-2 text-xs order-3"
                 >
                   <X size={16} /> Annuler
                 </button>

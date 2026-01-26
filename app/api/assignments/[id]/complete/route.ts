@@ -37,9 +37,14 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
         data: { status: AssignmentStatus.COMPLETED },
       });
 
-      // 2. Créer l'entrée correspondante dans WorkedHours
-      await tx.workedHours.create({
-        data: {
+      // 2. Créer ou mettre à jour l'entrée correspondante dans WorkedHours
+      await tx.workedHours.upsert({
+        where: { assignmentId: assignmentId },
+        update: {
+          startTime: updatedAssignment.startTime,
+          endTime: updatedAssignment.endTime,
+        },
+        create: {
           assignmentId: updatedAssignment.id,
           startTime: updatedAssignment.startTime,
           endTime: updatedAssignment.endTime,

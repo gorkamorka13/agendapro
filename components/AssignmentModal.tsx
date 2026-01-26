@@ -30,8 +30,17 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
   const [endTime, setEndTime] = useState('10:00');
   const [duration, setDuration] = useState('1h 00m');
 
+  // Calculate if the assignment is in the past
+  const getIsPast = () => {
+    if (!date || !endTime) return false;
+    const endObj = new Date(`${date}T${endTime.replace('h', ':')}:00`);
+    return endObj < new Date();
+  };
+
   const isEditing = assignmentId !== null;
-  const isCompleted = status === 'COMPLETED';
+  const isPast = getIsPast();
+  const isCancelled = status === 'CANCELLED';
+  const isCompleted = (status === 'COMPLETED' || (isEditing && isPast)) && !isCancelled;
   const isAdmin = session?.user?.role === 'ADMIN';
   const isOwner = isEditing && session?.user?.id === userId;
 
@@ -39,7 +48,7 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
   // - Admins can do anything
   // - Creation is allowed for everyone (initial userId will be set to self)
   // - Modification is allowed only for owners if not completed
-  const hasPermission = isAdmin || !isEditing || (isOwner && !isCompleted);
+  const hasPermission = isAdmin || !isEditing || (isOwner && !isCompleted && !isCancelled);
 
   const formatLocalDate = (d: Date) => {
     const year = d.getFullYear();
@@ -90,15 +99,7 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
             setPatientId(data.patientId.toString());
             setStatus(data.status);
 
-            // S'assurer que l'intervenant actuel est dans la liste des choix
-            if (data.user && !users.find(u => u.id === data.user.id)) {
-                setUsers(prev => [...prev, data.user]);
-            }
 
-            // S'assurer que le patient actuel est dans la liste
-            if (data.patient && !patients.find(p => p.id === data.patient.id)) {
-                setPatients(prev => [...prev, data.patient]);
-            }
 
             const start = new Date(data.startTime);
             const end = new Date(data.endTime);
@@ -207,6 +208,25 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
     }
   };
 
+  const handleCancel = async () => {
+    if (!isEditing || isSubmitting) return;
+    if (window.confirm("Voulez-vous ANNULER cette intervention ? Elle sera hachurée dans le calendrier.")) {
+      setIsSubmitting(true);
+      try {
+        const response = await fetch(`/api/assignments/${assignmentId}/cancel`, { method: 'PATCH' });
+        if (response.ok) {
+          onSave();
+          onClose();
+        } else {
+          const err = await response.text();
+          alert(`Erreur : ${err}`);
+        }
+      } finally {
+        setIsSubmitting(false);
+      }
+    }
+  };
+
   const handleDelete = async () => {
     if (isEditing && window.confirm('Supprimer cette affectation ?')) {
       const response = await fetch(`/api/assignments/${assignmentId}`, { method: 'DELETE' });
@@ -227,13 +247,19 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
                 {isEditing ? 'Modifier l\'intervention' : 'Nouvelle intervention'}
               </h2>
               {isEditing && (
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${isCompleted ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400'}`}>
-                  {isCompleted ? 'Réalisée' : 'Planifiée'}
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                  isCancelled
+                    ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400'
+                    : isCompleted
+                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400'
+                      : 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400'
+                }`}>
+                  {isCancelled ? 'Annulée' : (isCompleted ? 'Réalisée' : 'Planifiée')}
                 </span>
               )}
             </div>
             <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-medium mt-0.5">
-              {isCompleted ? 'Validée et non modifiable.' : 'Détails de l\'affectation'}
+              {isCancelled ? 'Cette intervention a été annulée.' : (isCompleted ? 'Validée et non modifiable.' : 'Détails de l\'affectation')}
             </p>
           </div>
           <button onClick={onClose} className="p-1.5 sm:p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400">
@@ -245,6 +271,12 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
           {isCompleted && (
             <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 p-3 rounded-xl flex items-center gap-3 text-emerald-800 dark:text-emerald-300 text-xs font-medium">
               <CheckCircle size={16} className="text-emerald-500" /> Intervention terminée.
+            </div>
+          )}
+
+          {isCancelled && (
+            <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20 p-3 rounded-xl flex items-center gap-3 text-amber-800 dark:text-amber-300 text-xs font-medium">
+              <X size={16} className="text-amber-500" /> Cette intervention est annulée.
             </div>
           )}
 
@@ -337,7 +369,19 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
             </div>
           )}
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+          <div className="flex flex-wrap gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+            {/* 1. Mettre à jour / Créer */}
+            {hasPermission && !showOverlapWarning && (
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex-1 flex items-center justify-center gap-2 px-2 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl text-xs font-black shadow-lg shadow-blue-500/20 hover:from-blue-700 hover:to-blue-800 transition-all order-1"
+              >
+                <Save size={16} /> {isEditing ? 'Mettre à jour' : 'Créer'}
+              </button>
+            )}
+
+            {/* 2. Valider & Supprimer (si admin/proprio + modification) */}
             {isEditing && (isAdmin || isOwner) && (
               <>
                 {!isCompleted && !showOverlapWarning && (
@@ -345,9 +389,19 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
                     type="button"
                     onClick={handleValidate}
                     disabled={isSubmitting}
-                    className="flex items-center justify-center gap-1.5 px-2 py-3 bg-emerald-600 text-white rounded-xl font-black text-xs shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 transition-all"
+                    className="flex-1 flex items-center justify-center gap-1.5 px-2 py-3 bg-emerald-600 text-white rounded-xl font-black text-xs shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 transition-all order-2"
                   >
                     <CheckCircle size={16} /> Valider
+                  </button>
+                )}
+                {isAdmin && status !== 'CANCELLED' && !showOverlapWarning && (
+                  <button
+                    type="button"
+                    onClick={handleCancel}
+                    disabled={isSubmitting}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-2 py-3 bg-amber-500 text-white rounded-xl font-black text-xs shadow-lg shadow-amber-500/20 hover:bg-amber-600 transition-all order-3"
+                  >
+                    <X size={16} /> Annuler
                   </button>
                 )}
                 {(isAdmin || !isCompleted) && !showOverlapWarning && (
@@ -355,30 +409,23 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
                     type="button"
                     onClick={handleDelete}
                     disabled={isSubmitting}
-                    className={`flex items-center justify-center gap-1.5 px-2 py-3 bg-red-600 text-white rounded-xl text-xs font-black shadow-lg shadow-red-500/20 hover:bg-red-700 transition-all ${!isCompleted ? '' : 'col-span-1'}`}
+                    className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-3 bg-red-600 text-white rounded-xl text-xs font-black shadow-lg shadow-red-500/20 hover:bg-red-700 transition-all ${isAdmin ? 'order-4' : 'order-3'}`}
                    >
                     <Trash2 size={16} /> Supprimer
                    </button>
                 )}
               </>
             )}
+
+            {/* 3. Fermer */}
             {!showOverlapWarning && (
               <button
                 type="button"
                 onClick={onClose}
                 disabled={isSubmitting}
-                className={`flex items-center justify-center gap-1.5 px-2 py-3 bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all ${!hasPermission ? 'col-span-2 md:col-span-4' : 'col-span-1'}`}
+                className="flex-1 flex items-center justify-center gap-1.5 px-2 py-3 bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all order-5"
               >
                 <X size={16} /> Fermer
-              </button>
-            )}
-            {hasPermission && !showOverlapWarning && (
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className={`flex items-center justify-center gap-2 px-2 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl text-xs font-black shadow-lg shadow-blue-500/20 hover:from-blue-700 hover:to-blue-800 transition-all ${isEditing ? 'col-span-1' : 'col-span-1 md:col-span-3'}`}
-              >
-                <Save size={16} /> {isEditing ? 'Mettre à jour' : 'Créer'}
               </button>
             )}
           </div>
