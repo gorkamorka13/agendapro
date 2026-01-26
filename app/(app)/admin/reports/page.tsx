@@ -528,17 +528,14 @@ export default function ReportsPage() {
     <div className="max-w-6xl mx-auto space-y-6 transition-colors duration-300">
 
       {/* COMPACT MONTH/YEAR SELECTOR */}
-      <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
-        <div className="flex flex-col sm:flex-row gap-3">
+      <div className="bg-white dark:bg-slate-800 p-3 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+        <div className="flex flex-col sm:flex-row items-center gap-3">
           {/* Year Selector */}
-          <div className="flex-shrink-0">
-            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-2">
-              Année
-            </label>
+          <div className="flex-shrink-0 w-full sm:w-auto">
             <select
               value={selectedYear}
               onChange={(e) => handleYearSelect(parseInt(e.target.value))}
-              className="w-full sm:w-32 px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer"
+              className="w-full sm:w-28 px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-black text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer text-sm"
             >
               {availableYears.length > 0 ? (
                 availableYears.map(year => (
@@ -550,12 +547,9 @@ export default function ReportsPage() {
             </select>
           </div>
 
-          {/* Month Grid */}
-          <div className="flex-1">
-            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-2">
-              Mois
-            </label>
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-2">
+          {/* Month Scrollable Area */}
+          <div className="flex-1 w-full overflow-x-auto scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700 pb-1">
+            <div className="flex items-center gap-1.5 min-w-max">
               {(() => {
                 const filteredMonths = allMonths.filter((m) =>
                   activeMonths.some((am) => am.year === selectedYear && am.month === m.value)
@@ -572,7 +566,7 @@ export default function ReportsPage() {
                     <button
                       key={m.value}
                       onClick={() => handleMonthSelect(m.value)}
-                      className={`relative px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+                      className={`relative px-3 py-2 rounded-lg text-[11px] font-black transition-all text-center whitespace-nowrap ${
                         isActive
                           ? 'bg-blue-600 text-white shadow-md'
                           : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 border border-blue-200 dark:border-blue-800'
@@ -821,7 +815,7 @@ export default function ReportsPage() {
                     <div className="flex justify-between items-start mb-1">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-bold text-slate-400">{entry.date}</span>
-                        <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-md ${entry.isRealized ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20' : 'bg-amber-100 text-amber-700'}`}>
+                        <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-md ${entry.isRealized ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20' : 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400'}`}>
                           {entry.isRealized ? 'Vérifié' : 'Projeté'}
                         </span>
                       </div>

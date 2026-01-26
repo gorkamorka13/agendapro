@@ -109,11 +109,8 @@ export default function UserManagementPage() {
   return (
     <div className="container mx-auto transition-colors duration-300">
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-        <div>
-           <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">Utilisateurs</h2>
-           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-             Gérez les comptes. Tous les utilisateurs (Admin ou Intervenant) peuvent réaliser des interventions.
-           </p>
+        <div className="flex-1">
+          {/* Titre supprimé comme demandé */}
         </div>
         <button
           onClick={() => handleOpenModal()}

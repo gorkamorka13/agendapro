@@ -44,9 +44,8 @@ export default function ExpensesPage() {
   return (
     <div className="container mx-auto space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">Dépenses de Fonctionnement</h2>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Gérez les coûts fixes et variables de l'activité.</p>
+        <div className="flex-1">
+          {/* Titre supprimé pour homogénéité */}
         </div>
         <button
           onClick={() => handleOpenModal()}

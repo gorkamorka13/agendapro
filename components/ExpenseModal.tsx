@@ -158,14 +158,14 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2.5 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+              className="px-6 py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition flex items-center gap-2"
             >
-              Annuler
+              <X size={18} /> Annuler
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-6 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-black shadow-lg shadow-blue-200 dark:shadow-none transition flex items-center gap-2"
+              className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-black shadow-lg shadow-blue-200 dark:shadow-none transition flex items-center gap-2"
             >
               <Save size={18} />
               {expense ? 'Mettre à jour' : 'Enregistrer'}

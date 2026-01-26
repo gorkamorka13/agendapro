@@ -98,15 +98,18 @@ export default function PatientManagementPage() {
 
   return (
     <div className="container mx-auto transition-colors duration-300">
-      <div className="flex justify-end mb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+        <div className="flex-1">
+          {/* Titre supprimé pour homogénéité */}
+        </div>
         <button
           onClick={() => handleOpenModal()}
-          className="bg-green-600 text-white px-3 py-2 sm:px-4 sm:py-2 rounded-lg hover:bg-green-700 transition shadow-md flex items-center gap-2 text-sm sm:text-base font-bold"
+          className="bg-blue-600 text-white px-6 py-2.5 rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-200 dark:shadow-none flex items-center justify-center gap-2 text-sm font-bold"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
           </svg>
-          <span>Nouveau</span>
+          <span>Nouveau Patient</span>
         </button>
       </div>
 
@@ -230,7 +233,7 @@ export default function PatientManagementPage() {
                     required
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
-                    className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all dark:text-slate-100"
+                    className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all dark:text-slate-100"
                   />
                 </div>
                 <div>
@@ -240,7 +243,7 @@ export default function PatientManagementPage() {
                     required
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
-                    className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all dark:text-slate-100"
+                    className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all dark:text-slate-100"
                   />
                 </div>
                 <div className="col-span-2">
@@ -250,7 +253,7 @@ export default function PatientManagementPage() {
                     required
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
-                    className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all dark:text-slate-100"
+                    className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all dark:text-slate-100"
                     placeholder="ex: 123 Rue de la République..."
                   />
                 </div>

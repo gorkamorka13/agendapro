@@ -194,7 +194,7 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
                 {isEditing ? 'Modifier l\'intervention' : 'Nouvelle intervention'}
               </h2>
               {isEditing && (
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${isCompleted ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400'}`}>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${isCompleted ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400'}`}>
                   {isCompleted ? 'Réalisée' : 'Planifiée'}
                 </span>
               )}
@@ -294,18 +294,45 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
             {isEditing && (isAdmin || isOwner) && (
               <>
                 {!isCompleted && !showOverlapWarning && (
-                  <button type="button" onClick={handleValidate} disabled={isSubmitting} className="flex items-center justify-center gap-1.5 px-2 py-2.5 bg-emerald-600 text-white rounded-xl font-black text-xs shadow-lg shadow-emerald-500/20">Valider</button>
+                  <button
+                    type="button"
+                    onClick={handleValidate}
+                    disabled={isSubmitting}
+                    className="flex items-center justify-center gap-1.5 px-2 py-3 bg-emerald-600 text-white rounded-xl font-black text-xs shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 transition-all"
+                  >
+                    <CheckCircle size={16} /> Valider
+                  </button>
                 )}
                 {(isAdmin || !isCompleted) && !showOverlapWarning && (
-                   <button type="button" onClick={handleDelete} disabled={isSubmitting} className={`flex items-center justify-center gap-1.5 px-2 py-2.5 bg-red-50 text-red-600 border border-red-100 rounded-xl text-xs font-bold ${!isCompleted ? '' : 'col-span-1'}`}>Supprimer</button>
+                   <button
+                    type="button"
+                    onClick={handleDelete}
+                    disabled={isSubmitting}
+                    className={`flex items-center justify-center gap-1.5 px-2 py-3 bg-red-600 text-white rounded-xl text-xs font-black shadow-lg shadow-red-500/20 hover:bg-red-700 transition-all ${!isCompleted ? '' : 'col-span-1'}`}
+                   >
+                    <Trash2 size={16} /> Supprimer
+                   </button>
                 )}
               </>
             )}
             {!showOverlapWarning && (
-              <button type="button" onClick={onClose} disabled={isSubmitting} className={`flex items-center justify-center px-2 py-2.5 bg-slate-50 text-slate-600 border border-slate-200 rounded-xl text-xs font-bold ${(!isEditing || isCompleted) && !isAdmin ? 'col-span-2' : ''}`}>Fermer</button>
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={isSubmitting}
+                className={`flex items-center justify-center gap-1.5 px-2 py-3 bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all ${isEditing ? '' : 'flex-1'}`}
+              >
+                <X size={16} /> Fermer
+              </button>
             )}
             {hasPermission && !showOverlapWarning && (
-              <button type="submit" disabled={isSubmitting} className={`flex items-center justify-center px-2 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl text-xs font-black shadow-lg ${!(isEditing && (isAdmin || isOwner)) ? 'col-span-2' : ''}`}>{isEditing ? 'Mettre à jour' : 'Créer'}</button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className={`flex items-center justify-center gap-2 px-2 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl text-xs font-black shadow-lg shadow-blue-500/20 hover:from-blue-700 hover:to-blue-800 transition-all ${isEditing ? '' : 'flex-1'}`}
+              >
+                <Save size={16} /> {isEditing ? 'Mettre à jour' : 'Créer'}
+              </button>
             )}
           </div>
         </form>

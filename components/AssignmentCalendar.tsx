@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import FullCalendar from '@fullcalendar/react';
-import { EventClickArg } from '@fullcalendar/core'; // <--- CORRECTION: Importer depuis @fullcalendar/core
+import { EventClickArg } from '@fullcalendar/core';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin, { DateClickArg } from '@fullcalendar/interaction';
@@ -32,6 +32,14 @@ export default function AssignmentCalendar() {
   const { data: session } = useSession();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const calendarRef = useRef<FullCalendar>(null);
+  const touchStartX = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+  const touchEndY = useRef<number | null>(null);
+
+  // Seuil minimal pour considérer un mouvement comme un swipe (en pixels)
+  const minSwipeDistance = 50;
 
   const fetchEvents = async () => {
     try {
@@ -82,9 +90,50 @@ export default function AssignmentCalendar() {
     fetchEvents();
   };
 
+  const onTouchStart = (e: React.TouchEvent) => {
+    e.stopPropagation();
+    touchStartX.current = e.targetTouches[0].clientX;
+    touchStartY.current = e.targetTouches[0].clientY;
+    touchEndX.current = null;
+    touchEndY.current = null;
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    e.stopPropagation();
+    touchEndX.current = e.targetTouches[0].clientX;
+    touchEndY.current = e.targetTouches[0].clientY;
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStartX.current || !touchEndX.current || !touchStartY.current || !touchEndY.current) return;
+
+    const distanceX = touchStartX.current - touchEndX.current;
+    const distanceY = touchStartY.current - touchEndY.current;
+    const isHorizontalSwipe = Math.abs(distanceX) > Math.abs(distanceY);
+
+    if (isHorizontalSwipe && Math.abs(distanceX) > minSwipeDistance) {
+      const calendarApi = calendarRef.current?.getApi();
+      if (calendarApi) {
+        if (distanceX > 0) {
+          // Swipe vers la gauche -> suivant
+          calendarApi.next();
+        } else {
+          // Swipe vers la droite -> précédent
+          calendarApi.prev();
+        }
+      }
+    }
+  };
+
   return (
-    <div className="bg-white dark:bg-slate-800 p-2 sm:p-4 md:p-6 rounded-lg shadow-md transition-colors [&_.fc-toolbar-title]:text-sm [&_.fc-toolbar-title]:sm:text-xl [&_.fc-button]:text-xs [&_.fc-button]:px-2">
+    <div
+      className="bg-white dark:bg-slate-800 p-2 sm:p-4 md:p-6 rounded-lg shadow-md transition-colors [&_.fc-toolbar-title]:text-[13px] [&_.fc-toolbar-title]:sm:text-xl [&_.fc-button]:text-[11px] [&_.fc-button]:sm:text-xs [&_.fc-button]:px-1.5 [&_.fc-button]:sm:px-2 [&_.fc-header-toolbar]:flex-wrap [&_.fc-header-toolbar]:justify-center [&_.fc-header-toolbar]:gap-2 overflow-hidden"
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+    >
       <FullCalendar
+        ref={calendarRef}
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
         initialView="dayGridMonth"
         displayEventTime={false}
@@ -137,7 +186,7 @@ export default function AssignmentCalendar() {
            arg.view.calendar.setOption('headerToolbar', isMobile ? {
              left: 'prev,next',
              center: 'title',
-             right: 'dayGridMonth,timeGridWeek'  // Removed timeGridDay to save space
+             right: 'dayGridMonth,timeGridWeek,timeGridDay'
            } : {
              left: 'prev,next today',
              center: 'title',

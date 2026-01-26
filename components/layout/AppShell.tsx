@@ -1,14 +1,53 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+  const minSwipeDistance = 50;
+  const edgeThreshold = 40;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.targetTouches[0].clientX;
+    touchStartY.current = e.targetTouches[0].clientY;
+  };
+
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStartX.current || !touchStartY.current) return;
+
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+
+    const diffX = touchStartX.current - touchEndX;
+    const diffY = touchStartY.current - touchEndY;
+
+    const isHorizontalSwipe = Math.abs(diffX) > Math.abs(diffY);
+
+    if (isHorizontalSwipe && Math.abs(diffX) > minSwipeDistance) {
+      if (diffX > 0 && isSidebarOpen) {
+        // Swipe Left -> Close
+        setIsSidebarOpen(false);
+      } else if (diffX < 0 && !isSidebarOpen && touchStartX.current < edgeThreshold) {
+        // Swipe Right from edge -> Open
+        setIsSidebarOpen(true);
+      }
+    }
+
+    touchStartX.current = null;
+    touchStartY.current = null;
+  };
+
   return (
-    <div className="flex h-screen bg-gray-100 dark:bg-slate-900 overflow-hidden transition-colors duration-300">
+    <div
+      className="flex h-screen bg-gray-100 dark:bg-slate-900 overflow-hidden transition-colors duration-300"
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+    >
       {/* Mobile Overlay */}
       {isSidebarOpen && (
         <div

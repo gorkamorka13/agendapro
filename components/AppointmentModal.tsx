@@ -306,15 +306,22 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
             {isEditing && isAdmin && (
               <>
                 {!isCompleted && (
-                  <button type="button" onClick={handleValidate} disabled={isSubmitting} className="flex items-center justify-center gap-1.5 px-2 py-2.5 bg-emerald-600 text-white rounded-xl font-black text-xs shadow-lg shadow-emerald-500/20">Valider</button>
+                  <button
+                    type="button"
+                    onClick={handleValidate}
+                    disabled={isSubmitting}
+                    className="flex items-center justify-center gap-1.5 px-2 py-3 bg-emerald-600 text-white rounded-xl font-black text-xs shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 transition-all"
+                  >
+                    <CheckCircle size={16} /> Valider
+                  </button>
                 )}
                 <button
                     type="button"
                     onClick={handleDelete}
                     disabled={isSubmitting}
-                    className={`flex items-center justify-center gap-1.5 px-2 py-2.5 bg-red-50 text-red-600 border border-red-100 rounded-xl text-xs font-bold hover:bg-red-100 transition-colors ${!isCompleted ? '' : 'col-span-1'}`}
+                    className={`flex items-center justify-center gap-1.5 px-2 py-3 bg-red-600 text-white rounded-xl text-xs font-black shadow-lg shadow-red-500/20 hover:bg-red-700 transition-all ${!isCompleted ? '' : 'col-span-1'}`}
                 >
-                    Supprimer
+                    <Trash2 size={16} /> Supprimer
                 </button>
               </>
             )}
@@ -323,9 +330,9 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className={`flex items-center justify-center px-4 py-3 bg-slate-50 text-slate-600 border border-slate-200 rounded-xl text-xs font-bold hover:bg-slate-100 transition-colors ${!isEditing || (isCompleted && !isAdmin) ? 'col-span-2' : ''}`}
+              className={`flex items-center justify-center gap-1.5 px-4 py-3 bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold hover:bg-slate-200 transition-colors ${!isEditing || (isCompleted && !isAdmin) ? 'col-span-2' : ''}`}
             >
-              Fermer
+              <X size={16} /> Fermer
             </button>
 
             {(!isCompleted || isAdmin) && (

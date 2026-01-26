@@ -86,7 +86,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="text-center mt-8 text-slate-400 dark:text-slate-500 text-xs font-medium">
+        <p className="text-center mt-6 text-slate-400 dark:text-slate-500 text-[11px] font-medium">
           Agenda PRO © 2026 - Tous droits réservés
         </p>
       </div>
