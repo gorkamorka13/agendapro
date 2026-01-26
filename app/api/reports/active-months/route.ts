@@ -29,14 +29,30 @@ export async function GET(request: Request) {
       select: { startTime: true }
     });
 
+    // START CHANGE: Récupérer aussi les assignments (planifiés)
+    const assignmentWhere: any = {};
+    if (session.user.role !== Role.ADMIN) {
+      assignmentWhere.userId = session.user.id;
+    } else if (userId && userId !== 'all') {
+      assignmentWhere.userId = userId;
+    }
+
+    const assignments = await prisma.assignment.findMany({
+      where: assignmentWhere,
+      select: { startTime: true }
+    });
+    // END CHANGE
+
     const activeMonthsSet = new Set<string>();
 
-    workedHours.forEach(wh => {
-      const date = new Date(wh.startTime);
+    const addToSet = (date: Date) => {
       const year = date.getFullYear();
       const month = date.getMonth(); // 0-11
       activeMonthsSet.add(`${year}-${month}`);
-    });
+    };
+
+    workedHours.forEach(wh => addToSet(new Date(wh.startTime)));
+    assignments.forEach(a => addToSet(new Date(a.startTime)));
 
     const activeMonths = Array.from(activeMonthsSet).map(s => {
       const [year, month] = s.split('-').map(Number);
