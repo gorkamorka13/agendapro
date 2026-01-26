@@ -856,7 +856,7 @@ export default function ReportsPage() {
             <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
               <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-6 flex items-center gap-2">
                 <TrendingUp size={20} className="text-blue-500 dark:text-blue-400" />
-                {selectedUserId === 'all' ? 'Répartition Heures par Intervenant' : 'Répartition Heures par Patient'}
+                {selectedUserId === 'all' ? 'Répartition des Heures' : 'Répartition Heures par Patient'}
               </h3>
               <div className="h-[300px] w-full" id="pie-chart-container">
                 <ResponsiveContainer width="100%" height="100%">
