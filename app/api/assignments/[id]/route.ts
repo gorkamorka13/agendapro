@@ -7,10 +7,8 @@ import { authOptions } from '@/lib/auth';
 import { Role } from '@prisma/client';
 
 // --- FONCTION PUT (pour Mettre à Jour une affectation) ---
-export async function PUT(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(request: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   if (!session) {
     return new NextResponse('Non autorisé', { status: 401 });
@@ -81,10 +79,8 @@ export async function PUT(
 }
 
 // --- FONCTION DELETE (pour Supprimer une affectation) ---
-export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   if (!session) {
     return new NextResponse('Non autorisé', { status: 401 });
@@ -119,10 +115,8 @@ export async function DELETE(
   }
 }
 
-export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   if (!session) {
     return new NextResponse('Non autorisé', { status: 401 });
