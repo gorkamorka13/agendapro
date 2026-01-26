@@ -8,6 +8,7 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin, { DateClickArg } from '@fullcalendar/interaction';
 import AssignmentModal from './AssignmentModal';
 import AppointmentModal from './AppointmentModal';
+import AppointmentManager from './AppointmentManager';
 import { useSession } from 'next-auth/react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Heart, Calendar } from 'lucide-react';
@@ -24,6 +25,7 @@ export default function AssignmentCalendar() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
+  const [isAppointmentManagerOpen, setIsAppointmentManagerOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
@@ -52,9 +54,8 @@ export default function AssignmentCalendar() {
   useEffect(() => { fetchEvents(); }, []);
 
   useEffect(() => {
-    if (searchParams.get('action') === 'create-appointment') {
-      setIsAppointmentModalOpen(true);
-      // Clean up URL
+    if (searchParams.get('action') === 'manage-appointments') {
+      setIsAppointmentManagerOpen(true);
       router.replace('/');
     }
   }, [searchParams, router]);
@@ -214,10 +215,31 @@ export default function AssignmentCalendar() {
       />
       <AppointmentModal
         isOpen={isAppointmentModalOpen}
-        onClose={() => setIsAppointmentModalOpen(false)}
-        onSave={handleSave}
+        onClose={() => {
+          setIsAppointmentModalOpen(false);
+          setSelectedAppointmentId(null);
+        }}
+        onSave={() => {
+          handleSave();
+          setSelectedAppointmentId(null);
+        }}
         selectedDate={selectedDate}
         appointmentId={selectedAppointmentId}
+      />
+      <AppointmentManager
+        isOpen={isAppointmentManagerOpen}
+        onClose={() => setIsAppointmentManagerOpen(false)}
+        onEdit={(id) => {
+          setSelectedAppointmentId(id);
+          setIsAppointmentManagerOpen(false);
+          setIsAppointmentModalOpen(true);
+        }}
+        onCreate={() => {
+          setSelectedAppointmentId(null);
+          setSelectedDate(new Date());
+          setIsAppointmentManagerOpen(false);
+          setIsAppointmentModalOpen(true);
+        }}
       />
     </div>
   );
