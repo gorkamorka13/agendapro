@@ -27,12 +27,19 @@ export async function GET() {
       orderBy: {
         name: 'asc',
       },
+      select: {
+        id: true,
+        name: true,
+        fullName: true,
+        email: true,
+        role: true,
+        hourlyRate: true,
+        travelCost: true,
+        color: true,
+      } as any
     });
 
-    // On retire le mot de passe avant de renvoyer les données
-    const usersWithoutPassword = users.map(({ hashedPassword, ...user }) => user);
-
-    return NextResponse.json(usersWithoutPassword);
+    return NextResponse.json(users);
 
   } catch (error) {
     console.error("Erreur lors de la récupération des utilisateurs:", error);
@@ -48,10 +55,19 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { name, email, password, role, hourlyRate, travelCost, color } = await request.json();
+    const { name, fullName, email, password, role, hourlyRate, travelCost, color } = await request.json();
 
     if (!name || !password) {
       return new NextResponse('Nom et mot de passe requis', { status: 400 });
+    }
+
+    // Vérifier si la couleur est déjà utilisée
+    const colorUsed = await prisma.user.findFirst({
+      where: { color: color || '#3b82f6' }
+    });
+
+    if (colorUsed) {
+      return new NextResponse('Cette couleur est déjà attribuée à un autre utilisateur.', { status: 400 });
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
@@ -59,13 +75,14 @@ export async function POST(request: Request) {
     const newUser = await prisma.user.create({
       data: {
         name,
+        fullName,
         email,
         hashedPassword,
         role: role || Role.USER,
         hourlyRate: hourlyRate ? parseFloat(hourlyRate) : null,
         travelCost: travelCost ? parseFloat(travelCost) : null,
         color: color || '#3b82f6',
-      },
+      } as any,
     });
 
     const { hashedPassword: _, ...userWithoutPassword } = newUser;

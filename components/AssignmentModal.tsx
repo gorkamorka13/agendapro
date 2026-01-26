@@ -4,6 +4,13 @@ import { useState, useEffect, FormEvent } from 'react';
 import { User, Patient, Role, AssignmentStatus } from '@prisma/client';
 import { useSession } from 'next-auth/react';
 import { Clock, Calendar, User as UserIcon, Heart, Trash2, Save, X, CheckCircle } from 'lucide-react';
+import { Button } from './ui/Button';
+import { Input } from './ui/Input';
+import { Select } from './ui/Select';
+import { Badge } from './ui/Badge';
+import { Card, CardContent } from './ui/Card';
+import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface Props {
   isOpen: boolean;
@@ -150,12 +157,12 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
           selectedDateObj.setHours(0, 0, 0, 0);
 
           if (selectedDateObj < today) {
-              alert("Vous ne pouvez pas créer d'intervension dans le passé.");
+              toast.error("Vous ne pouvez pas créer d'intervention dans le passé.");
               return;
           }
 
           if (userId !== session?.user?.id) {
-              alert("Vous ne pouvez créer d'interventions que pour vous-même.");
+              toast.error("Vous ne pouvez créer d'interventions que pour vous-même.");
               return;
           }
       }
@@ -176,13 +183,14 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
       });
 
       if (response.ok) {
+        toast.success(isEditing ? "Intervention mise à jour" : "Intervention créée");
         onSave();
         onClose();
       } else if (response.status === 409) {
           setShowOverlapWarning(true);
       } else {
         const msg = await response.text();
-        alert(msg || "Erreur lors de l'enregistrement");
+        toast.error(msg || "Erreur lors de l'enregistrement");
       }
     } finally {
       setIsSubmitting(false);
@@ -196,11 +204,12 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
       try {
         const response = await fetch(`/api/assignments/${assignmentId}/complete`, { method: 'PATCH' });
         if (response.ok) {
+          toast.success("Intervention validée");
           onSave();
           onClose();
         } else {
           const err = await response.text();
-          alert(`Erreur : ${err}`);
+          toast.error(`Erreur : ${err}`);
         }
       } finally {
         setIsSubmitting(false);
@@ -215,11 +224,32 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
       try {
         const response = await fetch(`/api/assignments/${assignmentId}/cancel`, { method: 'PATCH' });
         if (response.ok) {
+          toast.success("Intervention annulée");
           onSave();
           onClose();
         } else {
           const err = await response.text();
-          alert(`Erreur : ${err}`);
+          toast.error(`Erreur : ${err}`);
+        }
+      } finally {
+        setIsSubmitting(false);
+      }
+    }
+  };
+
+  const handleReplan = async () => {
+    if (!isEditing || isSubmitting) return;
+    if (window.confirm("Voulez-vous REPLANNIFIER cette intervention ? Elle redeviendra active dans le calendrier.")) {
+      setIsSubmitting(true);
+      try {
+        const response = await fetch(`/api/assignments/${assignmentId}/replan`, { method: 'PATCH' });
+        if (response.ok) {
+          toast.success("Intervention replannifiée");
+          onSave();
+          onClose();
+        } else {
+          const err = await response.text();
+          toast.error(`Erreur : ${err}`);
         }
       } finally {
         setIsSubmitting(false);
@@ -231,8 +261,11 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
     if (isEditing && window.confirm('Supprimer cette affectation ?')) {
       const response = await fetch(`/api/assignments/${assignmentId}`, { method: 'DELETE' });
       if (response.ok) {
+        toast.success("Intervention supprimée");
         onSave();
         onClose();
+      } else {
+        toast.error("Erreur lors de la suppression");
       }
     }
   };
@@ -247,24 +280,18 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
                 {isEditing ? 'Modifier l\'intervention' : 'Nouvelle intervention'}
               </h2>
               {isEditing && (
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                  isCancelled
-                    ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400'
-                    : isCompleted
-                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400'
-                      : 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400'
-                }`}>
+                <Badge variant={isCancelled ? 'amber' : (isCompleted ? 'emerald' : 'blue')}>
                   {isCancelled ? 'Annulée' : (isCompleted ? 'Réalisée' : 'Planifiée')}
-                </span>
+                </Badge>
               )}
             </div>
             <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-medium mt-0.5">
               {isCancelled ? 'Cette intervention a été annulée.' : (isCompleted ? 'Validée et non modifiable.' : 'Détails de l\'affectation')}
             </p>
           </div>
-          <button onClick={onClose} className="p-1.5 sm:p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400">
+          <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
             <X size={20} className="sm:w-6 sm:h-6" />
-          </button>
+          </Button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 sm:p-8 space-y-4 sm:space-y-6">
@@ -281,48 +308,41 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-            <div className="space-y-1.5">
-              <label className="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase flex items-center gap-2">
-                <UserIcon size={12} className="text-blue-500" />
-                <span>Intervenant</span>
-                {userId && (
-                  <span
-                    className="w-2.5 h-2.5 rounded-full border border-white/20 shadow-sm transition-colors duration-300"
-                    style={{ backgroundColor: (users.find(u => u.id === userId) as any)?.color || '#3b82f6' }}
-                  />
-                )}
-              </label>
-              <select
-                value={userId}
-                onChange={(e) => setUserId(e.target.value)}
-                required
-                disabled={!isAdmin || isCompleted || showOverlapWarning}
-                className="w-full p-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-medium text-slate-700 dark:text-slate-200 disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                <option value="">Sélectionner...</option>
-                {users.map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase flex items-center gap-2"><Heart size={12} className="text-rose-500" /> Patient</label>
-              <select value={patientId} onChange={(e) => setPatientId(e.target.value)} required disabled={(isCompleted && !isAdmin) || showOverlapWarning} className="w-full p-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-medium text-slate-700 dark:text-slate-200">
-                <option value="">Sélectionner...</option>
-                {patients.map((patient) => <option key={patient.id} value={patient.id}>{patient.firstName} {patient.lastName}</option>)}
-              </select>
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase flex items-center gap-2"><Calendar size={12} className="text-indigo-500" /> Date</label>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
+            <Select
+              label="Intervenant"
+              icon={<UserIcon size={12} className="text-blue-500" />}
+              value={userId}
+              onChange={(e) => setUserId(e.target.value)}
               required
-              min={!isAdmin ? formatLocalDate(new Date()) : undefined}
-              disabled={!hasPermission || showOverlapWarning}
-              className="w-full p-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-bold text-slate-700 dark:text-slate-200"
-            />
+              disabled={!isAdmin || isCompleted || showOverlapWarning}
+            >
+              <option value="">Sélectionner...</option>
+              {users.map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}
+            </Select>
+
+            <Select
+              label="Patient"
+              icon={<Heart size={12} className="text-rose-500" />}
+              value={patientId}
+              onChange={(e) => setPatientId(e.target.value)}
+              required
+              disabled={(isCompleted && !isAdmin) || showOverlapWarning}
+            >
+              <option value="">Sélectionner...</option>
+              {patients.map((patient) => <option key={patient.id} value={patient.id}>{patient.firstName} {patient.lastName}</option>)}
+            </Select>
           </div>
+          <Input
+            label="Date"
+            icon={<Calendar size={12} className="text-indigo-500" />}
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            required
+            min={!isAdmin ? formatLocalDate(new Date()) : undefined}
+            disabled={!hasPermission || showOverlapWarning}
+            className="font-bold"
+          />
           <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 space-y-3">
             <div className="flex items-center justify-between gap-3">
               <div className="flex-1 space-y-1.5">
@@ -342,7 +362,7 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
           </div>
 
           {showOverlapWarning && (
-            <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20 p-4 rounded-2xl space-y-3 animate-in slide-in-from-top-2 duration-300">
+            <Card variant="flat" className="bg-amber-50 dark:bg-amber-500/10 border-amber-100 dark:border-amber-500/20 p-4 space-y-3 animate-in slide-in-from-top-2 duration-300">
               <div className="flex items-start gap-3">
                  <X size={20} className="text-amber-500 shrink-0 mt-0.5" />
                  <div>
@@ -351,82 +371,94 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
                  </div>
               </div>
               <div className="flex gap-2">
-                <button
-                  type="button"
+                <Button
+                  variant="amber"
                   onClick={() => handleSubmit(null as any, true)}
-                  className="flex-1 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-black uppercase transition-all shadow-lg shadow-amber-200 dark:shadow-none"
+                  className="flex-1 uppercase text-xs"
                 >
                   Oui, chevaucher
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button
+                  variant="secondary"
                   onClick={() => setShowOverlapWarning(false)}
-                  className="flex-1 py-1.5 bg-white dark:bg-slate-800 text-amber-600 border border-amber-200 dark:border-amber-900/50 rounded-xl text-xs font-black uppercase transition-colors"
+                  className="flex-1 uppercase text-xs bg-white dark:bg-slate-800 text-amber-600 border-amber-200"
                 >
                   Non, ajuster
-                </button>
+                </Button>
               </div>
-            </div>
+            </Card>
           )}
 
-          <div className="flex flex-wrap gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
-            {/* 1. Mettre à jour / Créer */}
+          <div className="flex gap-1 pt-4 border-t border-slate-100 dark:border-slate-800">
+            {/* 1. Update / Créer */}
             {hasPermission && !showOverlapWarning && (
-              <button
+              <Button
                 type="submit"
-                disabled={isSubmitting}
-                className="flex-1 flex items-center justify-center gap-2 px-2 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl text-xs font-black shadow-lg shadow-blue-500/20 hover:from-blue-700 hover:to-blue-800 transition-all order-1"
+                isLoading={isSubmitting}
+                className="flex-1 text-[9px] px-1 font-black uppercase order-1"
               >
-                <Save size={16} /> {isEditing ? 'Mettre à jour' : 'Créer'}
-              </button>
+                {isEditing ? (
+                  <>
+                    <Save size={12} />
+                    <span>Update</span>
+                  </>
+                ) : (
+                  <>
+                    <Save size={12} />
+                    <span>Créer</span>
+                  </>
+                )}
+              </Button>
             )}
 
             {/* 2. Valider & Supprimer (si admin/proprio + modification) */}
             {isEditing && (isAdmin || isOwner) && (
               <>
-                {!isCompleted && !showOverlapWarning && (
-                  <button
+                {((!isCompleted && !isCancelled) || (isCancelled && isPast)) && !showOverlapWarning && (
+                  <Button
                     type="button"
+                    variant="primary"
                     onClick={handleValidate}
-                    disabled={isSubmitting}
-                    className="flex-1 flex items-center justify-center gap-1.5 px-2 py-3 bg-emerald-600 text-white rounded-xl font-black text-xs shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 transition-all order-2"
+                    isLoading={isSubmitting}
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20 text-[9px] px-1 font-black uppercase order-2"
                   >
-                    <CheckCircle size={16} /> Valider
-                  </button>
+                    <CheckCircle size={12} /> Valider
+                  </Button>
+                )}
+                {isCancelled && !isPast && !showOverlapWarning && (
+                  <Button
+                    type="button"
+                    variant="primary"
+                    onClick={handleReplan}
+                    isLoading={isSubmitting}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 shadow-blue-500/20 text-[9px] px-1 font-black uppercase order-2"
+                  >
+                    <Calendar size={12} /> Replan
+                  </Button>
                 )}
                 {isAdmin && status !== 'CANCELLED' && !showOverlapWarning && (
-                  <button
+                  <Button
                     type="button"
+                    variant="amber"
                     onClick={handleCancel}
-                    disabled={isSubmitting}
-                    className="flex-1 flex items-center justify-center gap-1.5 px-2 py-3 bg-amber-500 text-white rounded-xl font-black text-xs shadow-lg shadow-amber-500/20 hover:bg-amber-600 transition-all order-3"
+                    isLoading={isSubmitting}
+                    className="flex-1 text-[9px] px-1 font-black uppercase order-3"
                   >
-                    <X size={16} /> Annuler
-                  </button>
+                    <X size={12} /> Annuler
+                  </Button>
                 )}
                 {(isAdmin || !isCompleted) && !showOverlapWarning && (
-                   <button
+                   <Button
                     type="button"
+                    variant="danger"
                     onClick={handleDelete}
-                    disabled={isSubmitting}
-                    className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-3 bg-red-600 text-white rounded-xl text-xs font-black shadow-lg shadow-red-500/20 hover:bg-red-700 transition-all ${isAdmin ? 'order-4' : 'order-3'}`}
+                    isLoading={isSubmitting}
+                    className={cn("flex-1 text-[9px] px-1 font-black uppercase", isAdmin ? 'order-4' : 'order-3')}
                    >
-                    <Trash2 size={16} /> Supprimer
-                   </button>
+                    <Trash2 size={12} /> Supprimer
+                   </Button>
                 )}
               </>
-            )}
-
-            {/* 3. Fermer */}
-            {!showOverlapWarning && (
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={isSubmitting}
-                className="flex-1 flex items-center justify-center gap-1.5 px-2 py-3 bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all order-5"
-              >
-                <X size={16} /> Fermer
-              </button>
             )}
           </div>
         </form>

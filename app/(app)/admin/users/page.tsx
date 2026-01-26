@@ -14,6 +14,7 @@ export default function UserManagementPage() {
 
   // Form states
   const [name, setName] = useState('');
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<Role>('USER' as any);
@@ -42,6 +43,7 @@ export default function UserManagementPage() {
 
   const resetForm = () => {
     setName('');
+    setFullName('');
     setEmail('');
     setPassword('');
     setRole('USER' as any);
@@ -55,6 +57,7 @@ export default function UserManagementPage() {
     if (user) {
       setEditingUser(user);
       setName(user.name || '');
+      setFullName((user as any).fullName || '');
       setEmail(user.email || '');
       setRole(user.role);
       setHourlyRate(user.hourlyRate?.toString() || '');
@@ -72,7 +75,7 @@ export default function UserManagementPage() {
     const url = editingUser ? `/api/users/${editingUser.id}` : '/api/users';
     const method = editingUser ? 'PUT' : 'POST';
 
-    const body: any = { name, email, role, hourlyRate, travelCost, color };
+    const body: any = { name, fullName, email, role, hourlyRate, travelCost, color };
     if (password) body.password = password;
 
     try {
@@ -137,8 +140,12 @@ export default function UserManagementPage() {
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full shadow-inner border-2 border-white dark:border-slate-700 shrink-0" style={{ backgroundColor: (user as any).color || '#3b82f6' }} />
                   <div className="min-w-0">
-                    <div className="font-black text-slate-800 dark:text-slate-100 truncate">{user.name}</div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400 truncate">{user.email}</div>
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Nom</div>
+                    <div className="font-black text-slate-800 dark:text-slate-100 truncate">{(user as any).fullName || '-'}</div>
+                    <div className="mt-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mr-1">Login:</span>
+                      <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{user.name}</span>
+                    </div>
                   </div>
                 </div>
                 <span className={`px-2 py-0.5 text-[10px] font-black rounded-md uppercase tracking-wider ${
@@ -189,7 +196,8 @@ export default function UserManagementPage() {
         <table className="min-w-full divide-y divide-slate-100 dark:divide-slate-700">
           <thead className="bg-slate-50 dark:bg-slate-900/50">
             <tr>
-              <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Compte Utilisateur</th>
+              <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Login</th>
+              <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Nom</th>
               <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Rôle & Droits</th>
               <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Tarification</th>
               <th className="px-8 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Actions</th>
@@ -201,11 +209,12 @@ export default function UserManagementPage() {
                 <td className="px-8 py-5 whitespace-nowrap">
                   <div className="flex items-center">
                     <div className="w-10 h-10 rounded-full shadow-inner border-2 border-white dark:border-slate-800 mr-4 shrink-0 transition-transform group-hover:scale-110" style={{ backgroundColor: (user as any).color || '#3b82f6' }} />
-                    <div className="min-w-0">
-                      <div className="text-sm font-black text-slate-800 dark:text-slate-100 truncate">{user.name}</div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400 truncate">{user.email || 'Pas d\'email'}</div>
-                    </div>
+                    <div className="text-sm font-black text-slate-800 dark:text-slate-100">{user.name}</div>
                   </div>
+                </td>
+                <td className="px-8 py-5 whitespace-nowrap">
+                  <div className="text-sm font-bold text-slate-700 dark:text-slate-200">{(user as any).fullName || '-'}</div>
+                  <div className="text-[10px] text-slate-400 font-medium">{user.email || ''}</div>
                 </td>
                 <td className="px-8 py-5 whitespace-nowrap">
                   <span className={`px-2.5 py-1 inline-flex text-[10px] leading-4 font-black rounded-md uppercase tracking-wider ${
@@ -267,7 +276,7 @@ export default function UserManagementPage() {
             <form onSubmit={handleSubmit} className="p-8 space-y-6">
               <div className="grid grid-cols-2 gap-6">
                 <div className="col-span-2 space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Identifiant / Nom</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Identifiant (Login)</label>
                   <input
                     type="text"
                     required
@@ -275,6 +284,17 @@ export default function UserManagementPage() {
                     onChange={(e) => setName(e.target.value)}
                     className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-slate-100 font-bold"
                     placeholder="ex: marie, admin"
+                  />
+                </div>
+                <div className="col-span-2 space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nom complet</label>
+                  <input
+                    type="text"
+                    required
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-slate-100 font-bold"
+                    placeholder="ex: Marie Lefebvre"
                   />
                 </div>
                 <div className="col-span-2 space-y-1.5">
@@ -321,6 +341,9 @@ export default function UserManagementPage() {
                       className="h-10 w-full p-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl cursor-pointer"
                     />
                   </div>
+                  {users.some(u => u.color === color && u.id !== editingUser?.id) && (
+                    <p className="text-[9px] text-red-500 font-bold animate-pulse">Couleur déjà utilisée !</p>
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate">Taux Horaire (€/h)</label>

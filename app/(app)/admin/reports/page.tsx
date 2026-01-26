@@ -5,7 +5,8 @@ import { useState, useEffect } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
-import ExportModal from '@/components/ExportModal';
+import * as XLSX from 'xlsx';
+import ExportModal, { ExportFormat } from '@/components/ExportModal';
 import { useTitle } from '@/components/TitleContext';
 
 interface ExportOptions {
@@ -25,7 +26,9 @@ import {
   Cell,
   PieChart,
   Pie,
-  Legend
+  Legend,
+  AreaChart,
+  Area
 } from 'recharts';
 import {
   Calendar,
@@ -256,6 +259,85 @@ export default function ReportsPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleExport = async (options: ExportOptions, format: ExportFormat) => {
+    if (format === 'pdf') {
+      await handleExportPDF(options);
+    } else {
+      await handleExportExcel(options);
+    }
+  };
+
+  const handleExportExcel = async (options: ExportOptions) => {
+    if (!reportData) return;
+
+    const workbook = XLSX.utils.book_new();
+    const selectedUser = users.find(u => u.id === selectedUserId);
+
+    // 1. Sheet: Summary Key Metrics
+    if (options.financialSummary) {
+      const summaryData = [
+        ["Rapport d'Activité Agenda Pro", ""],
+        ["Période", `${startDate} au ${endDate}`],
+        ["Intervenant", selectedUser?.name || "Vue Globale"],
+        [""],
+        ["MÉTRIQUES CLÉS", ""],
+        ["Heures Réalisées", `${reportData.summary.realizedHours.toFixed(2)} h`],
+        ["Heures Planifiées", `${reportData.summary.plannedHours.toFixed(2)} h`],
+        ["Frais de Déplacement (Réalisés)", `${reportData.summary.realizedTravelCost.toFixed(2)} €`],
+        ["Paie Réalisée (Brute)", `${reportData.summary.realizedPay.toFixed(2)} €`],
+        ["Total Dépenses Fonctionnement", `${reportData.summary.totalExpenses.toFixed(2)} €`],
+        ["Impact Trésorerie Total", `${(reportData.summary.realizedPay + reportData.summary.totalExpenses).toFixed(2)} €`],
+      ];
+      const ws_summary = XLSX.utils.aoa_to_sheet(summaryData);
+      XLSX.utils.book_append_sheet(workbook, ws_summary, "Résumé");
+    }
+
+    // 2. Sheet: Detailed Interventions
+    if (options.detailedLogs && reportData.workedHours.length > 0) {
+      const logsData = reportData.workedHours.map(e => ({
+        "Date": e.date,
+        "Statut": e.isRealized ? "Réalisé" : "Planifié",
+        "Intervenant": e.worker,
+        "Patient": e.patient,
+        "Début": e.startTime,
+        "Fin": e.endTime,
+        "Durée (h)": parseFloat(e.duration),
+        "Montant (€)": parseFloat(e.pay.replace(',', '.'))
+      }));
+      const ws_logs = XLSX.utils.json_to_sheet(logsData);
+      XLSX.utils.book_append_sheet(workbook, ws_logs, "Interventions Détail");
+    }
+
+    // 3. Sheet: Daily Summaries
+    if (options.dailyAmplitude && reportData.dailySummaries.length > 0) {
+      const amplitudeData = reportData.dailySummaries.map(s => ({
+        "Date": s.date,
+        "Intervenant": s.worker,
+        "Premier Début": s.firstStart,
+        "Dernière Fin": s.lastEnd,
+        "Amplitude (h)": parseFloat(s.totalHours)
+      }));
+      const ws_amplitude = XLSX.utils.json_to_sheet(amplitudeData);
+      XLSX.utils.book_append_sheet(workbook, ws_amplitude, "Amplitude Quotidienne");
+    }
+
+    // 4. Sheet: Expenses
+    if (options.financialSummary && reportData.expenses && reportData.expenses.length > 0) {
+      const expensesData = reportData.expenses.map(exp => ({
+        "Date": new Date(exp.date).toLocaleDateString('fr-FR'),
+        "Bénéficiaire": (exp as any).user?.name || '-',
+        "Motif": exp.motif,
+        "Montant (€)": exp.amount
+      }));
+      const ws_expenses = XLSX.utils.json_to_sheet(expensesData);
+      XLSX.utils.book_append_sheet(workbook, ws_expenses, "Dépenses");
+    }
+
+    const fileName = `Rapport_${selectedUser?.name?.replace(/\s/g, '_') || 'Global'}_${startDate}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+    setIsExportModalOpen(false);
   };
 
   const handleExportPDF = async (options: ExportOptions) => {
@@ -737,7 +819,7 @@ export default function ReportsPage() {
                 onClick={() => setIsExportModalOpen(true)}
                 disabled={!reportData}
                 className="p-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-200 dark:shadow-none mb-[1px]"
-                title="Exporter PDF"
+                title="Exporter le rapport"
             >
                 <Download size={20} />
             </button>
@@ -1010,7 +1092,7 @@ export default function ReportsPage() {
       <ExportModal
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
-        onExport={handleExportPDF}
+        onExport={handleExport}
       />
     </div>
   );

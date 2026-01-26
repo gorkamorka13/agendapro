@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { Role } from '@prisma/client';
+import { assignmentSchema } from '@/lib/validations/schemas';
 
 // --- FONCTION PUT (pour Mettre à Jour une affectation) ---
 export async function PUT(request: Request, props: { params: Promise<{ id: string }> }) {
@@ -34,7 +35,13 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
     }
 
     const body = await request.json();
-    const { userId, patientId, startTime, endTime, ignoreConflict } = body;
+    const validatedData = assignmentSchema.safeParse(body);
+
+    if (!validatedData.success) {
+      return new NextResponse(validatedData.error.issues[0].message, { status: 400 });
+    }
+
+    const { userId, patientId, startTime, endTime, ignoreConflict } = validatedData.data;
 
     const start = new Date(startTime);
     const end = new Date(endTime);
@@ -65,7 +72,7 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
       where: { id },
       data: {
         userId,
-        patientId: parseInt(patientId, 10),
+        patientId: patientId,
         startTime: start,
         endTime: end,
       },

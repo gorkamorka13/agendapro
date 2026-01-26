@@ -2,6 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { X, Euro, Calendar, FileText, Save, User as UserIcon } from 'lucide-react';
+import { Button } from './ui/Button';
+import { Input } from './ui/Input';
+import { Select } from './ui/Select';
+import { toast } from 'sonner';
 
 interface Props {
   isOpen: boolean;
@@ -49,7 +53,7 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId) {
-      alert("Veuillez sélectionner un bénéficiaire");
+      toast.error("Veuillez sélectionner un bénéficiaire");
       return;
     }
     setIsSubmitting(true);
@@ -64,15 +68,16 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
       });
 
       if (response.ok) {
+        toast.success(expense ? "Dépense mise à jour" : "Dépense enregistrée");
         onSave();
         onClose();
       } else {
         const errorText = await response.text();
-        alert("Erreur lors de l'enregistrement: " + errorText);
+        toast.error("Erreur lors de l'enregistrement: " + errorText);
       }
     } catch (error) {
       console.error("Erreur soumission dépense:", error);
-      alert("Une erreur est survenue");
+      toast.error("Une erreur est survenue");
     } finally {
       setIsSubmitting(false);
     }
@@ -88,88 +93,73 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
             </h2>
             <p className="text-slate-500 dark:text-slate-400 text-xs font-medium">Gestion du fonctionnement</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400">
+          <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
             <X size={24} />
-          </button>
+          </Button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-8 space-y-6">
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase flex items-center gap-2">
-              <UserIcon size={12} className="text-blue-500" /> Bénéficiaire (Intervenant / Admin)
-            </label>
-            <select
-              required
-              value={userId}
-              onChange={(e) => setUserId(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-slate-100 font-bold"
-            >
-              <option value="">Sélectionner un bénéficiaire...</option>
-              {users.map(u => (
-                <option key={u.id} value={u.id}>{u.name}</option>
-              ))}
-            </select>
-          </div>
+          <Select
+            label="Bénéficiaire (Intervenant / Admin)"
+            icon={<UserIcon size={12} className="text-blue-500" />}
+            required
+            value={userId}
+            onChange={(e) => setUserId(e.target.value)}
+          >
+            <option value="">Sélectionner un bénéficiaire...</option>
+            {users.map(u => (
+              <option key={u.id} value={u.id}>{u.name}</option>
+            ))}
+          </Select>
 
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase flex items-center gap-2">
-              <FileText size={12} className="text-blue-500" /> Motif de la dépense
-            </label>
-            <input
-              type="text"
+          <Input
+            label="Motif de la dépense"
+            icon={<FileText size={12} className="text-blue-500" />}
+            type="text"
+            required
+            value={motif}
+            onChange={(e) => setMotif(e.target.value)}
+            placeholder="ex: Essence, Fournitures, Loyer..."
+          />
+
+          <div className="grid grid-cols-2 gap-6">
+            <Input
+              label="Montant (€)"
+              icon={<Euro size={12} className="text-emerald-500" />}
+              type="number"
+              step="0.01"
               required
-              value={motif}
-              onChange={(e) => setMotif(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-slate-100 font-bold"
-              placeholder="ex: Essence, Fournitures, Loyer..."
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="0.00"
+            />
+            <Input
+              label="Date"
+              icon={<Calendar size={12} className="text-indigo-500" />}
+              type="date"
+              required
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-6">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase flex items-center gap-2">
-                <Euro size={12} className="text-emerald-500" /> Montant (€)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                required
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-slate-100 font-bold"
-                placeholder="0.00"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase flex items-center gap-2">
-                <Calendar size={12} className="text-indigo-500" /> Date
-              </label>
-              <input
-                type="date"
-                required
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-slate-100 font-bold"
-              />
-            </div>
-          </div>
-
           <div className="flex flex-wrap gap-3 pt-6 border-t border-slate-100 dark:border-slate-800 mt-6">
-            <button
+            <Button
               type="submit"
-              disabled={isSubmitting}
-              className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-black shadow-lg shadow-blue-200 dark:shadow-none transition flex items-center justify-center gap-2 order-1"
+              isLoading={isSubmitting}
+              className="flex-1 order-1 text-xs uppercase"
             >
               <Save size={18} />
               {expense ? 'Mettre à jour' : 'Enregistrer'}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="secondary"
               onClick={onClose}
-              className="flex-1 px-6 py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition flex items-center justify-center gap-2 order-2"
+              className="flex-1 order-2 text-xs"
             >
               <X size={18} /> Annuler
-            </button>
+            </Button>
           </div>
         </form>
       </div>

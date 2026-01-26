@@ -3,6 +3,8 @@ import { Calendar, Plus, Trash2, Edit2, X, Search, Clock, MapPin } from 'lucide-
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useSession } from 'next-auth/react';
+import { Button } from './ui/Button';
+import { Input } from './ui/Input';
 
 interface Props {
   isOpen: boolean;
@@ -73,30 +75,28 @@ export default function AppointmentManager({ isOpen, onClose, onEdit, onCreate }
                     </p>
                 </div>
             </div>
-            <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+            <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
                 <X size={20} />
-            </button>
+            </Button>
         </div>
 
         {/* Toolbar */}
         <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex gap-4">
-            <div className="flex-1 relative">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                    type="text"
+            <div className="flex-1">
+                <Input
                     placeholder="Rechercher..."
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl outline-none text-sm font-medium dark:text-slate-200"
+                    icon={<Search size={16} className="text-slate-400" />}
                 />
             </div>
             {isAdmin && (
-                <button
+                <Button
                     onClick={onCreate}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-colors"
+                    className="gap-2"
                 >
                     <Plus size={16} /> <span className="hidden sm:inline">Nouveau</span>
-                </button>
+                </Button>
             )}
         </div>
 

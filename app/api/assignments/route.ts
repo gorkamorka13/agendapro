@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Role, AssignmentStatus } from '@prisma/client';
+import { assignmentSchema } from '@/lib/validations/schemas';
 
 /**
  * GET /api/assignments
@@ -96,7 +97,13 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { userId, patientId, startTime, endTime, ignoreConflict } = body;
+    const validatedData = assignmentSchema.safeParse(body);
+
+    if (!validatedData.success) {
+      return new NextResponse(validatedData.error.issues[0].message, { status: 400 });
+    }
+
+    const { userId, patientId, startTime, endTime, ignoreConflict } = validatedData.data;
 
     const isAdmin = session.user.role === Role.ADMIN;
 
@@ -161,7 +168,7 @@ export async function POST(request: Request) {
     const newAssignment = await prisma.assignment.create({
       data: {
         userId: userId,
-        patientId: parseInt(patientId, 10),
+        patientId: patientId,
         startTime: start,
         endTime: end,
         // Le statut par défaut (PLANNED) est géré par le schéma Prisma

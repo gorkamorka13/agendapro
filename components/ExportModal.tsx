@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { X, FileText, CheckSquare, Square, Download } from 'lucide-react';
+import { X, FileText, CheckSquare, Square, Download, FileSpreadsheet } from 'lucide-react';
+import { Button } from './ui/Button';
+import { cn } from '@/lib/utils';
 
 interface ExportOptions {
   financialSummary: boolean;
@@ -10,10 +12,12 @@ interface ExportOptions {
   evaluationAnalytics: boolean;
 }
 
+export type ExportFormat = 'pdf' | 'excel';
+
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onExport: (options: ExportOptions) => void;
+  onExport: (options: ExportOptions, format: ExportFormat) => void;
 }
 
 export default function ExportModal({ isOpen, onClose, onExport }: Props) {
@@ -23,6 +27,7 @@ export default function ExportModal({ isOpen, onClose, onExport }: Props) {
     detailedLogs: true,
     evaluationAnalytics: true,
   });
+  const [format, setFormat] = useState<ExportFormat>('pdf');
 
   if (!isOpen) return null;
 
@@ -44,9 +49,9 @@ export default function ExportModal({ isOpen, onClose, onExport }: Props) {
               <p className="text-slate-500 dark:text-slate-400 text-xs font-medium mt-0.5">Personnalisez votre document PDF</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400 outline-none">
+          <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
             <X size={20} />
-          </button>
+          </Button>
         </div>
 
         <div className="p-8 space-y-4">
@@ -105,20 +110,51 @@ export default function ExportModal({ isOpen, onClose, onExport }: Props) {
           </button>
         </div>
 
+        {/* Format Selector */}
+        <div className="px-8 pb-8 space-y-3">
+          <p className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Format d'exportation</p>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => setFormat('pdf')}
+              className={cn(
+                "flex items-center gap-3 p-3 rounded-xl border transition-all",
+                format === 'pdf' ? "bg-red-50 border-red-200 text-red-600 dark:bg-red-500/10 dark:border-red-500/30 dark:text-red-400" : "bg-slate-50 border-slate-100 text-slate-400 dark:bg-slate-800/50 dark:border-slate-800"
+              )}
+            >
+              <FileText size={20} />
+              <span className="font-bold text-sm">PDF</span>
+            </button>
+            <button
+              onClick={() => setFormat('excel')}
+              className={cn(
+                "flex items-center gap-3 p-3 rounded-xl border transition-all",
+                format === 'excel' ? "bg-emerald-50 border-emerald-200 text-emerald-600 dark:bg-emerald-500/10 dark:border-emerald-500/30 dark:text-emerald-400" : "bg-slate-50 border-slate-100 text-slate-400 dark:bg-slate-800/50 dark:border-slate-800"
+              )}
+            >
+              <FileSpreadsheet size={20} />
+              <span className="font-bold text-sm">EXCEL</span>
+            </button>
+          </div>
+        </div>
+
         <div className="px-8 py-6 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <button
+          <Button
+            variant="secondary"
             onClick={onClose}
-            className="px-4 py-3 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-bold rounded-2xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all text-sm flex items-center justify-center gap-2"
+            className="rounded-2xl"
           >
             <X size={18} /> Annuler
-          </button>
-          <button
-            onClick={() => onExport(options)}
-            className="sm:col-span-2 px-4 py-3 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 dark:shadow-none text-sm flex items-center justify-center gap-2"
+          </Button>
+          <Button
+            onClick={() => onExport(options, format)}
+            className={cn(
+               "sm:col-span-2 rounded-2xl",
+               format === 'excel' ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20" : "bg-blue-600 hover:bg-blue-700 shadow-blue-500/20"
+            )}
           >
             <Download size={18} />
-            Télécharger le PDF
-          </button>
+            {format === 'pdf' ? 'Télécharger le PDF' : 'Télécharger l\'Excel'}
+          </Button>
         </div>
       </div>
     </div>

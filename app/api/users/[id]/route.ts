@@ -14,10 +14,11 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
   }
 
   try {
-    const { name, email, password, role, hourlyRate, travelCost, color } = await request.json();
+    const { name, fullName, email, password, role, hourlyRate, travelCost, color } = await request.json();
 
     const data: any = {
       name,
+      fullName,
       email,
       role,
       hourlyRate: hourlyRate ? parseFloat(hourlyRate) : null,
@@ -29,6 +30,18 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
       data.hashedPassword = await bcrypt.hash(password, 12);
     }
 
+    // Vérifier si la couleur est déjà utilisée par un AUTRE utilisateur
+    const colorUsed = await prisma.user.findFirst({
+      where: {
+        color: color,
+        id: { not: params.id }
+      }
+    });
+
+    if (colorUsed) {
+      return new NextResponse('Cette couleur est déjà attribuée à un autre utilisateur.', { status: 400 });
+    }
+
     // Sécurité: Empêcher de supprimer les droits admin de l'utilisateur 'admin'
     const existingUser = await prisma.user.findUnique({ where: { id: params.id } });
     if (existingUser?.name === 'admin' && role !== Role.ADMIN) {
@@ -37,7 +50,7 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
 
     const updatedUser = await prisma.user.update({
       where: { id: params.id },
-      data,
+      data: data as any,
     });
 
     const { hashedPassword: _, ...userWithoutPassword } = updatedUser;

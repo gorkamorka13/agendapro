@@ -6,7 +6,8 @@ import { useSession } from 'next-auth/react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
-import ExportModal from '@/components/ExportModal';
+import * as XLSX from 'xlsx';
+import ExportModal, { ExportFormat } from '@/components/ExportModal';
 import { useTitle } from '@/components/TitleContext';
 
 interface ExportOptions {
@@ -26,7 +27,9 @@ import {
   Cell,
   PieChart,
   Pie,
-  Legend
+  Legend,
+  AreaChart,
+  Area
 } from 'recharts';
 import {
   Calendar,
@@ -229,6 +232,81 @@ export default function UserReportsPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleExport = async (options: ExportOptions, format: ExportFormat) => {
+    if (format === 'pdf') {
+      await handleExportPDF(options);
+    } else {
+      await handleExportExcel(options);
+    }
+  };
+
+  const handleExportExcel = async (options: ExportOptions) => {
+    if (!reportData || !session?.user) return;
+
+    const workbook = XLSX.utils.book_new();
+
+    // 1. Sheet: Summary Key Metrics
+    if (options.financialSummary) {
+      const summaryData = [
+        ["Mon Rapport d'Activité Agenda Pro", ""],
+        ["Période", `${startDate} au ${endDate}`],
+        ["Utilisateur", session.user.name || "Moi"],
+        [""],
+        ["MÉTRIQUES CLÉS", ""],
+        ["Heures Réalisées", `${reportData.summary.realizedHours.toFixed(2)} h`],
+        ["Heures Planifiées", `${reportData.summary.plannedHours.toFixed(2)} h`],
+        ["Frais de Déplacement (Réalisés)", `${reportData.summary.realizedTravelCost.toFixed(2)} €`],
+        ["Ma Paie Réalisée (Brute)", `${reportData.summary.realizedPay.toFixed(2)} €`],
+        ["Total Mes Dépenses", `${reportData.summary.totalExpenses.toFixed(2)} €`],
+        ["Impact sur Trésorerie Structure", `${(reportData.summary.realizedPay + reportData.summary.totalExpenses).toFixed(2)} €`],
+      ];
+      const ws_summary = XLSX.utils.aoa_to_sheet(summaryData);
+      XLSX.utils.book_append_sheet(workbook, ws_summary, "Résumé");
+    }
+
+    // 2. Sheet: Detailed Interventions
+    if (options.detailedLogs && reportData.workedHours.length > 0) {
+      const logsData = reportData.workedHours.map(e => ({
+        "Date": e.date,
+        "Statut": e.isRealized ? "Réalisé" : "Planifié",
+        "Patient": e.patient,
+        "Début": e.startTime,
+        "Fin": e.endTime,
+        "Durée (h)": parseFloat(e.duration),
+        "Montant Estimé (€)": parseFloat(e.pay.replace(',', '.'))
+      }));
+      const ws_logs = XLSX.utils.json_to_sheet(logsData);
+      XLSX.utils.book_append_sheet(workbook, ws_logs, "Interventions Détail");
+    }
+
+    // 3. Sheet: Daily Summaries
+    if (options.dailyAmplitude && reportData.dailySummaries.length > 0) {
+      const amplitudeData = reportData.dailySummaries.map(s => ({
+        "Date": s.date,
+        "Premier Début": s.firstStart,
+        "Dernière Fin": s.lastEnd,
+        "Amplitude (h)": parseFloat(s.totalHours)
+      }));
+      const ws_amplitude = XLSX.utils.json_to_sheet(amplitudeData);
+      XLSX.utils.book_append_sheet(workbook, ws_amplitude, "Amplitude Quotidienne");
+    }
+
+    // 4. Sheet: Expenses
+    if (options.financialSummary && reportData.expenses && reportData.expenses.length > 0) {
+      const expensesData = reportData.expenses.map(exp => ({
+        "Date": new Date(exp.date).toLocaleDateString('fr-FR'),
+        "Motif": exp.motif,
+        "Montant (€)": exp.amount
+      }));
+      const ws_expenses = XLSX.utils.json_to_sheet(expensesData);
+      XLSX.utils.book_append_sheet(workbook, ws_expenses, "Dépenses");
+    }
+
+    const fileName = `Mon_Rapport_${session.user.name?.replace(/\s/g, '_') || 'AgendaPro'}_${startDate}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+    setIsExportModalOpen(false);
   };
 
   const handleExportPDF = async (options: ExportOptions) => {
@@ -632,7 +710,7 @@ export default function UserReportsPage() {
                 onClick={() => setIsExportModalOpen(true)}
                 disabled={!reportData}
                 className="p-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-200 dark:shadow-none mb-[1px]"
-                title="Exporter PDF"
+                title="Exporter le rapport"
             >
                 <Download size={20} />
             </button>
@@ -707,6 +785,39 @@ export default function UserReportsPage() {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* ADVANCED ANALYTICS - INTENSITY CURVE */}
+          <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700">
+            <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 mb-6 flex items-center gap-2">
+              <TrendingUp size={20} className="text-indigo-500" />
+              INTENSITÉ DE L'ACTIVITÉ (HEURES CUMULÉES)
+            </h3>
+            <div className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={reportData.chartData.reduce((acc: any[], curr, i) => {
+                  const prevHours = i > 0 ? acc[i-1].cumulative : 0;
+                  acc.push({ ...curr, cumulative: prevHours + curr.hours });
+                  return acc;
+                }, [])}>
+                  <defs>
+                    <linearGradient id="colorCumulUser" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" opacity={0.5} />
+                  <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} tickFormatter={(v) => `${v}h`} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#1e293b', borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', color: '#f1f5f9' }}
+                    itemStyle={{ color: '#f1f5f9'}}
+                    formatter={(value: any) => [`${value?.toFixed(2)} h`, 'Total Cumulé']}
+                  />
+                  <Area type="monotone" dataKey="cumulative" stroke="#6366f1" strokeWidth={4} fillOpacity={1} fill="url(#colorCumulUser)" />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
           </div>
 
@@ -860,7 +971,7 @@ export default function UserReportsPage() {
       <ExportModal
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
-        onExport={handleExportPDF}
+        onExport={handleExport}
       />
     </div>
   );
