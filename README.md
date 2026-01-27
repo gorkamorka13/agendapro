@@ -13,12 +13,15 @@ Une plateforme web premium de pointe dédiée à la planification et à la gesti
 - Planification multi-vues : Mois, Semaine, Jour.
 - **Détection de Conflits** : Alertes intelligentes en cas de chevauchement d'interventions.
 - **Annulations Visuelles** : Nouveau statut **"Annulé"** avec hachurage sombre dynamique sur la couleur de l'intervenant.
+- **Gestion Planning (Batch Management)** : Mode de sélection multiple pour administrateurs permettant de supprimer, annuler ou valider plusieurs interventions/rendez-vous simultanément.
+- **Drag & Drop** : Déplacement et redimensionnement des événements directement sur le calendrier (administrateurs uniquement).
+- **Interventions Récurrentes** : Support complet des interventions répétitives avec gestion de séries.
 - Mode Smartphone optimisé avec polices de caractères agrandies pour le terrain.
 - Personnalisation visuelle : Couleurs par intervenant avec adaptation automatique du contraste du texte (noir/blanc).
 
 #### 🗂️ **Gestion des Rendez-vous (CRUD Complet)**
 - Système dédié pour les activités hors-interventions (Réunions, formations, etc.).
-- **Interface Manager** : Liste complète des rendez-vous avec recherche et filtrage.
+- **Interface Manager** : Liste complète des rendez-vous avec recherche, filtrage et suppression directe.
 - **Cycle de Vie** : Création, modification et suppression simplifiées via une interface unifiée.
 - Suivi du statut : **Planifié**, **Réalisé** (Pleine couleur) et **Annulé** (Hachuré).
 
@@ -39,18 +42,27 @@ Une plateforme web premium de pointe dédiée à la planification et à la gesti
   - Calcul de la paie en temps réel.
   - Indicateur d'**Impact sur la Trésorerie** (Paies + Dépenses).
 - **Export PDF Professionnel** : Version haute définition avec en-têtes Slate, logos et pieds de page numérotés.
+- **Export Excel** : Exportation des données au format tableur pour analyse approfondie.
 
 #### 🧾 **Gestion des Dépenses de Fonctionnement**
 - Enregistrement complet des frais opérationnels.
 - Association des dépenses aux intervenants ou compte global.
+- **Interface Optimisée** : Boutons d'édition et suppression toujours visibles sur les cartes de dépenses.
 - Workflow de validation : Toutes les dépenses sont certifiées par l'administrateur.
 - Suivi historique détaillé avec motifs et montants précis.
+
+#### 🎨 **Interface Utilisateur Moderne**
+- **En-tête Dynamique** : Icônes personnalisées pour chaque page (📅 Planning, 💰 Dépenses, 👥 Équipe, ⚙️ Utilisateurs, ❤️ Patients, 📊 Synthèse).
+- **Modales Responsives** : Toutes les boîtes de dialogue sont optimisées pour le mode paysage sur petits écrans avec défilement vertical.
+- **Design System Cohérent** : Utilisation de Tailwind CSS avec thème sombre/clair et transitions fluides.
+- **Accessibilité Tactile** : Boutons d'action toujours visibles, optimisés pour les appareils sans survol.
 
 ## 🛠️ Stack Technologique (Stable)
 
 ### Frontend
 - **Framework**: [Next.js 14.2.14](https://nextjs.org) (App Router)
 - **Logique UI**: React 18.3.1 (Choisi pour une compatibilité maximale avec les bibliothèques de graphiques)
+- **State Management**: TanStack Query (React Query) pour la mise en cache et synchronisation des données
 - **Styling**: Tailwind CSS & Design System HSL sur-mesure.
 - **Graphiques**: Recharts (Modern SVG Charts)
 - **Icônes**: Lucide React
