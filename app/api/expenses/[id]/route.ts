@@ -13,11 +13,12 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
 
   try {
     const formData = await request.formData();
-    const motif = formData.get('motif') as string;
-    const amount = formData.get('amount') as string;
-    const date = formData.get('date') as string;
-    const userId = formData.get('userId') as string;
+    const motif = formData.get('motif') as string | null;
+    const amount = formData.get('amount') as string | null;
+    const date = formData.get('date') as string | null;
+    const userId = formData.get('userId') as string | null;
     const receiptFile = formData.get('receipt') as File | null;
+    const deleteReceipt = formData.get('deleteReceipt') === 'true';
     const id = parseInt(params.id, 10);
 
     // Get existing expense to check for old receipt
@@ -25,10 +26,27 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
       where: { id }
     });
 
-    let receiptUrl = existingExpense?.receiptUrl;
+    if (!existingExpense) {
+      return new NextResponse('Dépense non trouvée', { status: 404 });
+    }
 
-    // Handle file upload if present
-    if (receiptFile && receiptFile.size > 0) {
+    let receiptUrl = existingExpense.receiptUrl;
+
+    // Handle receipt deletion if requested
+    if (deleteReceipt) {
+      if (existingExpense.receiptUrl) {
+        try {
+          const fs = require('fs').promises;
+          const oldFilePath = `public${existingExpense.receiptUrl}`;
+          await fs.unlink(oldFilePath);
+        } catch (error) {
+          console.error("Erreur lors de la suppression du fichier:", error);
+        }
+      }
+      receiptUrl = null;
+    }
+    // Handle file upload if present (overrides deletion if both are sent)
+    else if (receiptFile && receiptFile.size > 0) {
       // Validate file type
       const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
       if (!validTypes.includes(receiptFile.type)) {
@@ -41,20 +59,19 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
       }
 
       // Delete old file if it exists
-      if (existingExpense?.receiptUrl) {
+      if (existingExpense.receiptUrl) {
         try {
           const fs = require('fs').promises;
           const oldFilePath = `public${existingExpense.receiptUrl}`;
           await fs.unlink(oldFilePath);
         } catch (error) {
           console.error("Erreur lors de la suppression de l'ancien fichier:", error);
-          // Continue even if deletion fails
         }
       }
 
       // Generate unique filename
       const timestamp = Date.now();
-      const originalName = receiptFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const originalName = (receiptFile.name || 'image').replace(/[^a-zA-Z0-9.-]/g, '_');
       const filename = `${timestamp}_${originalName}`;
       const filepath = `public/uploads/receipts/${filename}`;
 
@@ -67,15 +84,17 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
       receiptUrl = `/uploads/receipts/${filename}`;
     }
 
+    // Build update data only with provided fields
+    const data: any = {};
+    if (motif !== null) data.motif = motif;
+    if (amount !== null) data.amount = parseFloat(amount);
+    if (date !== null) data.date = new Date(date);
+    if (userId !== null) data.userId = userId;
+    data.receiptUrl = receiptUrl;
+
     const expense = await (prisma as any).expense.update({
       where: { id },
-      data: {
-        motif,
-        amount: parseFloat(amount),
-        date: new Date(date),
-        userId: userId,
-        receiptUrl
-      },
+      data,
     });
 
     return NextResponse.json(expense);

@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Euro, Calendar, FileText, Save, User as UserIcon, Camera, Trash2 } from 'lucide-react';
+import { X, Euro, Calendar, FileText, Save, User as UserIcon, Camera, Trash2, Sparkles, Loader2 } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Select } from './ui/Select';
 import { toast } from 'sonner';
+import { analyzeReceipt } from '@/lib/ocr';
+import Tooltip from './Tooltip';
 
 interface Props {
   isOpen: boolean;
@@ -24,6 +26,8 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const [existingReceiptUrl, setExistingReceiptUrl] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [autoFilledFields, setAutoFilledFields] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -46,6 +50,7 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
       setExistingReceiptUrl(expense.receiptUrl || null);
       setReceiptFile(null);
       setReceiptPreview(null);
+      setAutoFilledFields([]);
     } else {
       setUserId('');
       setMotif('');
@@ -54,10 +59,11 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
       setExistingReceiptUrl(null);
       setReceiptFile(null);
       setReceiptPreview(null);
+      setAutoFilledFields([]);
     }
   }, [expense, isOpen]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setReceiptFile(file);
@@ -67,6 +73,41 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
         setReceiptPreview(reader.result as string);
       };
       reader.readAsDataURL(file);
+
+      // Trigger OCR Analysis
+      setIsAnalyzing(true);
+      setAutoFilledFields([]);
+      try {
+        const result = await analyzeReceipt(file);
+
+        if (result.amount || result.date || result.merchant) {
+          const dateStr = result.date ? new Date(result.date).toLocaleDateString('fr-FR') : '?';
+          const modelName = result.model === 'gemini-2.0-flash-exp' ? 'Gemini 2.0 Flash' : 'Gemini 1.5 Flash';
+          const msg = `Analyse ${modelName} ✨\n\n${result.merchant ? `- Commerçant : ${result.merchant}\n` : ''}- Montant : ${result.amount || '?'} €\n- Date : ${dateStr}\n\nVoulez-vous remplir automatiquement le formulaire avec ces données ?`;
+
+          if (window.confirm(msg)) {
+            const newAutoFields = [];
+            if (result.amount) {
+              setAmount(result.amount.toString());
+              newAutoFields.push('amount');
+            }
+            if (result.date) {
+              setDate(result.date);
+              newAutoFields.push('date');
+            }
+            if (result.merchant) {
+              setMotif(result.merchant);
+              newAutoFields.push('motif');
+            }
+            setAutoFilledFields(newAutoFields);
+            toast.success("Données remplacées ✨");
+          }
+        }
+      } catch (error) {
+        console.error("OCR Analysis failed:", error);
+      } finally {
+        setIsAnalyzing(false);
+      }
     }
   };
 
@@ -74,6 +115,7 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
     setReceiptFile(null);
     setReceiptPreview(null);
     setExistingReceiptUrl(null);
+    setAutoFilledFields([]);
   };
 
   if (!isOpen) return null;
@@ -161,31 +203,61 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
           />
 
           <div className="grid grid-cols-2 gap-6">
-            <Input
-              label="Montant (€)"
-              icon={<Euro size={12} className="text-emerald-500" />}
-              type="number"
-              step="0.01"
-              required
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="0.00"
-            />
-            <Input
-              label="Date"
-              icon={<Calendar size={12} className="text-indigo-500" />}
-              type="date"
-              required
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-            />
+            <div className="relative">
+              <Tooltip content="Ce montant peut être détecté automatiquement via un justificatif" position="right">
+                <Input
+                  label="Montant (€)"
+                  icon={<Euro size={12} className="text-emerald-500" />}
+                  type="number"
+                  step="0.01"
+                  required
+                  value={amount}
+                  onChange={(e) => {
+                    setAmount(e.target.value);
+                    setAutoFilledFields(prev => prev.filter(f => f !== 'amount'));
+                  }}
+                  placeholder="0.00"
+                  className={autoFilledFields.includes('amount') ? 'border-purple-300 dark:border-purple-800 bg-purple-50/30' : ''}
+                />
+              </Tooltip>
+              {autoFilledFields.includes('amount') && (
+                <Sparkles size={14} className="absolute right-3 top-9 text-purple-500 animate-pulse" />
+              )}
+            </div>
+            <div className="relative">
+              <Tooltip content="La date peut être extraite de la photo du ticket" position="right">
+                <Input
+                  label="Date"
+                  icon={<Calendar size={12} className="text-indigo-500" />}
+                  type="date"
+                  required
+                  value={date}
+                  onChange={(e) => {
+                    setDate(e.target.value);
+                    setAutoFilledFields(prev => prev.filter(f => f !== 'date'));
+                  }}
+                  className={autoFilledFields.includes('date') ? 'border-purple-300 dark:border-purple-800 bg-purple-50/30' : ''}
+                />
+              </Tooltip>
+              {autoFilledFields.includes('date') && (
+                <Sparkles size={14} className="absolute right-3 top-9 text-purple-500 animate-pulse" />
+              )}
+            </div>
           </div>
 
           {/* Receipt Upload Section */}
           <div className="space-y-3">
-            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">
-              <Camera size={12} className="inline mr-2 text-purple-500" />
-              Justificatif (Photo/Image)
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+              <span className="flex items-center">
+                <Camera size={12} className="inline mr-2 text-purple-500" />
+                Justificatif (Photo/Image)
+              </span>
+              {isAnalyzing && (
+                <span className="text-[10px] text-purple-600 dark:text-purple-400 flex items-center animate-pulse">
+                  <Loader2 size={10} className="mr-1 animate-spin" />
+                  Analyse en cours...
+                </span>
+              )}
             </label>
 
             {/* Show existing or preview image */}
@@ -196,13 +268,15 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
                   alt="Justificatif"
                   className="max-w-full h-32 object-contain rounded-lg border-2 border-slate-200 dark:border-slate-700"
                 />
-                <button
-                  type="button"
-                  onClick={handleRemoveReceipt}
-                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
-                >
-                  <Trash2 size={16} />
-                </button>
+                <Tooltip content="Retirer ce justificatif">
+                  <button
+                    type="button"
+                    onClick={handleRemoveReceipt}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </Tooltip>
               </div>
             )}
 
