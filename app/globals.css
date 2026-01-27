@@ -192,10 +192,12 @@ input, select, textarea, button {
   justify-content: center !important;
   font-weight: 700 !important;
   margin: 2px !important;
+  opacity: 1 !important;
 }
 
 .dark .fc .fc-day-today .fc-daygrid-day-number {
   background-color: #3b82f6 !important; /* Blue 500 for dark mode */
+  opacity: 1 !important;
 }
 
 /* Mobile adjustments for current day badge */
