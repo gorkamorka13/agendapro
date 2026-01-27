@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev -H 0.0.0.0",
     "db:sync": "node scripts/fix-db-sync.js",
-    "predev": "node scripts/check-db-sync.js",
+    "predev": "node Tools/check-db-sync.js",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

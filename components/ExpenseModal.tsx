@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Euro, Calendar, FileText, Save, User as UserIcon } from 'lucide-react';
+import { X, Euro, Calendar, FileText, Save, User as UserIcon, Camera, Trash2 } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Select } from './ui/Select';
@@ -20,6 +20,9 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
   const [motif, setMotif] = useState('');
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState('');
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+  const [existingReceiptUrl, setExistingReceiptUrl] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -40,13 +43,38 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
       setMotif(expense.motif);
       setAmount(expense.amount.toString());
       setDate(new Date(expense.date).toISOString().split('T')[0]);
+      setExistingReceiptUrl(expense.receiptUrl || null);
+      setReceiptFile(null);
+      setReceiptPreview(null);
     } else {
       setUserId('');
       setMotif('');
       setAmount('');
       setDate(new Date().toISOString().split('T')[0]);
+      setExistingReceiptUrl(null);
+      setReceiptFile(null);
+      setReceiptPreview(null);
     }
   }, [expense, isOpen]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setReceiptFile(file);
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setReceiptPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveReceipt = () => {
+    setReceiptFile(null);
+    setReceiptPreview(null);
+    setExistingReceiptUrl(null);
+  };
 
   if (!isOpen) return null;
 
@@ -61,10 +89,19 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
       const url = expense ? `/api/expenses/${expense.id}` : '/api/expenses';
       const method = expense ? 'PUT' : 'POST';
 
+      // Use FormData to send file
+      const formData = new FormData();
+      formData.append('motif', motif);
+      formData.append('amount', amount);
+      formData.append('date', date);
+      formData.append('userId', userId);
+      if (receiptFile) {
+        formData.append('receipt', receiptFile);
+      }
+
       const response = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ motif, amount, date, userId }),
+        body: formData,
       });
 
       if (response.ok) {
@@ -142,6 +179,52 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
               value={date}
               onChange={(e) => setDate(e.target.value)}
             />
+          </div>
+
+          {/* Receipt Upload Section */}
+          <div className="space-y-3">
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">
+              <Camera size={12} className="inline mr-2 text-purple-500" />
+              Justificatif (Photo/Image)
+            </label>
+
+            {/* Show existing or preview image */}
+            {(receiptPreview || existingReceiptUrl) && (
+              <div className="relative inline-block">
+                <img
+                  src={receiptPreview || existingReceiptUrl || ''}
+                  alt="Justificatif"
+                  className="max-w-full h-32 object-contain rounded-lg border-2 border-slate-200 dark:border-slate-700"
+                />
+                <button
+                  type="button"
+                  onClick={handleRemoveReceipt}
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            )}
+
+            {/* File input */}
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleFileChange}
+              className="block w-full text-sm text-slate-500 dark:text-slate-400
+                file:mr-4 file:py-2 file:px-4
+                file:rounded-full file:border-0
+                file:text-sm file:font-semibold
+                file:bg-purple-50 file:text-purple-700
+                hover:file:bg-purple-100
+                dark:file:bg-purple-900/30 dark:file:text-purple-400
+                dark:hover:file:bg-purple-900/50
+                cursor-pointer"
+            />
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              JPG, PNG, WEBP ou GIF (max 5MB)
+            </p>
           </div>
 
           <div className="flex flex-wrap gap-3 pt-6 border-t border-slate-100 dark:border-slate-800 mt-6">

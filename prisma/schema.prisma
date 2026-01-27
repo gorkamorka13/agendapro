@@ -81,12 +81,13 @@ model WorkedHours {
 }
 
 model Expense {
-  id     Int      @id @default(autoincrement())
-  motif  String
-  amount Float
-  date   DateTime @default(now())
-  userId String?
-  user   User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         Int      @id @default(autoincrement())
+  motif      String
+  amount     Float
+  date       DateTime @default(now())
+  receiptUrl String?
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, date])
 }
