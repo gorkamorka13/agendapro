@@ -63,9 +63,9 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
         try {
           const fs = require('fs').promises;
           const oldFilePath = `public${existingExpense.receiptUrl}`;
-          await fs.unlink(oldFilePath);
+          await fs.unlink(oldFilePath).catch(() => { }); // Ignorer l'erreur si le fichier n'existe plus
         } catch (error) {
-          console.error("Erreur lors de la suppression de l'ancien fichier:", error);
+          console.warn("Échec de la suppression de l'ancien fichier (Vercel ?) :", error);
         }
       }
 
@@ -76,12 +76,17 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
       const filepath = `public/uploads/receipts/${filename}`;
 
       // Save file to disk
-      const bytes = await receiptFile.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      const fs = require('fs').promises;
-      await fs.writeFile(filepath, buffer);
-
-      receiptUrl = `/uploads/receipts/${filename}`;
+      try {
+        const bytes = await receiptFile.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+        const fs = require('fs').promises;
+        await fs.writeFile(filepath, buffer);
+        receiptUrl = `/uploads/receipts/${filename}`;
+      } catch (fsError) {
+        console.error("Échec de l'écriture du fichier (Vercel ?) :", fsError);
+        // On conserve l'ancienne URL ou null si échec local sur Vercel
+        // Mais idéalement, sur Vercel, on ne pourra jamais écrire, donc on reste à null ou l'URL existante
+      }
     }
 
     // Build update data only with provided fields

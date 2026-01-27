@@ -62,12 +62,17 @@ export async function POST(request: Request) {
       const filepath = `public/uploads/receipts/${filename}`;
 
       // Save file to disk
-      const bytes = await receiptFile.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      const fs = require('fs').promises;
-      await fs.writeFile(filepath, buffer);
-
-      receiptUrl = `/uploads/receipts/${filename}`;
+      try {
+        const bytes = await receiptFile.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+        const fs = require('fs').promises;
+        await fs.writeFile(filepath, buffer);
+        receiptUrl = `/uploads/receipts/${filename}`;
+      } catch (fsError) {
+        console.error("Échec de l'écriture du fichier (Vercel ?) :", fsError);
+        // On continue sans l'URL de l'image
+        receiptUrl = null;
+      }
     }
 
     const expense = await (prisma as any).expense.create({
