@@ -16,71 +16,65 @@ Une plateforme web premium de pointe dédiée à la planification et à la gesti
 - **Gestion Planning (Batch Management)** : Mode de sélection multiple pour administrateurs permettant de supprimer, annuler ou valider plusieurs interventions/rendez-vous simultanément.
 - **Drag & Drop** : Déplacement et redimensionnement des événements directement sur le calendrier (administrateurs uniquement).
 - **Interventions Récurrentes** : Support complet des interventions répétitives avec gestion de séries.
-- Mode Smartphone optimisé avec polices de caractères agrandies pour le terrain.
+- **Recherche Avancée** : Recherche de rendez-vous par objet, lieu ou **nom de l'intervenant**.
+- Mode Smartphone optimisé : Boutons administratifs (Sauvegarde BDD, Export) désormais accessibles sur mobile.
 - Personnalisation visuelle : Couleurs par intervenant avec adaptation automatique du contraste du texte (noir/blanc).
 
 #### 🗂️ **Gestion des Rendez-vous (CRUD Complet)**
 - Système dédié pour les activités hors-interventions (Réunions, formations, etc.).
-- **Interface Manager** : Liste complète des rendez-vous avec recherche, filtrage et suppression directe.
+- **Interface Manager** : Liste complète des rendez-vous avec recherche multidimensionnelle (objet, lieu, intervenant).
 - **Cycle de Vie** : Création, modification et suppression simplifiées via une interface unifiée.
 - Suivi du statut : **Planifié**, **Réalisé** (Pleine couleur) et **Annulé** (Hachuré).
 
 #### 👥 Administration & Utilisateurs
 - **Rôles Unifiés** : Gestion des Administrateurs, Intervenants et **Visiteurs**.
 - **Rôle Visiteur** : Accès en lecture seule au calendrier uniquement. Interface simplifiée (tarifs et couleurs masqués).
-- **Gestion Premium** : Attribution de couleurs personnalisées. Les visiteurs ont une couleur gris clair (`#cbd5e1`) fixe pour une visibilité optimale.
-- **Sécurité Critique** : Protection native du compte `admin` principal contre la suppression ou la rétrogradation.
-- **Contrôle d'Annulation** : Seuls les administrateurs peuvent marquer une intervention comme annulée.
+- **Gestion Premium** : Attribution de couleurs personnalisées.
+- **Outils Maintenance** : Bouton de sauvegarde de la base de données intégré à l'interface de gestion du planning.
 
 #### 📊 **Synthèse & Analytics Premium (Ex-Rapports)**
 - Panneaux de bord unifiés pour Administrateurs et Intervenants sous l'onglet **Synthèse**.
+- **Mode Personnel vs Équipe** : Redirection intelligente des administrateurs vers leur propre synthèse par défaut.
 - **Sélecteur de Période Unifié** : Système intelligent de sélection Année/Mois basé sur l'activité réelle.
-- **Visualisation de Données** : Graphiques d'activité quotidiens et répartition par patient/activité (Recharts).
-- **Exclusion des Annulations** : Les interventions hachurées sont automatiquement exclues des calculs financiers et horaires.
-- **Synthèse Financière Haute Précision** :
-  - Distinction entre frais de déplacement **réalisés** et **prévisionnels**.
-  - Calcul de la paie en temps réel.
-  - Indicateur d'**Impact sur la Trésorerie** (Paies + Dépenses).
-- **Export PDF Professionnel** : Version haute définition avec en-têtes Slate, logos et pieds de page numérotés.
-- **Export Excel** : Exportation des données au format tableur pour analyse approfondie.
+- **Visualisation de Données** : Graphiques d'activité quotidiens et répartition par patient/activité.
+- **Export PDF & Excel** : Génération de rapports HD numérotés et exports tableurs pour la comptabilité.
 
-#### 🧾 **Gestion des Dépenses de Fonctionnement**
-- Enregistrement complet des frais opérationnels.
-- Association des dépenses aux intervenants ou compte global.
-- **Interface Optimisée** : Boutons d'édition et suppression toujours visibles sur les cartes de dépenses.
-- Workflow de validation : Toutes les dépenses sont certifiées par l'administrateur.
-- Suivi historique détaillé avec motifs et montants précis.
+#### 🧾 **Gestion des Dépenses & OCR IA**
+- **Analyse par IA (Gemini 2.0 Flash)** : Extraction automatique des données depuis les photos de justificatifs (Marchand, Montant, TVA, Date, Catégorie).
+- **Stratégie de Stockage Hybride** : Bascule automatique entre **Vercel Blob** (Cloud production) et le système de fichiers local (WAMP/Dev).
+- **Moniteur de Stockage** : Indicateur en temps réel de l'utilisation du quota Cloud (250 Mo gratuit) dans l'interface.
+- **Protection des Saisies** : L'IA ne modifie pas les dates ou montants déjà saisis manuellement par l'utilisateur.
 
 #### 🎨 **Interface Utilisateur Moderne**
-- **En-tête Dynamique** : Icônes personnalisées pour chaque page (📅 Planning, 💰 Dépenses, 👥 Équipe, ⚙️ Utilisateurs, ❤️ Patients, 📊 Synthèse).
-- **Modales Responsives** : Toutes les boîtes de dialogue sont optimisées pour le mode paysage sur petits écrans avec défilement vertical.
-- **Design System Cohérent** : Utilisation de Tailwind CSS avec thème sombre/clair et transitions fluides.
-- **Accessibilité Tactile** : Boutons d'action toujours visibles, optimisés pour les appareils sans survol.
+- **En-tête Dynamique** : Icônes personnalisées pour chaque page.
+- **Modales Responsives** : Optimisées pour le mode paysage sur smartphones.
+- **Design System Cohérent** : Tailwind CSS avec thème sombre/clair et micro-animations Lucide.
+- **Accessibilité Tactile** : Boutons d'action visibles sur mobile sans besoin de survol.
 
 ## 🛠️ Stack Technologique (Stable)
 
 ### Frontend
 - **Framework**: [Next.js 14.2.14](https://nextjs.org) (App Router)
-- **Logique UI**: React 18.3.1 (Choisi pour une compatibilité maximale avec les bibliothèques de graphiques)
-- **State Management**: TanStack Query (React Query) pour la mise en cache et synchronisation des données
-- **Styling**: Tailwind CSS & Design System HSL sur-mesure.
-- **Graphiques**: Recharts (Modern SVG Charts)
-- **Icônes**: Lucide React
-- **Export**: jsPDF & html2canvas
+- **Intelligence Artificielle**: Google Generative AI (Gemini 2.0 Flash) pour l'OCR.
+- **State Management**: TanStack Query (React Query)
+- **Styling**: Tailwind CSS.
+- **Stockage Cloud**: [Vercel Blob](https://vercel.com/storage/blob)
 
 ### Backend & Data
 - **Runtime**: Node.js
-- **Base de données**: PostgreSQL
-- **ORM**: Prisma 6 (Gestion relationnelle avancée avec suppression en cascade)
-- **Authentification**: NextAuth.js v4 (Sessions sécurisées)
+- **Base de données**: PostgreSQL (Neon.tech en production)
+- **ORM**: Prisma 6
+- **Authentification**: NextAuth.js v4
 
 ## 🚀 Installation & Déploiement
 
 ### Prérequis
 - Node.js (v20+)
 - Instance PostgreSQL
+- Clé API Google Gemini (pour l'OCR)
+- Vercel Blob Token (pour le stockage cloud)
 
-### Configuration Rapid
+### Configuration Rapide
 1. **Dépôt**
    ```bash
    git clone [url-du-depot]
@@ -90,17 +84,17 @@ Une plateforme web premium de pointe dédiée à la planification et à la gesti
    ```bash
    npm install
    ```
-3. **Environnement** (`.env`)
+3. **Environnement** (`.env.local`)
    ```env
-   DATABASE_URL="postgresql://user:pass@localhost:5432/agendapro"
+   DATABASE_URL="postgresql://..."
+   GOOGLE_GENAI_API_KEY="..."
+   BLOB_READ_WRITE_TOKEN="..." # Optionnel en local
    NEXTAUTH_SECRET="..."
-   NEXTAUTH_URL="http://localhost:3000"
    ```
 4. **Base de Données**
    ```bash
    npx prisma generate
-   npx prisma migrate dev
-   npx prisma db seed
+   npx prisma db sync  # Script de diagnostic et synchronisation intelligent
    ```
 5. **Démarrage**
    ```bash
@@ -108,21 +102,14 @@ Une plateforme web premium de pointe dédiée à la planification et à la gesti
    ```
 
 ### 🛠️ Maintenance & Diagnostic
-En cas de désynchronisation de la base de données (ex: erreur d'enum), un script de diagnostic est disponible :
+L'application inclut un outil de synchronisation de base de données intelligent :
 ```bash
-node scripts/check-db-sync.js
+npm run db:sync
 ```
-Consultez **[README_DATABASE_DEBUG.md](./README_DATABASE_DEBUG.md)** pour plus de détails.
+Ce script détecte les différences entre votre code (schema.prisma) et votre base de données, et aide à corriger les erreurs d'énumérations ou de colonnes manquantes.
 
 ### 🌍 Mise en Production
-Pour déployer les mises à jour sur Vercel et Neon (Base de données), consultez le guide dédié :
-👉 **[DEPLOYMENT.md](./DEPLOYMENT.md)**
-
-## 🔐 Sécurité & Intégrité
-- Hachage BCrypt pour tous les mots de passe.
-- Protection contre les conflits d'horaires.
-- Cascade Deletion : La suppression d'un patient ou utilisateur nettoie proprement toutes les données liées.
-- Contrôle d'accès strict niveau API.
+L'application est optimisée pour Vercel. Consultez **[Vercel_Blob_Setup.md](./Vercel_Blob_Setup.md)** pour configurer le stockage d'images cloud permanent.
 
 ---
 **AGENDA PRO** - © Michel ESPARSA
