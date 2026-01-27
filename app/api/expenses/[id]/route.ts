@@ -34,13 +34,12 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
 
     // Handle receipt deletion if requested
     if (deleteReceipt) {
-      if (existingExpense.receiptUrl) {
+      if (existingExpense.receiptUrl && existingExpense.receiptUrl.includes('vercel-storage.com')) {
         try {
-          const fs = require('fs').promises;
-          const oldFilePath = `public${existingExpense.receiptUrl}`;
-          await fs.unlink(oldFilePath);
+          const { del } = require('@vercel/blob');
+          await del(existingExpense.receiptUrl);
         } catch (error) {
-          console.error("Erreur lors de la suppression du fichier:", error);
+          console.error("Erreur lors de la suppression du blob:", error);
         }
       }
       receiptUrl = null;
@@ -58,34 +57,32 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
         return new NextResponse('Fichier trop volumineux. Maximum 5MB.', { status: 400 });
       }
 
-      // Delete old file if it exists
-      if (existingExpense.receiptUrl) {
+      // Delete old file if it exists and is a blob
+      if (existingExpense.receiptUrl && existingExpense.receiptUrl.includes('vercel-storage.com')) {
         try {
-          const fs = require('fs').promises;
-          const oldFilePath = `public${existingExpense.receiptUrl}`;
-          await fs.unlink(oldFilePath).catch(() => { }); // Ignorer l'erreur si le fichier n'existe plus
+          const { del } = require('@vercel/blob');
+          await del(existingExpense.receiptUrl);
         } catch (error) {
-          console.warn("Échec de la suppression de l'ancien fichier (Vercel ?) :", error);
+          console.warn("Échec de la suppression de l'ancien blob:", error);
         }
       }
 
-      // Generate unique filename
-      const timestamp = Date.now();
-      const originalName = (receiptFile.name || 'image').replace(/[^a-zA-Z0-9.-]/g, '_');
-      const filename = `${timestamp}_${originalName}`;
-      const filepath = `public/uploads/receipts/${filename}`;
-
-      // Save file to disk
+      // Upload to Vercel Blob
       try {
-        const bytes = await receiptFile.arrayBuffer();
-        const buffer = Buffer.from(bytes);
-        const fs = require('fs').promises;
-        await fs.writeFile(filepath, buffer);
-        receiptUrl = `/uploads/receipts/${filename}`;
-      } catch (fsError) {
-        console.error("Échec de l'écriture du fichier (Vercel ?) :", fsError);
-        // On conserve l'ancienne URL ou null si échec local sur Vercel
-        // Mais idéalement, sur Vercel, on ne pourra jamais écrire, donc on reste à null ou l'URL existante
+        const { put } = require('@vercel/blob');
+        const timestamp = Date.now();
+        const originalName = (receiptFile.name || 'image').replace(/[^a-zA-Z0-9.-]/g, '_');
+        const filename = `receipts/${timestamp}_${originalName}`;
+
+        const blob = await put(filename, receiptFile, {
+          access: 'public',
+          addRandomSuffix: true
+        });
+
+        receiptUrl = blob.url;
+      } catch (error) {
+        console.error("Échec de l'upload vers Vercel Blob:", error);
+        // Fallback: on conserve l'ancienne URL ou null
       }
     }
 
@@ -118,6 +115,21 @@ export async function DELETE(request: Request, props: { params: Promise<{ id: st
 
   try {
     const id = parseInt(params.id, 10);
+
+    // Get existing to find receiptUrl for deletion
+    const existingExpense = await (prisma as any).expense.findUnique({
+      where: { id }
+    });
+
+    if (existingExpense?.receiptUrl && existingExpense.receiptUrl.includes('vercel-storage.com')) {
+      try {
+        const { del } = require('@vercel/blob');
+        await del(existingExpense.receiptUrl);
+      } catch (error) {
+        console.error("Erreur lors de la suppression du blob associé:", error);
+      }
+    }
+
     await (prisma as any).expense.delete({
       where: { id },
     });

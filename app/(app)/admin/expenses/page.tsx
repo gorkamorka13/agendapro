@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useTitle } from '@/components/TitleContext';
 import ExpenseModal from '@/components/ExpenseModal';
 import ReceiptLightbox from '@/components/ReceiptLightbox';
-import { Plus, Edit2, Trash2, Euro, Calendar, FileText, User as UserIcon, Image as ImageIcon, Download, Filter, Camera, Sparkles, Loader2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Euro, Calendar, FileText, User as UserIcon, Image as ImageIcon, Download, Filter, Camera, Sparkles, Loader2, HardDrive } from 'lucide-react';
 import { toast } from 'sonner';
 import { analyzeReceipt } from '@/lib/ocr';
 import Tooltip from '@/components/Tooltip';
@@ -21,6 +21,7 @@ export default function ExpensesPage() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [uploadingId, setUploadingId] = useState<number | null>(null);
   const [analyzingId, setAnalyzingId] = useState<number | null>(null);
+  const [storageStats, setStorageStats] = useState<any>(null);
 
   const fetchExpenses = async () => {
     setIsLoading(true);
@@ -39,8 +40,21 @@ export default function ExpensesPage() {
     }
   };
 
+  const fetchStorageStats = async () => {
+    try {
+      const res = await fetch('/api/admin/storage');
+      if (res.ok) {
+        const data = await res.json();
+        setStorageStats(data);
+      }
+    } catch (error) {
+      console.error("Storage stats error:", error);
+    }
+  };
+
   useEffect(() => {
     fetchExpenses();
+    fetchStorageStats();
     setTitle("Gestion des Dépenses");
   }, [setTitle]);
 
@@ -149,6 +163,7 @@ export default function ExpensesPage() {
       if (response.ok) {
         toast.success(finalAmount || finalDate ? "Dépense et justificatif mis à jour ✨" : "Justificatif ajouté ✨");
         fetchExpenses();
+        fetchStorageStats();
       } else {
         const error = await response.text();
         toast.error("Échec de l'upload: " + error);
@@ -197,6 +212,7 @@ export default function ExpensesPage() {
           if (response.ok) {
             toast.success("Dépense mise à jour avec succès ✨");
             fetchExpenses();
+            fetchStorageStats();
           } else {
             const error = await response.text();
             toast.error("Échec de la mise à jour: " + error);
@@ -228,6 +244,7 @@ export default function ExpensesPage() {
       if (response.ok) {
         toast.success("Justificatif supprimé");
         fetchExpenses();
+        fetchStorageStats();
       } else {
         toast.error("Échec de la suppression");
       }
@@ -241,6 +258,29 @@ export default function ExpensesPage() {
     <div className="container mx-auto space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-3">
+          {storageStats && (
+            <div className="hidden lg:flex flex-col gap-1 mr-4 min-w-[150px]">
+              <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                <span className="flex items-center gap-1.5">
+                  <HardDrive size={10} className={storageStats.usagePercentage > 80 ? "text-orange-500" : "text-blue-500"} />
+                  Stockage Cloud
+                </span>
+                <span>{Math.round(storageStats.usagePercentage)}%</span>
+              </div>
+              <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner border border-slate-200/50 dark:border-slate-700/50">
+                <div
+                  className={`h-full transition-all duration-1000 ${
+                    storageStats.usagePercentage > 90 ? 'bg-red-500' :
+                    storageStats.usagePercentage > 70 ? 'bg-orange-500' : 'bg-blue-500'
+                  }`}
+                  style={{ width: `${storageStats.usagePercentage}%` }}
+                />
+              </div>
+              <div className="text-[10px] text-slate-400 font-medium">
+                {storageStats.formattedSize} / {storageStats.formattedLimit}
+              </div>
+            </div>
+          )}
           <div className="inline-flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl shadow-inner">
             <Tooltip content="Afficher toutes les dépenses">
               <button

@@ -55,22 +55,22 @@ export async function POST(request: Request) {
         return new NextResponse('Fichier trop volumineux. Maximum 5MB.', { status: 400 });
       }
 
-      // Generate unique filename
-      const timestamp = Date.now();
-      const originalName = receiptFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-      const filename = `${timestamp}_${originalName}`;
-      const filepath = `public/uploads/receipts/${filename}`;
-
-      // Save file to disk
+      // Upload to Vercel Blob
       try {
-        const bytes = await receiptFile.arrayBuffer();
-        const buffer = Buffer.from(bytes);
-        const fs = require('fs').promises;
-        await fs.writeFile(filepath, buffer);
-        receiptUrl = `/uploads/receipts/${filename}`;
-      } catch (fsError) {
-        console.error("Échec de l'écriture du fichier (Vercel ?) :", fsError);
-        // On continue sans l'URL de l'image
+        const { put } = require('@vercel/blob');
+        const timestamp = Date.now();
+        const originalName = receiptFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const filename = `receipts/${timestamp}_${originalName}`;
+
+        const blob = await put(filename, receiptFile, {
+          access: 'public',
+          addRandomSuffix: true
+        });
+
+        receiptUrl = blob.url;
+      } catch (error) {
+        console.error("Échec de l'upload vers Vercel Blob:", error);
+        // Fallback: on continue sans l'image
         receiptUrl = null;
       }
     }
