@@ -67,7 +67,7 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
   const resetForm = () => {
     setUserId(session?.user?.id || '');
     setPatientId('');
-    setStatus('PLANNED' as any);
+    setStatus(AssignmentStatus.PLANNED);
     setShowOverlapWarning(false);
     if (selectedDate) {
       setDate(formatLocalDate(selectedDate));

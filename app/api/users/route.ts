@@ -36,7 +36,7 @@ export async function GET() {
         hourlyRate: true,
         travelCost: true,
         color: true,
-      } as any
+      }
     });
 
     return NextResponse.json(users);

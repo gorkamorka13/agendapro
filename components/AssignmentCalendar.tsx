@@ -14,17 +14,12 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Heart, Calendar, Clock } from 'lucide-react';
 import { getContrastColor, cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { FullCalendarEvent, Role } from '@/types';
 
-interface CalendarEvent {
-  id: string;
-  title: string;
-  start: string | Date;
-  end: string | Date;
-  backgroundColor?: string;
-}
+// Retiré CalendarEvent car remplacé par FullCalendarEvent importé
 
 export default function AssignmentCalendar() {
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [events, setEvents] = useState<FullCalendarEvent[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
   const [isAppointmentManagerOpen, setIsAppointmentManagerOpen] = useState(false);
@@ -77,14 +72,14 @@ export default function AssignmentCalendar() {
   }, [searchParams, router]);
 
   const handleDateClick = (arg: DateClickArg) => {
-    if ((session?.user?.role as any) === 'VISITEUR') return;
+    if ((session?.user?.role as Role) === 'VISITEUR') return;
     setSelectedDate(arg.date);
     setSelectedAssignmentId(null);
     setIsModalOpen(true);
   };
 
   const handleEventClick = (arg: EventClickArg) => {
-    if ((session?.user?.role as any) === 'VISITEUR') return;
+    if ((session?.user?.role as Role) === 'VISITEUR') return;
     const isAppointment = arg.event.extendedProps.type === 'APPOINTMENT';
 
     if (isAppointment) {
@@ -135,7 +130,7 @@ export default function AssignmentCalendar() {
     }
   };
 
-  const handleEventChange = async (changeArg: any) => {
+  const handleEventChange = async (changeArg: { event: any; revert: () => void }) => {
     const { event } = changeArg;
     const isAppointment = event.extendedProps.type === 'APPOINTMENT';
     const id = isAppointment ? event.id.replace('apt-', '') : event.id;

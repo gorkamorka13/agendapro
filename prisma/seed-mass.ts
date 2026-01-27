@@ -15,7 +15,7 @@ async function main() {
     console.log('🏥 Creating patient Mr Delaronciere...');
     patient = await prisma.patient.create({
       data: {
-        firstName: 'Hubert',
+        firstName: 'Charles',
         lastName: 'Delaronciere',
         address: '800 impasse de capeou, Aix en provence',
         contactInfo: 'Patient prioritary - 1 year planning'

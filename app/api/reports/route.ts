@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { Role } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
+import { Role as AppRole, AssignmentWithPatient } from '@/types';
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -15,7 +16,7 @@ export async function GET(request: Request) {
     return new NextResponse('Non authentifié', { status: 401 });
   }
 
-  if (session.user.role !== Role.ADMIN && session.user.id !== userId || (session.user.role as any) === 'VISITEUR') {
+  if (session.user.role !== Role.ADMIN && session.user.id !== userId || (session.user.role as AppRole) === 'VISITEUR') {
     return new NextResponse('Accès refusé', { status: 403 });
   }
   const month = searchParams.get('month'); // Fallback logic
@@ -55,7 +56,7 @@ export async function GET(request: Request) {
         user: true,
         workedHours: true
       },
-    }) as any[];
+    }) as unknown as AssignmentWithPatient[];
 
     let realizedTotalMinutes = 0;
     let realizedTotalPay = 0;
@@ -143,7 +144,7 @@ export async function GET(request: Request) {
       expensesQuery.where.userId = userId;
     }
 
-    const expenses = await (prisma as any).expense.findMany(expensesQuery);
+    const expenses = await prisma.expense.findMany(expensesQuery);
 
     const totalExpenses = expenses.reduce((sum: number, exp: any) => sum + exp.amount, 0);
 
