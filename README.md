@@ -22,10 +22,11 @@ Une plateforme web premium de pointe dédiée à la planification et à la gesti
 - **Cycle de Vie** : Création, modification et suppression simplifiées via une interface unifiée.
 - Suivi du statut : **Planifié**, **Réalisé** (Pleine couleur) et **Annulé** (Hachuré).
 
-#### 👥 **Administration & Utilisateurs**
-- **Rôles Unifiés** : Les administrateurs peuvent également être des intervenants actifs.
-- **Gestion Premium** : Attribution de couleurs personnalisées pour chaque membre de l'équipe.
-- **Sécurité Critique** : Protection native des comptes administrateurs essentiels contre la suppression ou la rétrogradation.
+#### 👥 Administration & Utilisateurs
+- **Rôles Unifiés** : Gestion des Administrateurs, Intervenants et **Visiteurs**.
+- **Rôle Visiteur** : Accès en lecture seule au calendrier uniquement. Interface simplifiée (tarifs et couleurs masqués).
+- **Gestion Premium** : Attribution de couleurs personnalisées. Les visiteurs ont une couleur gris clair (`#cbd5e1`) fixe pour une visibilité optimale.
+- **Sécurité Critique** : Protection native du compte `admin` principal contre la suppression ou la rétrogradation.
 - **Contrôle d'Annulation** : Seuls les administrateurs peuvent marquer une intervention comme annulée.
 
 #### 📊 **Synthèse & Analytics Premium (Ex-Rapports)**
@@ -93,6 +94,13 @@ Une plateforme web premium de pointe dédiée à la planification et à la gesti
    ```bash
    npm run dev
    ```
+
+### 🛠️ Maintenance & Diagnostic
+En cas de désynchronisation de la base de données (ex: erreur d'enum), un script de diagnostic est disponible :
+```bash
+node scripts/check-db-sync.js
+```
+Consultez **[README_DATABASE_DEBUG.md](./README_DATABASE_DEBUG.md)** pour plus de détails.
 
 ### 🌍 Mise en Production
 Pour déployer les mises à jour sur Vercel et Neon (Base de données), consultez le guide dédié :
