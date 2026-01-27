@@ -91,7 +91,7 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 rounded-2xl font-black text-lg shadow-xl shadow-blue-500/30 hover:from-blue-700 hover:to-blue-800 transition-all transform hover:-translate-y-0.5"
+            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 rounded-2xl font-black text-lg hover:from-blue-700 hover:to-blue-800 transition-all transform hover:-translate-y-0.5"
           >
             Se connecter
           </button>

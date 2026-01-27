@@ -98,6 +98,10 @@ export default function AssignmentCalendar() {
 
     if (searchParams.get('mode') === 'management' && session?.user?.role === 'ADMIN') {
       setIsSelectionMode(true);
+    } else {
+      setIsSelectionMode(false);
+      setSelectedEvents(new Map());
+      setIsReassignOpen(false);
     }
   }, [searchParams, router, session?.user?.role]);
 
@@ -274,13 +278,13 @@ export default function AssignmentCalendar() {
         </div>
 
         <div className="flex items-center gap-2">
-            {isAdmin && (
+            {isAdmin && isSelectionMode && (
               <>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => window.open('/api/admin/backup', '_blank')}
-                  className="gap-2 hidden sm:flex bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"
+                  className="gap-2 flex bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"
                   title="Télécharger une sauvegarde de la base de données"
                 >
                   <Database size={16} className="text-blue-600 dark:text-blue-400" />

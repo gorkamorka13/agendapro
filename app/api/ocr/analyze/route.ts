@@ -14,7 +14,11 @@ Réponds UNIQUEMENT au format JSON pur sans balises Markdown :
 {
   "amount": number (ex: 45.50, utilise le point pour les décimales),
   "date": "YYYY-MM-DD" (format ISO),
-  "merchant": "string" (nom de l'enseigne)
+  "merchant": "string" (nom de l'enseigne),
+  "tax": number (montant total de la TVA si présent, sinon null),
+  "category": "string" (catégorie suggérée : Essence, Restauration, Fournitures, Bureau, etc.),
+  "paymentMethod": "string" (Carte, Espèces, Chèque, etc.),
+  "currency": "string" (ex: EUR, USD)
 }`;
 
 export async function POST(request: Request) {

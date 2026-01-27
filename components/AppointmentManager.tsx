@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Plus, Trash2, Edit2, X, Search, Clock, MapPin } from 'lucide-react';
+import { Calendar, Plus, Trash2, Edit2, X, Search, Clock, MapPin, User as UserIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useSession } from 'next-auth/react';
@@ -55,7 +55,8 @@ export default function AppointmentManager({ isOpen, onClose, onEdit, onCreate, 
 
   const filtered = appointments.filter(a =>
     a.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    a.location?.toLowerCase().includes(searchTerm.toLowerCase())
+    a.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    a.user?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -130,8 +131,15 @@ export default function AppointmentManager({ isOpen, onClose, onEdit, onCreate, 
                                 </span>
                             </div>
                             <h3 className="font-bold text-slate-800 dark:text-slate-100 truncate">{appt.subject}</h3>
-                            <div className="flex items-center gap-2 mt-1 text-xs text-slate-500 dark:text-slate-400">
-                                <div className="flex items-center gap-1"><MapPin size={12} /> <span className="truncate max-w-[150px]">{appt.location}</span></div>
+                             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                                <div className="flex items-center gap-1">
+                                    <MapPin size={12} className="text-rose-500/70" />
+                                    <span className="truncate max-w-[150px]">{appt.location}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <UserIcon size={12} className="text-blue-500/70" />
+                                    <span>{appt.user?.name || 'Non assigné'}</span>
+                                </div>
                             </div>
                             {appt.notes && (
                                 <div className="mt-3 p-2 bg-slate-100/50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-700 text-[11px] text-slate-600 dark:text-slate-400 max-h-24 overflow-y-auto custom-scrollbar scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">

@@ -54,8 +54,8 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
           {!isVisitor && (
             <li className="mb-2">
               <Link
-                href="/user/reports"
-                className={`${linkStyle} ${pathname === '/user/reports' ? activeStyle : defaultStyle}`}
+                href={isAdmin ? `/admin/reports?userId=${session?.user?.id}` : "/user/reports"}
+                className={`${linkStyle} ${(pathname === '/user/reports' || (isAdmin && pathname === '/admin/reports' && searchParams.get('userId') === (session?.user?.id || ''))) ? activeStyle : defaultStyle}`}
                 onClick={() => onClose()}
               >
                 Synthèse
@@ -125,7 +125,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
               <li className="mb-2">
                 <Link
                   href="/admin/reports"
-                  className={`${linkStyle} ${pathname === '/admin/reports' ? activeStyle : defaultStyle}`}
+                  className={`${linkStyle} ${(pathname === '/admin/reports' && searchParams.get('userId') !== (session?.user?.id || '')) ? activeStyle : defaultStyle}`}
                   onClick={() => onClose()}
                 >
                   Synthèse

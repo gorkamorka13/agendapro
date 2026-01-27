@@ -7,6 +7,10 @@ export interface OCRResult {
   amount: number | null;
   date: string | null;
   merchant: string | null;
+  tax: number | null;
+  category: string | null;
+  paymentMethod: string | null;
+  currency: string | null;
   model: string | null;
 }
 
@@ -42,12 +46,16 @@ export async function analyzeReceipt(fileOrUrl: File | string): Promise<OCRResul
       amount: data.amount || null,
       date: data.date || null,
       merchant: data.merchant || null,
+      tax: data.tax || null,
+      category: data.category || null,
+      paymentMethod: data.paymentMethod || null,
+      currency: data.currency || null,
       model: data.model || null
     };
 
   } catch (error) {
     console.error("Gemini AI Analysis failed:", error);
     toast.error("L'IA n'a pas pu analyser le ticket. Veuillez saisir les données manuellement.");
-    return { amount: null, date: null, merchant: null, model: null };
+    return { amount: null, date: null, merchant: null, tax: null, category: null, paymentMethod: null, currency: null, model: null };
   }
 }

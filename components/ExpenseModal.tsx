@@ -28,6 +28,7 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [autoFilledFields, setAutoFilledFields] = useState<string[]>([]);
+  const [isDateManuallyDirty, setIsDateManuallyDirty] = useState(false);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -51,6 +52,7 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
       setReceiptFile(null);
       setReceiptPreview(null);
       setAutoFilledFields([]);
+      setIsDateManuallyDirty(false);
     } else {
       setUserId('');
       setMotif('');
@@ -60,6 +62,7 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
       setReceiptFile(null);
       setReceiptPreview(null);
       setAutoFilledFields([]);
+      setIsDateManuallyDirty(false);
     }
   }, [expense, isOpen]);
 
@@ -80,10 +83,19 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
       try {
         const result = await analyzeReceipt(file);
 
-        if (result.amount || result.date || result.merchant) {
+        if (result.amount || result.date || result.merchant || result.tax || result.category) {
           const dateStr = result.date ? new Date(result.date).toLocaleDateString('fr-FR') : '?';
           const modelName = result.model === 'gemini-2.0-flash-exp' ? 'Gemini 2.0 Flash' : 'Gemini 1.5 Flash';
-          const msg = `Analyse ${modelName} ✨\n\n${result.merchant ? `- Commerçant : ${result.merchant}\n` : ''}- Montant : ${result.amount || '?'} €\n- Date : ${dateStr}\n\nVoulez-vous remplir automatiquement le formulaire avec ces données ?`;
+
+          let msg = `Analyse ${modelName} ✨\n\n`;
+          if (result.merchant) msg += `- Commerçant : ${result.merchant}\n`;
+          msg += `- Montant : ${result.amount || '?'} €\n`;
+          if (result.tax) msg += `- TVA détectée : ${result.tax} €\n`;
+          if (result.category) msg += `- Catégorie : ${result.category}\n`;
+          if (result.paymentMethod) msg += `- Paiement : ${result.paymentMethod}\n`;
+
+          msg += `- Date : ${dateStr}${isDateManuallyDirty ? ' (remplacera la vôtre)' : ''}\n`;
+          msg += `\nVoulez-vous remplir automatiquement le formulaire ?`;
 
           if (window.confirm(msg)) {
             const newAutoFields = [];
@@ -98,9 +110,13 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
             if (result.merchant) {
               setMotif(result.merchant);
               newAutoFields.push('motif');
+            } else if (result.category && !motif) {
+              // Si pas de marchand mais une catégorie, on l'utilise pour le motif si vide
+              setMotif(result.category);
+              newAutoFields.push('motif');
             }
             setAutoFilledFields(newAutoFields);
-            toast.success("Données remplacées ✨");
+            toast.success("Données remplies avec succès ✨");
           }
         }
       } catch (error) {
@@ -234,6 +250,7 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
                   value={date}
                   onChange={(e) => {
                     setDate(e.target.value);
+                    setIsDateManuallyDirty(true);
                     setAutoFilledFields(prev => prev.filter(f => f !== 'date'));
                   }}
                   className={autoFilledFields.includes('date') ? 'border-purple-300 dark:border-purple-800 bg-purple-50/30' : ''}

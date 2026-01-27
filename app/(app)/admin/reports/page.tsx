@@ -9,6 +9,7 @@ import * as XLSX from 'xlsx';
 import ExportModal, { ExportFormat } from '@/components/ExportModal';
 import { useTitle } from '@/components/TitleContext';
 import { Select } from '@/components/ui/Select';
+import { useSearchParams } from 'next/navigation';
 
 interface ExportOptions {
   financialSummary: boolean;
@@ -128,8 +129,11 @@ const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'
 
 export default function ReportsPage() {
   const { setTitle } = useTitle();
+  const searchParams = useSearchParams();
+  const urlUserId = searchParams.get('userId');
+
   const [users, setUsers] = useState<User[]>([]);
-  const [selectedUserId, setSelectedUserId] = useState('');
+  const [selectedUserId, setSelectedUserId] = useState(urlUserId || '');
 
   // Dates par défaut : du 1er du mois à aujourd'hui (ou fin du mois courant)
   const now = new Date();
@@ -220,7 +224,7 @@ export default function ReportsPage() {
       const res = await fetch('/api/users');
       if (res.ok) {
         const allUsers: User[] = await res.json();
-        const intervenants = allUsers; // Tout le monde peut être un intervenant
+        const intervenants = allUsers.filter(u => u.name !== 'admin'); // Masquer le compte admin générique
         setUsers(intervenants);
         if (intervenants.length > 0 && !selectedUserId) {
           setSelectedUserId('all');
@@ -232,7 +236,12 @@ export default function ReportsPage() {
     };
     fetchUsers();
     setTitle("Synthèse");
-  }, [setTitle, selectedUserId]);
+  }, [setTitle]);
+
+  // Si l'ID dans l'URL change, mettre à jour l'état
+  useEffect(() => {
+    setSelectedUserId(urlUserId || 'all');
+  }, [urlUserId]);
 
   // Génération automatique du rapport
   useEffect(() => {

@@ -111,14 +111,26 @@ export default function ExpensesPage() {
 
       let finalAmount = null;
       let finalDate = null;
+      let finalMotif = null;
 
-      if (ocrResult.amount || ocrResult.date) {
+      if (ocrResult.amount || ocrResult.date || ocrResult.merchant || ocrResult.tax || ocrResult.category) {
         const dateStr = ocrResult.date ? new Date(ocrResult.date).toLocaleDateString('fr-FR') : '?';
-        const msg = `Justificatif analysé ✨\n\nDonnées détectées :\n- Montant : ${ocrResult.amount || '?'} €\n- Date : ${dateStr}\n\nVoulez-vous mettre à jour la dépense avec ces données ?`;
+        const modelName = ocrResult.model === 'gemini-2.0-flash-exp' ? 'Gemini 2.0 Flash' : 'Gemini 1.5 Flash';
+
+        let msg = `Justificatif analysé avec ${modelName} ✨\n\nDonnées détectées :\n`;
+        if (ocrResult.merchant) msg += `- Commerçant : ${ocrResult.merchant}\n`;
+        msg += `- Montant : ${ocrResult.amount || '?'} €\n`;
+        if (ocrResult.tax) msg += `- TVA : ${ocrResult.tax} €\n`;
+        if (ocrResult.category) msg += `- Catégorie : ${ocrResult.category}\n`;
+        if (ocrResult.paymentMethod) msg += `- Paiement : ${ocrResult.paymentMethod}\n`;
+        msg += `- Date : ${dateStr}\n`;
+
+        msg += `\nVoulez-vous mettre à jour la dépense avec ces données ?`;
 
         if (window.confirm(msg)) {
           finalAmount = ocrResult.amount;
           finalDate = ocrResult.date;
+          finalMotif = ocrResult.merchant || ocrResult.category;
         }
       }
 
@@ -127,6 +139,7 @@ export default function ExpensesPage() {
       formData.append('receipt', file);
       if (finalAmount !== null) formData.append('amount', finalAmount.toString());
       if (finalDate !== null) formData.append('date', finalDate);
+      if (finalMotif !== null) formData.append('motif', finalMotif);
 
       const response = await fetch(`/api/expenses/${expenseId}`, {
         method: 'PUT',
@@ -155,16 +168,26 @@ export default function ExpensesPage() {
     try {
       const ocrResult = await analyzeReceipt(expense.receiptUrl);
 
-      if (ocrResult.amount || ocrResult.date || ocrResult.merchant) {
+      if (ocrResult.amount || ocrResult.date || ocrResult.merchant || ocrResult.tax || ocrResult.category) {
         const dateStr = ocrResult.date ? new Date(ocrResult.date).toLocaleDateString('fr-FR') : '?';
         const modelName = ocrResult.model === 'gemini-2.0-flash-exp' ? 'Gemini 2.0 Flash' : 'Gemini 1.5 Flash';
-        const msg = `Analyse ${modelName} ✨\n\nDonnées détectées :\n${ocrResult.merchant ? `- Commerçant : ${ocrResult.merchant}\n` : ''}- Montant : ${ocrResult.amount || '?'} €\n- Date : ${dateStr}\n\nVoulez-vous mettre à jour la dépense avec ces données ?`;
+
+        let msg = `Analyse ${modelName} ✨\n\nDonnées détectées :\n`;
+        if (ocrResult.merchant) msg += `- Commerçant : ${ocrResult.merchant}\n`;
+        msg += `- Montant : ${ocrResult.amount || '?'} €\n`;
+        if (ocrResult.tax) msg += `- TVA : ${ocrResult.tax} €\n`;
+        if (ocrResult.category) msg += `- Catégorie : ${ocrResult.category}\n`;
+        if (ocrResult.paymentMethod) msg += `- Paiement : ${ocrResult.paymentMethod}\n`;
+        msg += `- Date : ${dateStr}\n`;
+
+        msg += `\nVoulez-vous mettre à jour la dépense avec ces données ?`;
 
         if (window.confirm(msg)) {
           const formData = new FormData();
           if (ocrResult.amount) formData.append('amount', ocrResult.amount.toString());
           if (ocrResult.date) formData.append('date', ocrResult.date);
           if (ocrResult.merchant) formData.append('motif', ocrResult.merchant);
+          else if (ocrResult.category) formData.append('motif', ocrResult.category);
 
           const response = await fetch(`/api/expenses/${expense.id}`, {
             method: 'PUT',
@@ -257,7 +280,7 @@ export default function ExpensesPage() {
                 ) : (
                   <Download size={14} />
                 )}
-                <span>ZIP Justificatifs</span>
+                <span>ZIP <span className="hidden sm:inline">Justificatifs</span></span>
               </button>
             </Tooltip>
           )}
@@ -266,10 +289,11 @@ export default function ExpensesPage() {
         <Tooltip content="Ajouter manuellement une nouvelle dépense">
           <button
             onClick={() => handleOpenModal()}
-            className="bg-blue-600 text-white px-6 py-3 rounded-2xl hover:bg-blue-700 transition shadow-lg shadow-blue-200 dark:shadow-none flex items-center justify-center gap-2 text-sm font-black"
+            className="bg-blue-600 text-white px-4 sm:px-6 py-3 rounded-2xl hover:bg-blue-700 transition shadow-lg shadow-blue-200 dark:shadow-none flex items-center justify-center gap-2 text-sm font-black"
           >
             <Plus size={20} />
-            <span>Nouvelle dépense</span>
+            <span className="hidden sm:inline">Nouvelle dépense</span>
+            <span className="sm:hidden">Nouveau</span>
           </button>
         </Tooltip>
       </div>
