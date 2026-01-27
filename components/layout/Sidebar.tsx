@@ -78,6 +78,15 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
               </li>
               <li className="mb-2">
                 <Link
+                  href="/admin/team-planning"
+                  className={`${linkStyle} ${pathname === '/admin/team-planning' ? activeStyle : defaultStyle}`}
+                  onClick={() => onClose()}
+                >
+                  Planning Équipe
+                </Link>
+              </li>
+              <li className="mb-2">
+                <Link
                   href="/admin/patients"
                   className={`${linkStyle} ${pathname === '/admin/patients' ? activeStyle : defaultStyle}`}
                   onClick={() => onClose()}

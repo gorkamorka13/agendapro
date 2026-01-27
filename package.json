@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -H 0.0.0.0",
+    "predev": "node scripts/check-db-sync.js",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

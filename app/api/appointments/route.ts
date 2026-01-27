@@ -42,6 +42,7 @@ export async function GET() {
         borderColor: backgroundColor,
         extendedProps: {
           type: 'APPOINTMENT',
+          userId: apt.userId,
           subject: apt.subject,
           location: apt.location,
           workerName: apt.user.name,

@@ -66,6 +66,8 @@ export async function GET() {
         backgroundColor,
         borderColor: backgroundColor,
         extendedProps: {
+          type: 'ASSIGNMENT',
+          userId: assignment.userId,
           workerName: assignment.user.name,
           patientName: hidePatientLabel ? '' : patientName,
           status: assignment.status
