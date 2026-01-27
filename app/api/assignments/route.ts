@@ -68,6 +68,7 @@ export async function GET() {
         extendedProps: {
           type: 'ASSIGNMENT',
           userId: assignment.userId,
+          patientId: assignment.patientId,
           workerName: assignment.user.name,
           patientName: hidePatientLabel ? '' : patientName,
           status: assignment.status

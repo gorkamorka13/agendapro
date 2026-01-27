@@ -12,7 +12,8 @@ import AppointmentManager from './AppointmentManager';
 import { useSession } from 'next-auth/react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Heart, Calendar } from 'lucide-react';
-import { getContrastColor } from '@/lib/utils';
+import { getContrastColor, cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface CalendarEvent {
   id: string;
@@ -128,6 +129,65 @@ export default function AssignmentCalendar() {
     }
   };
 
+  const handleEventChange = async (changeArg: any) => {
+    const { event } = changeArg;
+    const isAppointment = event.extendedProps.type === 'APPOINTMENT';
+    const id = isAppointment ? event.id.replace('apt-', '') : event.id;
+    const url = isAppointment ? `/api/appointments/${id}` : `/api/assignments/${id}`;
+
+    const updateData: any = {
+      startTime: event.start?.toISOString(),
+      endTime: event.end?.toISOString(),
+      userId: event.extendedProps.userId,
+    };
+
+    if (isAppointment) {
+      updateData.subject = event.extendedProps.subject;
+      updateData.location = event.extendedProps.location;
+      updateData.notes = event.extendedProps.notes;
+      updateData.status = event.extendedProps.status;
+    } else {
+      updateData.patientId = event.extendedProps.patientId;
+    }
+
+    try {
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData),
+      });
+
+      if (!response.ok) {
+        if (response.status === 409 && !isAppointment) {
+          if (window.confirm("Cet intervenant a déjà une intervention sur ce créneau. Forcer la superposition ?")) {
+            const forceRes = await fetch(url, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ...updateData, ignoreConflict: true }),
+            });
+            if (forceRes.ok) {
+              toast.success("Intervention mise à jour (avec superposition)");
+              fetchEvents();
+              return;
+            }
+          }
+        }
+        const errorMsg = await response.text();
+        toast.error(errorMsg || "Erreur lors de la mise à jour");
+        changeArg.revert();
+      } else {
+        toast.success(isAppointment ? "Rendez-vous mis à jour" : "Intervention mise à jour");
+        fetchEvents();
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Erreur réseau");
+      changeArg.revert();
+    }
+  };
+
+  const isAdmin = session?.user?.role === 'ADMIN';
+
   return (
     <div
       className="bg-white dark:bg-slate-800 py-2 px-[3px] sm:py-4 sm:px-[11px] md:py-6 md:px-[19px] rounded-lg shadow-md transition-colors [&_.fc-toolbar-title]:text-[12px] [&_.fc-toolbar-title]:sm:text-xl [&_.fc-toolbar-title]:capitalize [&_.fc-button]:text-[9px] [&_.fc-button]:sm:text-xs [&_.fc-button]:px-1 [&_.fc-button]:sm:px-2 [&_.fc-header-toolbar]:flex-wrap sm:[&_.fc-header-toolbar]:grid sm:[&_.fc-header-toolbar]:grid-cols-3 [&_.fc-header-toolbar]:justify-center sm:[&_.fc-header-toolbar]:justify-between [&_.fc-toolbar-chunk]:flex [&_.fc-toolbar-chunk]:items-center [&_.fc-toolbar-chunk]:gap-1 [&_.fc-header-toolbar]:gap-1 sm:[&_.fc-header-toolbar]:gap-4 [&_.fc-toolbar-chunk:nth-child(2)]:justify-center [&_.fc-toolbar-chunk:last-child]:justify-end [&_.fc-daygrid-day-frame]:!justify-start [&_.fc-daygrid-event-harness]:!mb-[-1px] overflow-hidden [&_.fc-todayCircle-button]:!rounded-full [&_.fc-todayCircle-button]:!w-7 [&_.fc-todayCircle-button]:!h-7 sm:[&_.fc-todayCircle-button]:!w-8 sm:[&_.fc-todayCircle-button]:!h-8 [&_.fc-todayCircle-button]:!p-0 [&_.fc-todayCircle-button]:!flex [&_.fc-todayCircle-button]:!items-center [&_.fc-todayCircle-button]:!justify-center [&_.fc-todayCircle-button]:!bg-blue-600 [&_.fc-todayCircle-button]:!border-none [&_.fc-todayCircle-button]:!text-white [&_.fc-todayCircle-button]:!font-normal [&_.fc-todayCircle-button]:!text-[11px] [&_.fc-todayCircle-button]:!shadow-lg [&_.fc-todayCircle-button]:hover:!bg-blue-700 [&_.fc-todayCircle-button]:!transition-transform [&_.fc-todayCircle-button]:active:!scale-95"
@@ -138,6 +198,9 @@ export default function AssignmentCalendar() {
       <FullCalendar
         ref={calendarRef}
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+        editable={isAdmin}
+        eventDrop={handleEventChange}
+        eventResize={handleEventChange}
         initialView="dayGridMonth"
         displayEventTime={false}
         customButtons={{
