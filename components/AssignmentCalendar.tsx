@@ -16,7 +16,7 @@ import { Heart, Calendar, Clock, Repeat, Plus } from 'lucide-react';
 import { getContrastColor, cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useMutation } from '@tanstack/react-query';
-import { Settings2, Trash2, X, CheckCircle, Ban, Users, ArrowRightLeft } from 'lucide-react';
+import { Settings2, Trash2, X, CheckCircle, Ban, Users, ArrowRightLeft, Database } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
 import { Select } from './ui/Select';
@@ -275,29 +275,42 @@ export default function AssignmentCalendar() {
 
         <div className="flex items-center gap-2">
             {isAdmin && (
-              <Button
-                variant={isSelectionMode ? "primary" : "outline"}
-                size="sm"
-                onClick={toggleSelectionMode}
-                className={cn(
-                  "gap-2 transition-all",
-                  isSelectionMode
-                    ? "bg-slate-900 border-transparent text-white hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-700 dark:text-white"
-                    : ""
-                )}
-              >
-                {isSelectionMode ? (
-                  <>
-                    <X size={14} />
-                    <span className="hidden sm:inline">Quitter</span>
-                  </>
-                ) : (
-                  <>
-                    <Settings2 size={14} />
-                    <span className="hidden sm:inline">Sélection</span>
-                  </>
-                )}
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open('/api/admin/backup', '_blank')}
+                  className="gap-2 hidden sm:flex bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"
+                  title="Télécharger une sauvegarde de la base de données"
+                >
+                  <Database size={16} className="text-blue-600 dark:text-blue-400" />
+                  <span className="hidden lg:inline">Sauvegarder BDD</span>
+                </Button>
+
+                <Button
+                  variant={isSelectionMode ? "primary" : "outline"}
+                  size="sm"
+                  onClick={toggleSelectionMode}
+                  className={cn(
+                    "gap-2 transition-all",
+                    isSelectionMode
+                      ? "bg-slate-900 border-transparent text-white hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-700 dark:text-white"
+                      : ""
+                  )}
+                >
+                  {isSelectionMode ? (
+                    <>
+                      <X size={14} />
+                      <span className="hidden sm:inline">Quitter</span>
+                    </>
+                  ) : (
+                    <>
+                      <Settings2 size={14} />
+                      <span className="hidden sm:inline">Sélection</span>
+                    </>
+                  )}
+                </Button>
+              </>
             )}
         </div>
       </div>
