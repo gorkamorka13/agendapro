@@ -1,10 +1,10 @@
 {
   "name": "agenda-stable",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "scripts": {
     "dev": "next dev -H 0.0.0.0",
-    "db:sync": "node scripts/fix-db-sync.js",
+    "db:sync": "node Tools/fix-db-sync.js",
     "predev": "node Tools/check-db-sync.js",
     "build": "next build",
     "start": "next start",
