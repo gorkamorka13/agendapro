@@ -128,8 +128,6 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
     }
   }, [startTime, endTime]);
 
-  if (!isOpen) return null;
-
   const mutation = useMutation({
     mutationFn: async ({ data, method, url }: { data: any, method: string, url: string }) => {
       const response = await fetch(url, {
@@ -228,6 +226,9 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
       toast.error(`Erreur : ${error.message}`);
     }
   });
+
+  if (!isOpen) return null;
+
 
   const handleValidate = () => {
     if (!isEditing || handleActionMutation.isPending) return;

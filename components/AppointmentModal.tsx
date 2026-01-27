@@ -63,9 +63,6 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
   const isOwner = isEditing && session?.user?.id === userId;
 
   // Permission logic:
-  // - Admins can do anything
-  // - Creation is allowed for everyone (initial userId will be set to self)
-  // - Modification is allowed only for owners if not completed
   const hasPermission = isAdmin || !isEditing || (isOwner && !isCompleted && !isCancelled);
 
   const formatLocalDate = (d: Date) => {
@@ -85,7 +82,6 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
     setStartTime('09:00');
     setEndTime('10:00');
   };
-
 
   useEffect(() => {
     if (appointmentData && isEditing && isOpen) {
@@ -115,8 +111,6 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
       setDuration(`${Math.floor(diff / 60)}h ${(diff % 60).toString().padStart(2, '0')}m`);
     }
   }, [startTime, endTime]);
-
-  if (!isOpen) return null;
 
   const mutation = useMutation({
     mutationFn: async ({ data, method, url }: { data: any, method: string, url: string }) => {
@@ -221,6 +215,8 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
       handleActionMutation.mutate({ url: `/api/appointments/${appointmentId}`, method: 'DELETE' });
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center z-50 p-2 sm:p-4 animate-in fade-in duration-200">
