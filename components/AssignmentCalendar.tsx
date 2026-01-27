@@ -12,9 +12,13 @@ import AppointmentModal from './AppointmentModal';
 import AppointmentManager from './AppointmentManager';
 import { useSession } from 'next-auth/react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Heart, Calendar, Clock, Repeat } from 'lucide-react';
+import { Heart, Calendar, Clock, Repeat, Plus } from 'lucide-react';
 import { getContrastColor, cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useMutation } from '@tanstack/react-query';
+import { Settings2, Trash2, X, CheckCircle, Ban } from 'lucide-react';
+import { Button } from './ui/Button';
+import { Badge } from './ui/Badge';
 import { FullCalendarEvent, Role } from '@/types';
 
 export default function AssignmentCalendar() {
@@ -50,6 +54,10 @@ export default function AssignmentCalendar() {
     visible: false
   });
 
+  // Selection mode for batch management
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedEvents, setSelectedEvents] = useState<Map<string, { id: string; type: 'ASSIGNMENT' | 'APPOINTMENT' }>>(new Map());
+
   const { data: session } = useSession();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -72,7 +80,15 @@ export default function AssignmentCalendar() {
       setIsAppointmentManagerOpen(true);
       router.replace('/');
     }
-  }, [searchParams, router]);
+
+    if (searchParams.get('mode') === 'management' && session?.user?.role === 'ADMIN') {
+      setIsSelectionMode(true);
+    } else {
+      // Si on n'est plus en mode management dans l'URL, on désactive la sélection
+      setIsSelectionMode(false);
+      setSelectedEvents(new Map());
+    }
+  }, [searchParams, router, session?.user?.role]);
 
   const handleDateClick = (arg: DateClickArg) => {
     if ((session?.user?.role as Role) === 'VISITEUR') return;
@@ -83,6 +99,23 @@ export default function AssignmentCalendar() {
 
   const handleEventClick = (arg: EventClickArg) => {
     if ((session?.user?.role as Role) === 'VISITEUR') return;
+
+    if (isSelectionMode) {
+      const id = arg.event.id;
+      const type = arg.event.extendedProps.type;
+
+      setSelectedEvents(prev => {
+        const next = new Map(prev);
+        if (next.has(id)) {
+          next.delete(id);
+        } else {
+          next.set(id, { id, type });
+        }
+        return next;
+      });
+      return;
+    }
+
     const isAppointment = arg.event.extendedProps.type === 'APPOINTMENT';
 
     if (isAppointment) {
@@ -188,6 +221,30 @@ export default function AssignmentCalendar() {
     }
   };
 
+  const bulkActionMutation = useMutation({
+    mutationFn: async ({ action }: { action: 'delete' | 'cancel' | 'complete' }) => {
+      const response = await fetch('/api/bulk/actions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action,
+          items: Array.from(selectedEvents.values())
+        }),
+      });
+      if (!response.ok) throw new Error(await response.text());
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      toast.success("Opération groupée réussie");
+      setIsSelectionMode(false);
+      setSelectedEvents(new Map());
+    },
+    onError: (error: any) => {
+      toast.error(`Erreur : ${error.message}`);
+    }
+  });
+
   const isAdmin = session?.user?.role === 'ADMIN';
 
   return (
@@ -197,6 +254,22 @@ export default function AssignmentCalendar() {
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
+        <div className="flex items-center gap-3">
+          <div className="p-3 bg-blue-600 rounded-2xl shadow-lg shadow-blue-500/20">
+            <Calendar className="text-white" size={24} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tight">Planning</h1>
+            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Gérez vos interventions et rendez-vous</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+
+        </div>
+      </div>
+
       <FullCalendar
         ref={calendarRef}
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
@@ -302,21 +375,33 @@ export default function AssignmentCalendar() {
           const endTime = eventInfo.event.end?.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
           const timeRange = `${startTime} - ${endTime}`;
 
+          const isSelected = selectedEvents.has(eventInfo.event.id);
+
           return (
             <div
-              className={`px-1 py-0.5 rounded-md w-full h-full overflow-hidden flex items-center justify-center transition-all duration-300 ${
+              className={`px-1 py-0.5 rounded-md w-full h-full overflow-hidden flex items-center gap-1 transition-all duration-300 ${
                 (isPast || status === 'COMPLETED')
                   ? `opacity-40 ${isCancelled ? 'bg-hatched-pattern' : ''}`
                   : isCancelled
                     ? 'opacity-100 bg-hatched-pattern'
                     : 'opacity-100'
-              }`}
+              } ${isSelected ? 'ring-2 ring-white ring-inset' : ''}`}
               style={{
                 backgroundColor: bgColor,
               }}
             >
+              {isSelectionMode && (
+                <div
+                  className={cn(
+                    "w-3.5 h-3.5 rounded-sm border-2 border-black/40 flex items-center justify-center shrink-0 shadow-sm",
+                    isSelected ? "bg-black" : "bg-white/40"
+                  )}
+                >
+                  {isSelected && <CheckCircle size={11} strokeWidth={3} className="text-white" />}
+                </div>
+              )}
               <div
-                className={`text-center font-normal leading-tight ${
+                className={`flex-1 text-center font-normal leading-tight ${
                   isDayView && isMobile ? 'text-[14px]' : 'text-[9px] sm:text-[12px]'
                 }`}
                 style={{ color: textColor }}
@@ -361,6 +446,81 @@ export default function AssignmentCalendar() {
           </div>
         </div>
       )}
+      <AssignmentModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={handleSave}
+        selectedDate={selectedDate}
+        assignmentId={selectedAssignmentId}
+      />
+
+      {/* Bulk Action Bar */}
+      {isSelectionMode && selectedEvents.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] animate-in slide-in-from-bottom-4 duration-300">
+          <div className="bg-slate-900/90 dark:bg-slate-800/95 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl px-4 py-3 flex items-center gap-4">
+            <div className="flex items-center gap-2 px-3 border-r border-white/10 mr-2">
+              <Badge variant="blue" className="h-6 min-w-6 flex items-center justify-center rounded-full p-0 font-bold">
+                {selectedEvents.size}
+              </Badge>
+              <span className="text-white text-xs font-bold uppercase tracking-wider">Sélectionnés</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => {
+                  if (window.confirm(`Valider les ${selectedEvents.size} éléments sélectionnés ?`)) {
+                    bulkActionMutation.mutate({ action: 'complete' });
+                  }
+                }}
+                disabled={bulkActionMutation.isPending}
+                className="bg-emerald-600 hover:bg-emerald-700 h-9 px-4 text-[10px] font-black uppercase rounded-xl border-none"
+              >
+                <CheckCircle size={14} className="mr-2" /> Valider
+              </Button>
+
+              <Button
+                variant="amber"
+                size="sm"
+                onClick={() => {
+                  if (window.confirm(`Annuler les ${selectedEvents.size} éléments sélectionnés ?`)) {
+                    bulkActionMutation.mutate({ action: 'cancel' });
+                  }
+                }}
+                disabled={bulkActionMutation.isPending}
+                className="h-9 px-4 text-[10px] font-black uppercase rounded-xl"
+              >
+                <Ban size={14} className="mr-2" /> Annuler
+              </Button>
+
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => {
+                  if (window.confirm(`⚠️ Supprimer DEFINITIVEMENT les ${selectedEvents.size} éléments sélectionnés ?`)) {
+                    bulkActionMutation.mutate({ action: 'delete' });
+                  }
+                }}
+                disabled={bulkActionMutation.isPending}
+                className="h-9 px-4 text-[10px] font-black uppercase rounded-xl"
+              >
+                <Trash2 size={14} className="mr-2" /> Supprimer
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSelectedEvents(new Map())}
+                className="text-slate-400 hover:text-white hover:bg-white/10 h-9 w-9 rounded-xl"
+              >
+                <X size={18} />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <AssignmentModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

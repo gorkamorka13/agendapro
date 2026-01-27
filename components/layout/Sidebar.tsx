@@ -2,10 +2,11 @@
 
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 
 export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { data: session } = useSession();
 
   const isAdmin = session?.user?.role === 'ADMIN';
@@ -43,7 +44,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
           <li className="mb-2">
             <Link
               href="/"
-              className={`${linkStyle} ${pathname === '/' ? activeStyle : defaultStyle}`}
+              className={`${linkStyle} ${(pathname === '/' && !searchParams.get('mode')) ? activeStyle : defaultStyle}`}
               onClick={() => onClose()} // Close sidebar on mobile when link clicked
             >
               Calendrier
@@ -66,6 +67,15 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
             <>
               <li className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500 px-4 mt-8 mb-2 border-t border-gray-700 pt-4">
                 Administration
+              </li>
+              <li className="mb-2">
+                <Link
+                  href="/?mode=management"
+                  className={`${linkStyle} ${pathname === '/' && searchParams.get('mode') === 'management' ? activeStyle : defaultStyle}`}
+                  onClick={() => onClose()}
+                >
+                  Gestion Planning
+                </Link>
               </li>
               <li className="mb-2">
                 <Link

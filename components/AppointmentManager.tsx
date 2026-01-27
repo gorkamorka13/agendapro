@@ -59,8 +59,9 @@ export default function AppointmentManager({ isOpen, onClose, onEdit, onCreate, 
   );
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center z-50 p-2 sm:p-4 animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-100 dark:border-slate-800 flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 overflow-y-auto p-2 sm:p-4 md:p-8 animate-in fade-in duration-200">
+      <div className="flex min-h-full items-start justify-center py-4 sm:py-10">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-100 dark:border-slate-800 flex flex-col md:max-h-[90vh]">
 
         {/* Header */}
         <div className="bg-slate-50 dark:bg-slate-900/50 px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
@@ -162,6 +163,7 @@ export default function AppointmentManager({ isOpen, onClose, onEdit, onCreate, 
                 ))
             )}
         </div>
+      </div>
       </div>
     </div>
   );

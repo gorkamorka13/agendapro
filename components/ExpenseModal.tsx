@@ -84,8 +84,9 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center z-50 p-4 animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-100 dark:border-slate-800">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 overflow-y-auto p-4 animate-in fade-in duration-200">
+      <div className="flex min-h-full items-start justify-center py-10">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-100 dark:border-slate-800">
         <div className="bg-slate-50 dark:bg-slate-800/50 px-8 py-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
           <div>
             <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight">
@@ -164,5 +165,6 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
         </form>
       </div>
     </div>
+  </div>
   );
 }

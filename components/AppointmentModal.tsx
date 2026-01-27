@@ -219,8 +219,9 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center z-50 p-2 sm:p-4 animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 dark:border-slate-800 flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 overflow-y-auto p-4 animate-in fade-in duration-200">
+      <div className="flex min-h-full items-start justify-center py-10">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-100 dark:border-slate-800 flex flex-col">
         <div className="bg-slate-50 dark:bg-slate-900/50 px-4 sm:px-8 py-4 sm:py-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
           <div className="flex-1">
             <div className="flex items-center gap-3">
@@ -243,7 +244,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
           </Button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 sm:p-8 space-y-4 sm:space-y-6 overflow-y-auto">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-8 space-y-4 sm:space-y-6 overflow-y-auto max-h-[calc(100vh-12rem)] md:max-h-none custom-scrollbar">
           {isCancelled && (
             <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20 p-3 rounded-xl flex items-center gap-3 text-amber-800 dark:text-amber-300 text-xs font-medium">
               <X size={16} className="text-amber-500" /> Ce rendez-vous est annulé.
@@ -396,5 +397,6 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
         </form>
       </div>
     </div>
+  </div>
   );
 }
