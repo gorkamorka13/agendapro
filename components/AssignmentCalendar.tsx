@@ -16,9 +16,10 @@ import { Heart, Calendar, Clock, Repeat, Plus } from 'lucide-react';
 import { getContrastColor, cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useMutation } from '@tanstack/react-query';
-import { Settings2, Trash2, X, CheckCircle, Ban } from 'lucide-react';
+import { Settings2, Trash2, X, CheckCircle, Ban, Users, ArrowRightLeft } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
+import { Select } from './ui/Select';
 import { FullCalendarEvent, Role } from '@/types';
 
 export default function AssignmentCalendar() {
@@ -41,6 +42,8 @@ export default function AssignmentCalendar() {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
+
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
   const [isAppointmentManagerOpen, setIsAppointmentManagerOpen] = useState(false);
@@ -57,8 +60,19 @@ export default function AssignmentCalendar() {
   // Selection mode for batch management
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedEvents, setSelectedEvents] = useState<Map<string, { id: string; type: 'ASSIGNMENT' | 'APPOINTMENT' }>>(new Map());
+  const [isReassignOpen, setIsReassignOpen] = useState(false);
+  const [targetUserId, setTargetUserId] = useState('');
 
   const { data: session } = useSession();
+  const { data: users = [] } = useQuery<any[]>({
+    queryKey: ['users'],
+    queryFn: async () => {
+      const res = await fetch('/api/users');
+      if (!res.ok) throw new Error('Erreur chargement utilisateurs');
+      return res.json();
+    },
+    enabled: session?.user?.role === 'ADMIN'
+  });
   const searchParams = useSearchParams();
   const router = useRouter();
   const calendarRef = useRef<FullCalendar>(null);
@@ -75,6 +89,7 @@ export default function AssignmentCalendar() {
     }
   }, [fetchError]);
 
+  // Sync selection mode with URL only on mount or URL change, but allow local toggle
   useEffect(() => {
     if (searchParams.get('action') === 'manage-appointments') {
       setIsAppointmentManagerOpen(true);
@@ -83,12 +98,19 @@ export default function AssignmentCalendar() {
 
     if (searchParams.get('mode') === 'management' && session?.user?.role === 'ADMIN') {
       setIsSelectionMode(true);
-    } else {
-      // Si on n'est plus en mode management dans l'URL, on désactive la sélection
-      setIsSelectionMode(false);
-      setSelectedEvents(new Map());
     }
   }, [searchParams, router, session?.user?.role]);
+
+  const toggleSelectionMode = () => {
+    setIsSelectionMode(prev => {
+      const newValue = !prev;
+      if (!newValue) {
+        setSelectedEvents(new Map());
+        setIsReassignOpen(false);
+      }
+      return newValue;
+    });
+  };
 
   const handleDateClick = (arg: DateClickArg) => {
     if ((session?.user?.role as Role) === 'VISITEUR') return;
@@ -208,12 +230,13 @@ export default function AssignmentCalendar() {
   };
 
   const bulkActionMutation = useMutation({
-    mutationFn: async ({ action }: { action: 'delete' | 'cancel' | 'complete' }) => {
+    mutationFn: async ({ action, targetUserId }: { action: 'delete' | 'cancel' | 'complete' | 'reassign'; targetUserId?: string }) => {
       const response = await fetch('/api/bulk/actions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action,
+          targetUserId,
           items: Array.from(selectedEvents.values())
         }),
       });
@@ -223,7 +246,6 @@ export default function AssignmentCalendar() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
       toast.success("Opération groupée réussie");
-      setIsSelectionMode(false);
       setSelectedEvents(new Map());
     },
     onError: (error: any) => {
@@ -252,7 +274,31 @@ export default function AssignmentCalendar() {
         </div>
 
         <div className="flex items-center gap-2">
-
+            {isAdmin && (
+              <Button
+                variant={isSelectionMode ? "primary" : "outline"}
+                size="sm"
+                onClick={toggleSelectionMode}
+                className={cn(
+                  "gap-2 transition-all",
+                  isSelectionMode
+                    ? "bg-slate-900 border-transparent text-white hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-700 dark:text-white"
+                    : ""
+                )}
+              >
+                {isSelectionMode ? (
+                  <>
+                    <X size={14} />
+                    <span className="hidden sm:inline">Quitter</span>
+                  </>
+                ) : (
+                  <>
+                    <Settings2 size={14} />
+                    <span className="hidden sm:inline">Sélection</span>
+                  </>
+                )}
+              </Button>
+            )}
         </div>
       </div>
 
@@ -457,67 +503,124 @@ export default function AssignmentCalendar() {
 
       {/* Bulk Action Bar */}
       {isSelectionMode && selectedEvents.size > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] animate-in slide-in-from-bottom-4 duration-300">
-          <div className="bg-slate-900/90 dark:bg-slate-800/95 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl px-4 py-3 flex items-center gap-4">
-            <div className="flex items-center gap-2 px-3 border-r border-white/10 mr-2">
-              <Badge variant="blue" className="h-6 min-w-6 flex items-center justify-center rounded-full p-0 font-bold">
-                {selectedEvents.size}
-              </Badge>
-              <span className="text-white text-xs font-bold uppercase tracking-wider">Sélectionnés</span>
-            </div>
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[100] animate-in slide-in-from-bottom-4 duration-300 w-auto max-w-[95%]">
+          <div className="bg-slate-900/95 dark:bg-slate-800/95 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl p-2 flex flex-row items-center gap-2 overflow-x-auto no-scrollbar">
 
-            <div className="flex items-center gap-2">
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => {
-                  if (window.confirm(`Valider les ${selectedEvents.size} éléments sélectionnés ?`)) {
-                    bulkActionMutation.mutate({ action: 'complete' });
-                  }
-                }}
-                disabled={bulkActionMutation.isPending}
-                className="bg-emerald-600 hover:bg-emerald-700 h-9 px-4 text-[10px] font-black uppercase rounded-xl border-none"
-              >
-                <CheckCircle size={14} className="mr-2" /> Valider
-              </Button>
+            {!isReassignOpen ? (
+              <>
+                <div className="flex items-center gap-1.5 px-2 border-r border-white/10 mr-1 shrink-0">
+                  <Badge variant="blue" className="h-5 min-w-5 flex items-center justify-center rounded-full p-0 text-[10px] font-bold">
+                    {selectedEvents.size}
+                  </Badge>
+                  <span className="text-white text-[10px] font-bold uppercase tracking-wider hidden sm:inline">Sélection</span>
+                </div>
 
-              <Button
-                variant="amber"
-                size="sm"
-                onClick={() => {
-                  if (window.confirm(`Annuler les ${selectedEvents.size} éléments sélectionnés ?`)) {
-                    bulkActionMutation.mutate({ action: 'cancel' });
-                  }
-                }}
-                disabled={bulkActionMutation.isPending}
-                className="h-9 px-4 text-[10px] font-black uppercase rounded-xl"
-              >
-                <Ban size={14} className="mr-2" /> Annuler
-              </Button>
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => {
+                      if (window.confirm(`Valider les ${selectedEvents.size} éléments sélectionnés ?`)) {
+                        bulkActionMutation.mutate({ action: 'complete' });
+                      }
+                    }}
+                    disabled={bulkActionMutation.isPending}
+                    className="bg-emerald-600 hover:bg-emerald-700 h-8 px-2.5 text-[9px] sm:text-[10px] font-black uppercase rounded-lg border-none"
+                  >
+                    <CheckCircle size={12} className="mr-1.5" /> <span className="hidden sm:inline">Valider</span>
+                  </Button>
 
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={() => {
-                  if (window.confirm(`⚠️ Supprimer DEFINITIVEMENT les ${selectedEvents.size} éléments sélectionnés ?`)) {
-                    bulkActionMutation.mutate({ action: 'delete' });
-                  }
-                }}
-                disabled={bulkActionMutation.isPending}
-                className="h-9 px-4 text-[10px] font-black uppercase rounded-xl"
-              >
-                <Trash2 size={14} className="mr-2" /> Supprimer
-              </Button>
+                  <Button
+                    variant="amber"
+                    size="sm"
+                    onClick={() => {
+                      if (window.confirm(`Annuler les ${selectedEvents.size} éléments sélectionnés ?`)) {
+                        bulkActionMutation.mutate({ action: 'cancel' });
+                      }
+                    }}
+                    disabled={bulkActionMutation.isPending}
+                    className="h-8 px-2.5 text-[9px] sm:text-[10px] font-black uppercase rounded-lg"
+                  >
+                    <Ban size={12} className="mr-1.5" /> <span className="hidden sm:inline">Annuler</span>
+                  </Button>
 
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setSelectedEvents(new Map())}
-                className="text-slate-400 hover:text-white hover:bg-white/10 h-9 w-9 rounded-xl"
-              >
-                <X size={18} />
-              </Button>
-            </div>
+                  <Button
+                    onClick={() => setIsReassignOpen(true)}
+                    disabled={bulkActionMutation.isPending}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white h-8 px-2.5 text-[9px] sm:text-[10px] font-black uppercase rounded-lg border-none"
+                  >
+                    <ArrowRightLeft size={12} className="mr-1.5" /> <span className="hidden sm:inline">Réaffecter</span>
+                  </Button>
+
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={() => {
+                      if (window.confirm(`⚠️ Supprimer DEFINITIVEMENT les ${selectedEvents.size} éléments sélectionnés ?`)) {
+                        bulkActionMutation.mutate({ action: 'delete' });
+                      }
+                    }}
+                    disabled={bulkActionMutation.isPending}
+                    className="h-8 px-2.5 text-[9px] sm:text-[10px] font-black uppercase rounded-lg"
+                  >
+                    <Trash2 size={12} className="mr-1.5" /> <span className="hidden sm:inline">Supprimer</span>
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setSelectedEvents(new Map())}
+                    className="text-slate-400 hover:text-white hover:bg-white/10 h-8 w-8 rounded-lg"
+                  >
+                    <X size={14} />
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-row items-center gap-2 animate-in fade-in duration-200">
+                <span className="text-white text-[10px] font-bold uppercase whitespace-nowrap hidden sm:inline">
+                  Pour {selectedEvents.size} :
+                </span>
+                <select
+                  className="h-8 w-40 sm:w-48 rounded-lg bg-slate-800 border-white/20 text-white text-xs focus:ring-2 focus:ring-indigo-500"
+                  value={targetUserId}
+                  onChange={(e) => setTargetUserId(e.target.value)}
+                >
+                  <option value="">Choisir...</option>
+                  {users.map((u) => (
+                    <option key={u.id} value={u.id}>{u.name}</option>
+                  ))}
+                </select>
+                <div className="flex items-center gap-1">
+                  <Button
+                    onClick={() => {
+                       if (!targetUserId) {
+                         toast.error("Veuillez sélectionner un intervenant");
+                         return;
+                       }
+                       bulkActionMutation.mutate({ action: 'reassign', targetUserId });
+                       setIsReassignOpen(false);
+                       setTargetUserId('');
+                    }}
+                    disabled={bulkActionMutation.isPending || !targetUserId}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white h-8 px-3 text-[10px] font-black uppercase rounded-lg border-none"
+                  >
+                    OK
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setIsReassignOpen(false);
+                      setTargetUserId('');
+                    }}
+                    className="text-slate-400 hover:text-white h-8 px-2"
+                  >
+                    <X size={14} />
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

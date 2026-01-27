@@ -12,13 +12,13 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { items, action } = await request.json();
+    const { items, action, targetUserId } = await request.json();
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return new NextResponse('Aucun élément sélectionné', { status: 400 });
     }
 
-    if (!['delete', 'cancel', 'complete'].includes(action)) {
+    if (!['delete', 'cancel', 'complete', 'reassign'].includes(action)) {
       return new NextResponse('Action invalide', { status: 400 });
     }
 
@@ -70,6 +70,24 @@ export async function POST(request: Request) {
           await tx.appointment.updateMany({
             where: { id: { in: appointmentIds } },
             data: { status: AssignmentStatus.COMPLETED }
+          });
+        }
+      } else if (action === 'reassign') {
+        // Ensure targetUserId is provided for reassign action
+        if (!targetUserId) {
+          throw new Error('targetUserId is required for reassign action');
+        }
+
+        if (assignmentIds.length > 0) {
+          await tx.assignment.updateMany({
+            where: { id: { in: assignmentIds } },
+            data: { userId: targetUserId }
+          });
+        }
+        if (appointmentIds.length > 0) {
+          await tx.appointment.updateMany({
+            where: { id: { in: appointmentIds } },
+            data: { userId: targetUserId }
           });
         }
       }
