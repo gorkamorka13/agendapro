@@ -63,6 +63,8 @@ model Appointment {
 
   user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
+
+  @@index([userId, startTime])
 }
 
 model Patient {
@@ -89,6 +91,9 @@ model Assignment {
   patientId Int
 
   workedHours WorkedHours?
+
+  @@index([userId, startTime])
+  @@index([patientId, startTime])
 }
 
 model WorkedHours {
@@ -109,6 +114,8 @@ model Expense {
 
   user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String?
+
+  @@index([userId, date])
 }
 
 model Invoice {

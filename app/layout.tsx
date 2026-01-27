@@ -6,6 +6,7 @@ import Authprovider from '@/components/Authprovider';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { TitleProvider } from '@/components/TitleContext';
 import ToasterProvider from '@/components/ToasterProvider';
+import QueryProvider from '@/components/QueryProvider';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -31,8 +32,10 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           <TitleProvider>
             <Authprovider>
-              <ToasterProvider />
-              {children}
+              <QueryProvider>
+                <ToasterProvider />
+                {children}
+              </QueryProvider>
             </Authprovider>
           </TitleProvider>
         </ThemeProvider>

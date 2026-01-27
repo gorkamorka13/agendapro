@@ -1,4 +1,5 @@
 import { useState, useEffect, FormEvent } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { User, Role, AssignmentStatus } from '@prisma/client';
 import { useSession } from 'next-auth/react';
 import { Clock, Calendar, User as UserIcon, MapPin, Trash2, Save, X, Info, CheckCircle } from 'lucide-react';
@@ -19,15 +20,27 @@ interface Props {
 }
 
 export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate, appointmentId }: Props) {
+  const queryClient = useQueryClient();
   const { data: session } = useSession();
-  const [users, setUsers] = useState<User[]>([]);
+
+  // Queries
+  const { data: users = [] } = useQuery<User[]>({
+    queryKey: ['users'],
+    queryFn: () => fetch('/api/users').then(res => res.json()),
+    enabled: isOpen
+  });
+
+  const { data: appointmentData } = useQuery({
+    queryKey: ['appointment', appointmentId],
+    queryFn: () => fetch(`/api/appointments/${appointmentId}`).then(res => res.json()),
+    enabled: !!appointmentId && isOpen
+  });
 
   const [subject, setSubject] = useState('');
   const [location, setLocation] = useState('');
   const [userId, setUserId] = useState('');
   const [notes, setNotes] = useState('');
   const [status, setStatus] = useState<AssignmentStatus>(AssignmentStatus.PLANNED);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // States for Date and Hours
   const [date, setDate] = useState('');
@@ -73,50 +86,25 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
     setEndTime('10:00');
   };
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const res = await fetch('/api/users');
-        if (res.ok) setUsers(await res.json());
-      } catch (error) {
-        console.error("Erreur chargement utilisateurs:", error);
-      }
-    };
-    if (isOpen) fetchUsers();
-  }, [isOpen]);
 
   useEffect(() => {
-    if (isEditing && isOpen) {
-      const fetchAppointmentData = async () => {
-        try {
-          const response = await fetch(`/api/appointments/${appointmentId}`);
-          if (response.ok) {
-            const data = await response.json();
-            setSubject(data.subject);
-            setLocation(data.location);
-            setUserId(data.userId);
-            setNotes(data.notes || '');
-            setStatus(data.status);
+    if (appointmentData && isEditing && isOpen) {
+        setSubject(appointmentData.subject);
+        setLocation(appointmentData.location);
+        setUserId(appointmentData.userId);
+        setNotes(appointmentData.notes || '');
+        setStatus(appointmentData.status);
 
-            const start = new Date(data.startTime);
-            const end = new Date(data.endTime);
+        const start = new Date(appointmentData.startTime);
+        const end = new Date(appointmentData.endTime);
 
-            setDate(formatLocalDate(start));
-            setStartTime(start.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }).replace('H', ':').replace('h', ':'));
-            setEndTime(end.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }).replace('H', ':').replace('h', ':'));
-          } else {
-            onClose();
-          }
-        } catch (error) {
-          console.error("Erreur chargement rendez-vous:", error);
-          onClose();
-        }
-      };
-      fetchAppointmentData();
-    } else {
-      resetForm();
+        setDate(formatLocalDate(start));
+        setStartTime(start.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }).replace('H', ':').replace('h', ':'));
+        setEndTime(end.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }).replace('H', ':').replace('h', ':'));
+    } else if (!isEditing) {
+        resetForm();
     }
-  }, [appointmentId, isOpen]);
+  }, [appointmentData, isEditing, isOpen]);
 
   useEffect(() => {
     if (startTime && endTime) {
@@ -130,115 +118,107 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
 
   if (!isOpen) return null;
 
-  const handleSubmit = async (e: FormEvent) => {
-    if (e) e.preventDefault();
-    if (isSubmitting) return;
-    setIsSubmitting(true);
-
-    try {
-      const startObj = new Date(`${date}T${startTime.replace('h', ':')}:00`);
-      const endObj = new Date(`${date}T${endTime.replace('h', ':')}:00`);
-      if (endObj < startObj) endObj.setDate(endObj.getDate() + 1);
-
-      const url = isEditing ? `/api/appointments/${appointmentId}` : '/api/appointments';
-      const method = isEditing ? 'PUT' : 'POST';
-
+  const mutation = useMutation({
+    mutationFn: async ({ data, method, url }: { data: any, method: string, url: string }) => {
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          subject,
-          location,
-          userId,
-          startTime: startObj.toISOString(),
-          endTime: endObj.toISOString(),
-          notes,
-          status
-        }),
+        body: JSON.stringify(data),
       });
-
-      if (response.ok) {
-        toast.success(isEditing ? "Rendez-vous mis à jour" : "Rendez-vous créé");
-        onSave();
-        onClose();
-      } else {
+      if (!response.ok) {
         const msg = await response.text();
-        toast.error(msg || "Erreur lors de l'enregistrement");
+        throw new Error(msg || "Erreur lors de l'enregistrement");
       }
-    } finally {
-      setIsSubmitting(false);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      toast.success(isEditing ? "Rendez-vous mis à jour" : "Rendez-vous créé");
+      onSave();
+      onClose();
+    },
+    onError: (error: any) => {
+      toast.error(error.message);
     }
+  });
+
+  const handleSubmit = async (e: FormEvent) => {
+    if (e) e.preventDefault();
+    if (mutation.isPending) return;
+
+    const startObj = new Date(`${date}T${startTime.replace('h', ':')}:00`);
+    const endObj = new Date(`${date}T${endTime.replace('h', ':')}:00`);
+    if (endObj < startObj) endObj.setDate(endObj.getDate() + 1);
+
+    const url = isEditing ? `/api/appointments/${appointmentId}` : '/api/appointments';
+    const method = isEditing ? 'PUT' : 'POST';
+
+    mutation.mutate({
+      url,
+      method,
+      data: {
+        subject,
+        location,
+        userId,
+        startTime: startObj.toISOString(),
+        endTime: endObj.toISOString(),
+        notes,
+        status
+      }
+    });
   };
 
-  const handleValidate = async () => {
+  const handleActionMutation = useMutation({
+    mutationFn: async ({ url, method }: { url: string, method: string }) => {
+      const response = await fetch(url, { method });
+      if (!response.ok) {
+        const err = await response.text();
+        throw new Error(err);
+      }
+      return response.status === 204 ? null : response.json();
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      const actionMap: Record<string, string> = {
+        'complete': 'validé',
+        'cancel': 'annulé',
+        'replan': 'replannifié',
+        'DELETE': 'supprimé'
+      };
+      const action = variables.method === 'DELETE' ? 'DELETE' : variables.url.split('/').pop() || '';
+      toast.success(`Rendez-vous ${actionMap[action] || 'mis à jour'}`);
+      onSave();
+      onClose();
+    },
+    onError: (error: any) => {
+      toast.error(`Erreur : ${error.message}`);
+    }
+  });
+
+  const handleValidate = () => {
+    if (!isEditing || handleActionMutation.isPending) return;
     if (window.confirm("Voulez-vous marquer ce rendez-vous comme RÉALISÉ ?")) {
-      setIsSubmitting(true);
-      try {
-        const response = await fetch(`/api/appointments/${appointmentId}/complete`, { method: 'PATCH' });
-        if (response.ok) {
-          toast.success("Rendez-vous validé");
-          onSave();
-          onClose();
-        } else {
-          const err = await response.text();
-          toast.error(`Erreur : ${err}`);
-        }
-      } finally {
-        setIsSubmitting(false);
-      }
+      handleActionMutation.mutate({ url: `/api/appointments/${appointmentId}/complete`, method: 'PATCH' });
     }
   };
 
-  const handleCancel = async () => {
-    if (!isEditing || isSubmitting) return;
+  const handleCancel = () => {
+    if (!isEditing || handleActionMutation.isPending) return;
     if (window.confirm("Voulez-vous ANNULER ce rendez-vous ?")) {
-      setIsSubmitting(true);
-      try {
-        const response = await fetch(`/api/appointments/${appointmentId}/cancel`, { method: 'PATCH' });
-        if (response.ok) {
-          toast.success("Rendez-vous annulé");
-          onSave();
-          onClose();
-        } else {
-          const err = await response.text();
-          toast.error(`Erreur : ${err}`);
-        }
-      } finally {
-        setIsSubmitting(false);
-      }
+      handleActionMutation.mutate({ url: `/api/appointments/${appointmentId}/cancel`, method: 'PATCH' });
     }
   };
 
-  const handleReplan = async () => {
-    if (!isEditing || isSubmitting) return;
+  const handleReplan = () => {
+    if (!isEditing || handleActionMutation.isPending) return;
     if (window.confirm("Voulez-vous REPLANNIFIER ce rendez-vous ?")) {
-       setIsSubmitting(true);
-       try {
-         const response = await fetch(`/api/appointments/${appointmentId}/replan`, { method: 'PATCH' });
-         if (response.ok) {
-           toast.success("Rendez-vous replannifié");
-           onSave();
-           onClose();
-         } else {
-           const err = await response.text();
-           toast.error(`Erreur : ${err}`);
-         }
-       } finally {
-         setIsSubmitting(false);
-       }
+      handleActionMutation.mutate({ url: `/api/appointments/${appointmentId}/replan`, method: 'PATCH' });
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (isEditing && window.confirm('Supprimer ce rendez-vous ?')) {
-      const response = await fetch(`/api/appointments/${appointmentId}`, { method: 'DELETE' });
-      if (response.ok) {
-        toast.success("Rendez-vous supprimé");
-        onSave();
-        onClose();
-      } else {
-        toast.error("Erreur lors de la suppression");
-      }
+      handleActionMutation.mutate({ url: `/api/appointments/${appointmentId}`, method: 'DELETE' });
     }
   };
 
@@ -352,7 +332,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
             {isAdmin && (
               <Button
                 type="submit"
-                isLoading={isSubmitting}
+                isLoading={mutation.isPending}
                 className="w-full sm:flex-1 text-[10px] sm:text-xs px-2 font-black uppercase order-1"
               >
                 {isEditing ? (
@@ -377,7 +357,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
                     type="button"
                     variant="primary"
                     onClick={handleValidate}
-                    isLoading={isSubmitting}
+                    isLoading={handleActionMutation.isPending}
                     className="w-full sm:flex-1 bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20 text-[10px] sm:text-xs px-2 font-black uppercase order-2"
                   >
                     <CheckCircle size={14} /> Valider
@@ -388,7 +368,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
                     type="button"
                     variant="primary"
                     onClick={handleReplan}
-                    isLoading={isSubmitting}
+                    isLoading={handleActionMutation.isPending}
                     className="w-full sm:flex-1 bg-blue-600 hover:bg-blue-700 shadow-blue-500/20 text-[10px] sm:text-xs px-2 font-black uppercase order-2"
                   >
                     <Calendar size={14} /> Replan
@@ -399,7 +379,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
                     type="button"
                     variant="amber"
                     onClick={handleCancel}
-                    isLoading={isSubmitting}
+                    isLoading={handleActionMutation.isPending}
                     className="w-full sm:flex-1 text-[10px] sm:text-xs px-2 font-black uppercase order-3"
                   >
                     <X size={14} /> Annuler
@@ -409,7 +389,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
                     type="button"
                     variant="danger"
                     onClick={handleDelete}
-                    isLoading={isSubmitting}
+                    isLoading={handleActionMutation.isPending}
                     className="w-full sm:flex-1 text-[10px] sm:text-xs px-2 font-black uppercase order-4"
                 >
                     <Trash2 size={14} /> Supprimer

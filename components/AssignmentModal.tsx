@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, FormEvent } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { User, Patient, Role, AssignmentStatus } from '@prisma/client';
 import { useSession } from 'next-auth/react';
 import { Clock, Calendar, User as UserIcon, Heart, Trash2, Save, X, CheckCircle } from 'lucide-react';
@@ -21,14 +22,32 @@ interface Props {
 }
 
 export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate, assignmentId }: Props) {
+  const queryClient = useQueryClient();
   const { data: session } = useSession();
-  const [users, setUsers] = useState<User[]>([]);
-  const [patients, setPatients] = useState<Patient[]>([]);
+
+  // Queries for users and patients
+  const { data: users = [] } = useQuery<User[]>({
+    queryKey: ['users'],
+    queryFn: () => fetch('/api/users').then(res => res.json()),
+    enabled: isOpen
+  });
+
+  const { data: patients = [] } = useQuery<Patient[]>({
+    queryKey: ['patients'],
+    queryFn: () => fetch('/api/patients').then(res => res.json()),
+    enabled: isOpen
+  });
+
+  // Query for assignment if editing
+  const { data: assignmentData, isLoading: isLoadingAssignment } = useQuery({
+    queryKey: ['assignment', assignmentId],
+    queryFn: () => fetch(`/api/assignments/${assignmentId}`).then(res => res.json()),
+    enabled: !!assignmentId && isOpen
+  });
 
   const [userId, setUserId] = useState('');
   const [patientId, setPatientId] = useState('');
   const [status, setStatus] = useState<AssignmentStatus>(AssignmentStatus.PLANNED);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showOverlapWarning, setShowOverlapWarning] = useState(false);
 
   // States for Date and Hours
@@ -77,56 +96,27 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
   };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [usersRes, patientsRes] = await Promise.all([fetch('/api/users'), fetch('/api/patients')]);
-        if (usersRes.ok) setUsers(await usersRes.json());
-        if (patientsRes.ok) {
-          const fetchedPatients = await patientsRes.json();
-          setPatients(fetchedPatients);
-          if (fetchedPatients.length === 1 && !isEditing) {
-            setPatientId(fetchedPatients[0].id.toString());
-          }
-        }
-      } catch (error) {
-        console.error("Erreur données initiales:", error);
-      }
-    };
-    if (isOpen) fetchData();
-  }, [isOpen]);
+    if (patients.length === 1 && !isEditing && !patientId) {
+      setPatientId(patients[0].id.toString());
+    }
+  }, [patients, isEditing, patientId]);
 
   useEffect(() => {
-    if (isEditing && isOpen) {
-      const fetchAssignmentData = async () => {
-        try {
-          const response = await fetch(`/api/assignments/${assignmentId}`);
-          if (response.ok) {
-            const data = await response.json();
-            setUserId(data.userId);
-            setPatientId(data.patientId.toString());
-            setStatus(data.status);
+    if (assignmentData && isEditing && isOpen) {
+      setUserId(assignmentData.userId);
+      setPatientId(assignmentData.patientId.toString());
+      setStatus(assignmentData.status);
 
+      const start = new Date(assignmentData.startTime);
+      const end = new Date(assignmentData.endTime);
 
-
-            const start = new Date(data.startTime);
-            const end = new Date(data.endTime);
-
-            setDate(formatLocalDate(start));
-            setStartTime(start.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }).replace('H', ':').replace('h', ':'));
-            setEndTime(end.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }).replace('H', ':').replace('h', ':'));
-          } else {
-            onClose();
-          }
-        } catch (error) {
-          console.error("Erreur chargement intervention:", error);
-          onClose();
-        }
-      };
-      fetchAssignmentData();
-    } else {
+      setDate(formatLocalDate(start));
+      setStartTime(start.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }).replace('H', ':').replace('h', ':'));
+      setEndTime(end.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }).replace('H', ':').replace('h', ':'));
+    } else if (!isEditing) {
       resetForm();
     }
-  }, [assignmentId, isOpen]);
+  }, [assignmentData, isEditing, isOpen]);
 
   useEffect(() => {
     if (startTime && endTime) {
@@ -140,133 +130,129 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
 
   if (!isOpen) return null;
 
-  const handleSubmit = async (e: FormEvent, ignoreConflict = false) => {
-    if (e) e.preventDefault();
-    if (isSubmitting && !ignoreConflict) return;
-    setIsSubmitting(true);
-    try {
-      const startObj = new Date(`${date}T${startTime.replace('h', ':')}:00`);
-      const endObj = new Date(`${date}T${endTime.replace('h', ':')}:00`);
-      if (endObj < startObj) endObj.setDate(endObj.getDate() + 1);
-
-      // Business Rule Validation for Non-Admins
-      if (!isAdmin) {
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          const selectedDateObj = new Date(date);
-          selectedDateObj.setHours(0, 0, 0, 0);
-
-          if (selectedDateObj < today) {
-              toast.error("Vous ne pouvez pas créer d'intervention dans le passé.");
-              return;
-          }
-
-          if (userId !== session?.user?.id) {
-              toast.error("Vous ne pouvez créer d'interventions que pour vous-même.");
-              return;
-          }
-      }
-
-      const url = isEditing ? `/api/assignments/${assignmentId}` : '/api/assignments';
-      const method = isEditing ? 'PUT' : 'POST';
-
+  const mutation = useMutation({
+    mutationFn: async ({ data, method, url }: { data: any, method: string, url: string }) => {
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId,
-          patientId,
-          startTime: startObj.toISOString(),
-          endTime: endObj.toISOString(),
-          ignoreConflict
-        }),
+        body: JSON.stringify(data),
       });
-
-      if (response.ok) {
-        toast.success(isEditing ? "Intervention mise à jour" : "Intervention créée");
-        onSave();
-        onClose();
-      } else if (response.status === 409) {
-          setShowOverlapWarning(true);
-      } else {
+      if (!response.ok) {
+        if (response.status === 409) throw { status: 409 };
         const msg = await response.text();
-        toast.error(msg || "Erreur lors de l'enregistrement");
+        throw new Error(msg || "Erreur lors de l'enregistrement");
       }
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleValidate = async () => {
-    if (!isEditing || isSubmitting) return;
-    if (window.confirm("Voulez-vous marquer cette intervention comme RÉALISÉE ?")) {
-      setIsSubmitting(true);
-      try {
-        const response = await fetch(`/api/assignments/${assignmentId}/complete`, { method: 'PATCH' });
-        if (response.ok) {
-          toast.success("Intervention validée");
-          onSave();
-          onClose();
-        } else {
-          const err = await response.text();
-          toast.error(`Erreur : ${err}`);
-        }
-      } finally {
-        setIsSubmitting(false);
-      }
-    }
-  };
-
-  const handleCancel = async () => {
-    if (!isEditing || isSubmitting) return;
-    if (window.confirm("Voulez-vous ANNULER cette intervention ? Elle sera hachurée dans le calendrier.")) {
-      setIsSubmitting(true);
-      try {
-        const response = await fetch(`/api/assignments/${assignmentId}/cancel`, { method: 'PATCH' });
-        if (response.ok) {
-          toast.success("Intervention annulée");
-          onSave();
-          onClose();
-        } else {
-          const err = await response.text();
-          toast.error(`Erreur : ${err}`);
-        }
-      } finally {
-        setIsSubmitting(false);
-      }
-    }
-  };
-
-  const handleReplan = async () => {
-    if (!isEditing || isSubmitting) return;
-    if (window.confirm("Voulez-vous REPLANNIFIER cette intervention ? Elle redeviendra active dans le calendrier.")) {
-      setIsSubmitting(true);
-      try {
-        const response = await fetch(`/api/assignments/${assignmentId}/replan`, { method: 'PATCH' });
-        if (response.ok) {
-          toast.success("Intervention replannifiée");
-          onSave();
-          onClose();
-        } else {
-          const err = await response.text();
-          toast.error(`Erreur : ${err}`);
-        }
-      } finally {
-        setIsSubmitting(false);
-      }
-    }
-  };
-
-  const handleDelete = async () => {
-    if (isEditing && window.confirm('Supprimer cette affectation ?')) {
-      const response = await fetch(`/api/assignments/${assignmentId}`, { method: 'DELETE' });
-      if (response.ok) {
-        toast.success("Intervention supprimée");
-        onSave();
-        onClose();
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      toast.success(isEditing ? "Intervention mise à jour" : "Intervention créée");
+      onSave();
+      onClose();
+    },
+    onError: (error: any) => {
+      if (error.status === 409) {
+        setShowOverlapWarning(true);
       } else {
-        toast.error("Erreur lors de la suppression");
+        toast.error(error.message);
       }
+    }
+  });
+
+  const handleSubmit = async (e: FormEvent, ignoreConflict = false) => {
+    if (e) e.preventDefault();
+    if (mutation.isPending && !ignoreConflict) return;
+
+    const startObj = new Date(`${date}T${startTime.replace('h', ':')}:00`);
+    const endObj = new Date(`${date}T${endTime.replace('h', ':')}:00`);
+    if (endObj < startObj) endObj.setDate(endObj.getDate() + 1);
+
+    // Business Rule Validation for Non-Admins
+    if (!isAdmin) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const selectedDateObj = new Date(date);
+        selectedDateObj.setHours(0, 0, 0, 0);
+
+        if (selectedDateObj < today) {
+            toast.error("Vous ne pouvez pas créer d'intervention dans le passé.");
+            return;
+        }
+
+        if (userId !== session?.user?.id) {
+            toast.error("Vous ne pouvez créer d'interventions que pour vous-même.");
+            return;
+        }
+    }
+
+    const url = isEditing ? `/api/assignments/${assignmentId}` : '/api/assignments';
+    const method = isEditing ? 'PUT' : 'POST';
+
+    mutation.mutate({
+      url,
+      method,
+      data: {
+        userId,
+        patientId,
+        startTime: startObj.toISOString(),
+        endTime: endObj.toISOString(),
+        ignoreConflict
+      }
+    });
+  };
+
+  const handleActionMutation = useMutation({
+    mutationFn: async ({ url, method }: { url: string, method: string }) => {
+      const response = await fetch(url, { method });
+      if (!response.ok) {
+        const err = await response.text();
+        throw new Error(err);
+      }
+      return response.status === 204 ? null : response.json();
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      const actionMap: Record<string, string> = {
+        'complete': 'validée',
+        'cancel': 'annulée',
+        'replan': 'replannifiée',
+        'DELETE': 'supprimée'
+      };
+      // Determine action from URL or method
+      const action = variables.method === 'DELETE' ? 'DELETE' : variables.url.split('/').pop() || '';
+      toast.success(`Intervention ${actionMap[action] || 'mise à jour'}`);
+      onSave();
+      onClose();
+    },
+    onError: (error: any) => {
+      toast.error(`Erreur : ${error.message}`);
+    }
+  });
+
+  const handleValidate = () => {
+    if (!isEditing || handleActionMutation.isPending) return;
+    if (window.confirm("Voulez-vous marquer cette intervention comme RÉALISÉE ?")) {
+      handleActionMutation.mutate({ url: `/api/assignments/${assignmentId}/complete`, method: 'PATCH' });
+    }
+  };
+
+  const handleCancel = () => {
+    if (!isEditing || handleActionMutation.isPending) return;
+    if (window.confirm("Voulez-vous ANNULER cette intervention ? Elle sera hachurée dans le calendrier.")) {
+      handleActionMutation.mutate({ url: `/api/assignments/${assignmentId}/cancel`, method: 'PATCH' });
+    }
+  };
+
+  const handleReplan = () => {
+    if (!isEditing || handleActionMutation.isPending) return;
+    if (window.confirm("Voulez-vous REPLANNIFIER cette intervention ? Elle redeviendra active dans le calendrier.")) {
+      handleActionMutation.mutate({ url: `/api/assignments/${assignmentId}/replan`, method: 'PATCH' });
+    }
+  };
+
+  const handleDelete = () => {
+    if (isEditing && window.confirm('Supprimer cette affectation ?')) {
+      handleActionMutation.mutate({ url: `/api/assignments/${assignmentId}`, method: 'DELETE' });
     }
   };
 
@@ -394,7 +380,7 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
             {hasPermission && !showOverlapWarning && (
               <Button
                 type="submit"
-                isLoading={isSubmitting}
+                isLoading={mutation.isPending}
                 className="w-full sm:flex-1 text-[9px] sm:text-xs px-2 font-black uppercase order-1"
               >
                 {isEditing ? (
@@ -419,7 +405,7 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
                     type="button"
                     variant="primary"
                     onClick={handleValidate}
-                    isLoading={isSubmitting}
+                    isLoading={handleActionMutation.isPending}
                     className="w-full sm:flex-1 bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20 text-[9px] sm:text-xs px-2 font-black uppercase order-2"
                   >
                     <CheckCircle size={14} /> Valider
@@ -430,7 +416,7 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
                     type="button"
                     variant="primary"
                     onClick={handleReplan}
-                    isLoading={isSubmitting}
+                    isLoading={handleActionMutation.isPending}
                     className="w-full sm:flex-1 bg-blue-600 hover:bg-blue-700 shadow-blue-500/20 text-[9px] sm:text-xs px-2 font-black uppercase order-2"
                   >
                     <Calendar size={14} /> Replan
@@ -441,7 +427,7 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
                     type="button"
                     variant="amber"
                     onClick={handleCancel}
-                    isLoading={isSubmitting}
+                    isLoading={handleActionMutation.isPending}
                     className="w-full sm:flex-1 text-[9px] sm:text-xs px-2 font-black uppercase order-3"
                   >
                     <X size={14} /> Annuler
@@ -452,7 +438,7 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
                     type="button"
                     variant="danger"
                     onClick={handleDelete}
-                    isLoading={isSubmitting}
+                    isLoading={handleActionMutation.isPending}
                     className={cn("w-full sm:flex-1 text-[9px] sm:text-xs px-2 font-black uppercase", isAdmin ? 'order-4' : 'order-3')}
                    >
                     <Trash2 size={14} /> Supprimer

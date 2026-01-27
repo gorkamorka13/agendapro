@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import FullCalendar from '@fullcalendar/react';
 import { EventClickArg } from '@fullcalendar/core';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -16,10 +17,26 @@ import { getContrastColor, cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { FullCalendarEvent, Role } from '@/types';
 
-// Retiré CalendarEvent car remplacé par FullCalendarEvent importé
-
 export default function AssignmentCalendar() {
-  const [events, setEvents] = useState<FullCalendarEvent[]>([]);
+  const queryClient = useQueryClient();
+  const { data: events = [], isLoading, error: fetchError } = useQuery<FullCalendarEvent[]>({
+    queryKey: ['events'],
+    queryFn: async () => {
+      const [assignmentsRes, appointmentsRes] = await Promise.all([
+        fetch('/api/assignments'),
+        fetch('/api/appointments')
+      ]);
+
+      if (!assignmentsRes.ok || !appointmentsRes.ok) throw new Error('Erreur de chargement');
+
+      const assignments = await assignmentsRes.json();
+      const appointments = await appointmentsRes.json();
+
+      return [...assignments, ...appointments];
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
   const [isAppointmentManagerOpen, setIsAppointmentManagerOpen] = useState(false);
@@ -32,6 +49,7 @@ export default function AssignmentCalendar() {
     text: '',
     visible: false
   });
+
   const { data: session } = useSession();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -41,28 +59,13 @@ export default function AssignmentCalendar() {
   const touchStartY = useRef<number | null>(null);
   const touchEndY = useRef<number | null>(null);
 
-  // Seuil minimal pour considérer un mouvement comme un swipe (en pixels)
   const minSwipeDistance = 50;
 
-  const fetchEvents = async () => {
-    try {
-      const [assignmentsRes, appointmentsRes] = await Promise.all([
-        fetch('/api/assignments'),
-        fetch('/api/appointments')
-      ]);
-
-      if (!assignmentsRes.ok || !appointmentsRes.ok) throw new Error('Erreur de chargement');
-
-      const assignments = await assignmentsRes.json();
-      const appointments = await appointmentsRes.json();
-
-      setEvents([...assignments, ...appointments]);
-    } catch (error) {
-      console.error(error);
+  useEffect(() => {
+    if (fetchError) {
+      toast.error("Erreur de chargement des événements");
     }
-  };
-
-  useEffect(() => { fetchEvents(); }, []);
+  }, [fetchError]);
 
   useEffect(() => {
     if (searchParams.get('action') === 'manage-appointments') {
@@ -92,7 +95,7 @@ export default function AssignmentCalendar() {
   };
 
   const handleSave = () => {
-    fetchEvents();
+    queryClient.invalidateQueries({ queryKey: ['events'] });
   };
 
   const onTouchStart = (e: React.TouchEvent) => {
@@ -120,10 +123,8 @@ export default function AssignmentCalendar() {
       const calendarApi = calendarRef.current?.getApi();
       if (calendarApi) {
         if (distanceX > 0) {
-          // Swipe vers la gauche -> suivant
           calendarApi.next();
         } else {
-          // Swipe vers la droite -> précédent
           calendarApi.prev();
         }
       }
@@ -169,7 +170,7 @@ export default function AssignmentCalendar() {
             });
             if (forceRes.ok) {
               toast.success("Intervention mise à jour (avec superposition)");
-              fetchEvents();
+              handleSave();
               return;
             }
           }
@@ -178,7 +179,7 @@ export default function AssignmentCalendar() {
         changeArg.revert();
       } else {
         toast.success(isAppointment ? "Rendez-vous mis à jour" : "Intervention mise à jour");
-        fetchEvents();
+        handleSave();
       }
     } catch (error) {
       console.error(error);
