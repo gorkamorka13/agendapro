@@ -100,22 +100,8 @@ export default function AssignmentCalendar() {
   const handleEventClick = (arg: EventClickArg) => {
     if ((session?.user?.role as Role) === 'VISITEUR') return;
 
-    if (isSelectionMode) {
-      const id = arg.event.id;
-      const type = arg.event.extendedProps.type;
-
-      setSelectedEvents(prev => {
-        const next = new Map(prev);
-        if (next.has(id)) {
-          next.delete(id);
-        } else {
-          next.set(id, { id, type });
-        }
-        return next;
-      });
-      return;
-    }
-
+    // En mode sélection, on ouvre quand même la modale
+    // (la checkbox gère sa propre sélection via stopPropagation)
     const isAppointment = arg.event.extendedProps.type === 'APPOINTMENT';
 
     if (isAppointment) {
@@ -392,8 +378,23 @@ export default function AssignmentCalendar() {
             >
               {isSelectionMode && (
                 <div
+                  onClick={(e) => {
+                    e.stopPropagation(); // Empêche le clic de remonter à FullCalendar
+                    const id = eventInfo.event.id;
+                    const type = eventInfo.event.extendedProps.type;
+
+                    setSelectedEvents(prev => {
+                      const next = new Map(prev);
+                      if (next.has(id)) {
+                        next.delete(id);
+                      } else {
+                        next.set(id, { id, type });
+                      }
+                      return next;
+                    });
+                  }}
                   className={cn(
-                    "w-3.5 h-3.5 rounded-sm border-2 border-black/40 flex items-center justify-center shrink-0 shadow-sm",
+                    "w-3.5 h-3.5 rounded-sm border-2 border-black/40 flex items-center justify-center shrink-0 shadow-sm cursor-pointer",
                     isSelected ? "bg-black" : "bg-white/40"
                   )}
                 >
