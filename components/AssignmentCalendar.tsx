@@ -12,7 +12,7 @@ import AppointmentModal from './AppointmentModal';
 import AppointmentManager from './AppointmentManager';
 import { useSession } from 'next-auth/react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Heart, Calendar, Clock } from 'lucide-react';
+import { Heart, Calendar, Clock, Repeat } from 'lucide-react';
 import { getContrastColor, cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { FullCalendarEvent, Role } from '@/types';
@@ -288,6 +288,7 @@ export default function AssignmentCalendar() {
         }}
         eventContent={(eventInfo) => {
           const status = eventInfo.event.extendedProps.status;
+          const isRecurring = eventInfo.event.extendedProps.isRecurring;
           const isCancelled = status === 'CANCELLED';
           const isPast = eventInfo.event.end && new Date(eventInfo.event.end) < new Date();
           const isCompleted = (status === 'COMPLETED' || isPast) && !isCancelled;
@@ -320,7 +321,10 @@ export default function AssignmentCalendar() {
                 }`}
                 style={{ color: textColor }}
               >
-                {eventInfo.event.title}
+                <div className="flex items-center justify-center gap-1">
+                  {isRecurring && <Repeat size={10} className="shrink-0 opacity-80" />}
+                  <span>{eventInfo.event.title}</span>
+                </div>
               </div>
             </div>
           );

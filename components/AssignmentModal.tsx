@@ -50,6 +50,11 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
   const [status, setStatus] = useState<AssignmentStatus>(AssignmentStatus.PLANNED);
   const [showOverlapWarning, setShowOverlapWarning] = useState(false);
 
+  // Recurrence states
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [frequency, setFrequency] = useState<'DAILY' | 'WEEKLY' | 'MONTHLY'>('WEEKLY');
+  const [recurringEndDate, setRecurringEndDate] = useState('');
+
   // States for Date and Hours
   const [date, setDate] = useState('');
   const [startTime, setStartTime] = useState('09:00');
@@ -88,6 +93,9 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
     setPatientId('');
     setStatus(AssignmentStatus.PLANNED);
     setShowOverlapWarning(false);
+    setIsRecurring(false);
+    setFrequency('WEEKLY');
+    setRecurringEndDate('');
     if (selectedDate) {
       setDate(formatLocalDate(selectedDate));
       setStartTime('09:00');
@@ -113,6 +121,9 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
       setDate(formatLocalDate(start));
       setStartTime(start.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }).replace('H', ':').replace('h', ':'));
       setEndTime(end.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }).replace('H', ':').replace('h', ':'));
+
+      setIsRecurring(assignmentData.isRecurring || false);
+      setRecurringEndDate(''); // We don't edit recurrence end date here
     } else if (!isEditing) {
       resetForm();
     }
@@ -194,7 +205,10 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
         patientId,
         startTime: startObj.toISOString(),
         endTime: endObj.toISOString(),
-        ignoreConflict
+        ignoreConflict,
+        isRecurring,
+        frequency: isRecurring ? frequency : undefined,
+        recurringEndDate: (isRecurring && recurringEndDate) ? new Date(recurringEndDate).toISOString() : undefined
       }
     });
   };
@@ -304,7 +318,9 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
               disabled={!isAdmin || isCompleted || showOverlapWarning}
             >
               <option value="">Sélectionner...</option>
-              {users.map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}
+              {users
+                .filter(user => user.role !== Role.VISITEUR && user.name !== 'admin')
+                .map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}
             </Select>
 
             <Select
@@ -330,6 +346,53 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
             disabled={!hasPermission || showOverlapWarning}
             className="font-bold"
           />
+
+          {!isEditing && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 px-1">
+                <input
+                  type="checkbox"
+                  id="isRecurring"
+                  checked={isRecurring}
+                  onChange={(e) => setIsRecurring(e.target.checked)}
+                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                />
+                <label htmlFor="isRecurring" className="text-sm font-bold text-slate-700 dark:text-slate-300 cursor-pointer">
+                  Répéter cette intervention
+                </label>
+              </div>
+
+              {isRecurring && (
+                <Card variant="flat" className="bg-blue-50/50 dark:bg-blue-500/5 border-blue-100 dark:border-blue-500/10 p-4 space-y-4 animate-in slide-in-from-top-2 duration-200">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Select
+                      label="Fréquence"
+                      value={frequency}
+                      onChange={(e) => setFrequency(e.target.value as any)}
+                      icon={<Clock size={12} className="text-blue-500" />}
+                    >
+                      <option value="DAILY">Quotidienne</option>
+                      <option value="WEEKLY">Hebdomadaire</option>
+                      <option value="MONTHLY">Mensuelle</option>
+                    </Select>
+
+                    <Input
+                      label="Répéter jusqu'au"
+                      type="date"
+                      value={recurringEndDate}
+                      onChange={(e) => setRecurringEndDate(e.target.value)}
+                      required={isRecurring}
+                      min={date}
+                      icon={<Calendar size={12} className="text-blue-500" />}
+                    />
+                  </div>
+                  <p className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">
+                    Une intervention sera créée chaque {frequency === 'DAILY' ? 'jour' : frequency === 'WEEKLY' ? 'semaine' : 'mois'} jusqu'à la date de fin.
+                  </p>
+                </Card>
+              )}
+            </div>
+          )}
           <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 space-y-3">
             <div className="flex items-center justify-between gap-3">
               <div className="flex-1 space-y-1.5">

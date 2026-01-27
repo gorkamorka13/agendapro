@@ -38,6 +38,7 @@ export interface FullCalendarEvent {
     subject?: string;
     location?: string;
     notes?: string | null;
+    isRecurring?: boolean;
   };
 }
 

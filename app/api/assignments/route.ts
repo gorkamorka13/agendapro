@@ -72,7 +72,8 @@ export async function GET() {
           patientId: assignment.patientId,
           workerName: assignment.user.name,
           patientName: hidePatientLabel ? '' : patientName,
-          status: assignment.status
+          status: assignment.status,
+          isRecurring: assignment.isRecurring
         }
       };
     });
@@ -109,7 +110,17 @@ export async function POST(request: Request) {
       return new NextResponse('Accès refusé', { status: 403 });
     }
 
-    const { userId, patientId, startTime, endTime, ignoreConflict } = validatedData.data;
+    const {
+      userId,
+      patientId,
+      startTime,
+      endTime,
+      ignoreConflict,
+      isRecurring,
+      frequency,
+      interval,
+      recurringEndDate
+    } = validatedData.data;
 
     const isAdmin = session.user.role === Role.ADMIN;
 
@@ -150,45 +161,101 @@ export async function POST(request: Request) {
       return new NextResponse('Les horaires doivent être des heures pleines ou des demi-heures (ex: 09:00, 09:30).', { status: 400 });
     }
 
-    // Vérifier les chevauchements pour cet intervenant OU ce patient (sauf si on demande explicitement d'ignorer)
-    if (!ignoreConflict) {
-      const conflict = await prisma.assignment.findFirst({
-        where: {
-          OR: [
-            {
-              userId: userId,
-              startTime: { lt: end },
-              endTime: { gt: start },
-            },
-            {
-              patientId: patientId,
-              startTime: { lt: end },
-              endTime: { gt: start },
-            },
-          ],
-        },
-      });
+    // Logic for Recurrence
+    const occurrences: { startTime: Date; endTime: Date }[] = [];
+    if (isRecurring && frequency && recurringEndDate) {
+      const endLimit = new Date(recurringEndDate);
+      let currentStart = new Date(start);
+      let currentEnd = new Date(end);
+      const duration = end.getTime() - start.getTime();
 
-      if (conflict) {
-        const isWorkerConflict = conflict.userId === userId;
-        const msg = isWorkerConflict
-          ? 'Cet intervenant a déjà une intervention prévue sur ce créneau.'
-          : 'Ce patient a déjà une intervention prévue sur ce créneau.';
-        return new NextResponse(msg, { status: 409 });
+      // Ensure we don't create infinite loops or too many records (safety limit 1 year)
+      const maxDate = new Date();
+      maxDate.setFullYear(maxDate.getFullYear() + 1);
+      const finalLimit = endLimit < maxDate ? endLimit : maxDate;
+
+      while (currentStart <= finalLimit) {
+        occurrences.push({
+          startTime: new Date(currentStart),
+          endTime: new Date(currentEnd)
+        });
+
+        // Increment based on frequency
+        if (frequency === 'DAILY') {
+          currentStart.setDate(currentStart.getDate() + (interval || 1));
+        } else if (frequency === 'WEEKLY') {
+          currentStart.setDate(currentStart.getDate() + 7 * (interval || 1));
+        } else if (frequency === 'MONTHLY') {
+          currentStart.setMonth(currentStart.getMonth() + (interval || 1));
+        }
+        currentEnd = new Date(currentStart.getTime() + duration);
+      }
+    } else {
+      occurrences.push({ startTime: start, endTime: end });
+    }
+
+    // Individual conflict check for each occurrence
+    if (!ignoreConflict) {
+      for (const occ of occurrences) {
+        const conflict = await prisma.assignment.findFirst({
+          where: {
+            OR: [
+              {
+                userId: userId,
+                startTime: { lt: occ.endTime },
+                endTime: { gt: occ.startTime },
+              },
+              {
+                patientId: patientId,
+                startTime: { lt: occ.endTime },
+                endTime: { gt: occ.startTime },
+              },
+            ],
+          },
+        });
+
+        if (conflict) {
+          const occDate = occ.startTime.toLocaleDateString('fr-FR');
+          const isWorkerConflict = conflict.userId === userId;
+          const msg = isWorkerConflict
+            ? `Conflit (Intervenant) le ${occDate} : déjà une intervention prévue.`
+            : `Conflit (Patient) le ${occDate} : déjà une intervention prévue.`;
+          return new NextResponse(msg, { status: 409 });
+        }
       }
     }
 
-    const newAssignment = await prisma.assignment.create({
-      data: {
-        userId: userId,
-        patientId: patientId,
-        startTime: start,
-        endTime: end,
-        // Le statut par défaut (PLANNED) est géré par le schéma Prisma
-      },
-    });
+    // Transaction for creation
+    const recurrenceId = isRecurring ? `rec_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` : null;
 
-    return NextResponse.json(newAssignment, { status: 201 });
+    if (occurrences.length > 1) {
+      const created = await prisma.$transaction(
+        occurrences.map(occ => prisma.assignment.create({
+          data: {
+            userId,
+            patientId,
+            startTime: occ.startTime,
+            endTime: occ.endTime,
+            isRecurring,
+            recurrenceId
+          }
+        }))
+      );
+      return NextResponse.json(created[0], { status: 201 });
+    } else {
+      const newAssignment = await prisma.assignment.create({
+        data: {
+          userId,
+          patientId,
+          startTime: occurrences[0].startTime,
+          endTime: occurrences[0].endTime,
+          isRecurring,
+          recurrenceId
+        },
+      });
+      return NextResponse.json(newAssignment, { status: 201 });
+    }
+
   } catch (error) {
     console.error("Erreur lors de la création de l'affectation:", error);
     return new NextResponse('Erreur interne du serveur', { status: 500 });
