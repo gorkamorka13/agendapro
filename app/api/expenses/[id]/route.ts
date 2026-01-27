@@ -31,17 +31,14 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
     }
 
     let receiptUrl = existingExpense.receiptUrl;
+    let storageError: string | undefined;
+
+    // Use the storage utilities
+    const { uploadFile, deleteFile } = require('@/lib/storage');
 
     // Handle receipt deletion if requested
     if (deleteReceipt) {
-      if (existingExpense.receiptUrl && existingExpense.receiptUrl.includes('vercel-storage.com')) {
-        try {
-          const { del } = require('@vercel/blob');
-          await del(existingExpense.receiptUrl);
-        } catch (error) {
-          console.error("Erreur lors de la suppression du blob:", error);
-        }
-      }
+      await deleteFile(existingExpense.receiptUrl);
       receiptUrl = null;
     }
     // Handle file upload if present (overrides deletion if both are sent)
@@ -57,33 +54,15 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
         return new NextResponse('Fichier trop volumineux. Maximum 5MB.', { status: 400 });
       }
 
-      // Delete old file if it exists and is a blob
-      if (existingExpense.receiptUrl && existingExpense.receiptUrl.includes('vercel-storage.com')) {
-        try {
-          const { del } = require('@vercel/blob');
-          await del(existingExpense.receiptUrl);
-        } catch (error) {
-          console.warn("Échec de la suppression de l'ancien blob:", error);
-        }
+      // Delete old file if it exists
+      if (existingExpense.receiptUrl) {
+        await deleteFile(existingExpense.receiptUrl);
       }
 
-      // Upload to Vercel Blob
-      try {
-        const { put } = require('@vercel/blob');
-        const timestamp = Date.now();
-        const originalName = (receiptFile.name || 'image').replace(/[^a-zA-Z0-9.-]/g, '_');
-        const filename = `receipts/${timestamp}_${originalName}`;
-
-        const blob = await put(filename, receiptFile, {
-          access: 'public',
-          addRandomSuffix: true
-        });
-
-        receiptUrl = blob.url;
-      } catch (error) {
-        console.error("Échec de l'upload vers Vercel Blob:", error);
-        // Fallback: on conserve l'ancienne URL ou null
-      }
+      // Upload new file using hybrid strategy
+      const uploadResult = await uploadFile(receiptFile, 'receipts');
+      receiptUrl = uploadResult.url || existingExpense.receiptUrl;
+      storageError = uploadResult.error;
     }
 
     // Build update data only with provided fields
@@ -99,7 +78,10 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
       data,
     });
 
-    return NextResponse.json(expense);
+    return NextResponse.json({
+      ...expense,
+      storageError
+    });
   } catch (error) {
     console.error("Erreur lors de la mise à jour de la dépense:", error);
     return new NextResponse('Erreur interne du serveur', { status: 500 });
@@ -121,13 +103,9 @@ export async function DELETE(request: Request, props: { params: Promise<{ id: st
       where: { id }
     });
 
-    if (existingExpense?.receiptUrl && existingExpense.receiptUrl.includes('vercel-storage.com')) {
-      try {
-        const { del } = require('@vercel/blob');
-        await del(existingExpense.receiptUrl);
-      } catch (error) {
-        console.error("Erreur lors de la suppression du blob associé:", error);
-      }
+    if (existingExpense?.receiptUrl) {
+      const { deleteFile } = require('@/lib/storage');
+      await deleteFile(existingExpense.receiptUrl);
     }
 
     await (prisma as any).expense.delete({

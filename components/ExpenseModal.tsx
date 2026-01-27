@@ -163,7 +163,12 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
       });
 
       if (response.ok) {
-        toast.success(expense ? "Dépense mise à jour" : "Dépense enregistrée");
+        const data = await response.json();
+        if (data.storageError) {
+          toast.warning(`Données enregistrées, mais échec du stockage : ${data.storageError}`);
+        } else {
+          toast.success(expense ? "Dépense mise à jour" : "Dépense enregistrée");
+        }
         onSave();
         onClose();
       } else {

@@ -41,6 +41,7 @@ export async function POST(request: Request) {
     }
 
     let receiptUrl: string | null = null;
+    let storageError: string | undefined;
 
     // Handle file upload if present
     if (receiptFile && receiptFile.size > 0) {
@@ -55,24 +56,12 @@ export async function POST(request: Request) {
         return new NextResponse('Fichier trop volumineux. Maximum 5MB.', { status: 400 });
       }
 
-      // Upload to Vercel Blob
-      try {
-        const { put } = require('@vercel/blob');
-        const timestamp = Date.now();
-        const originalName = receiptFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-        const filename = `receipts/${timestamp}_${originalName}`;
+      // Use the hybrid storage utility
+      const { uploadFile } = require('@/lib/storage');
+      const uploadResult = await uploadFile(receiptFile, 'receipts');
 
-        const blob = await put(filename, receiptFile, {
-          access: 'public',
-          addRandomSuffix: true
-        });
-
-        receiptUrl = blob.url;
-      } catch (error) {
-        console.error("Échec de l'upload vers Vercel Blob:", error);
-        // Fallback: on continue sans l'image
-        receiptUrl = null;
-      }
+      receiptUrl = uploadResult.url;
+      storageError = uploadResult.error;
     }
 
     const expense = await (prisma as any).expense.create({
@@ -85,7 +74,10 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json(expense, { status: 201 });
+    return NextResponse.json({
+      ...expense,
+      storageError
+    }, { status: 201 });
   } catch (error) {
     console.error("Erreur lors de la création de la dépense:", error);
     return new NextResponse('Erreur interne du serveur', { status: 500 });
