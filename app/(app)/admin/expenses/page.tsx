@@ -73,7 +73,7 @@ export default function ExpensesPage() {
                 <div className="p-3 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-2xl">
                   <FileText size={24} />
                 </div>
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity text-xs font-bold">
+                <div className="flex gap-1 transition-opacity text-xs font-bold">
                     <button onClick={() => handleOpenModal(expense)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors text-slate-500 dark:text-slate-400 flex items-center gap-1">
                         <Edit2 size={16} />
                     </button>

@@ -157,6 +157,24 @@ export default function AppointmentManager({ isOpen, onClose, onEdit, onCreate, 
                                         <Search size={16} />
                                     </button>
                                 )}
+                                <button
+                                    onClick={async () => {
+                                        if (window.confirm('Supprimer ce rendez-vous ?')) {
+                                            try {
+                                                const res = await fetch(`/api/appointments/${appt.id}`, { method: 'DELETE' });
+                                                if (res.ok) {
+                                                    fetchAppointments();
+                                                }
+                                            } catch (e) {
+                                                console.error(e);
+                                            }
+                                        }
+                                    }}
+                                    className="p-2 bg-white dark:bg-slate-800 border border-red-200 dark:border-red-900/30 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors shadow-sm"
+                                    title="Supprimer"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
                             </div>
                         )}
                     </div>

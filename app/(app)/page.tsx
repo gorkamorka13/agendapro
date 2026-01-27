@@ -9,7 +9,7 @@ export default function HomePage() {
   const { setTitle } = useTitle();
 
   useEffect(() => {
-    setTitle("Affectations");
+    setTitle("Planning");
   }, [setTitle]);
 
   return (
