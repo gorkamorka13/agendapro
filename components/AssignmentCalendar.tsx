@@ -11,7 +11,7 @@ import AppointmentModal from './AppointmentModal';
 import AppointmentManager from './AppointmentManager';
 import { useSession } from 'next-auth/react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Heart, Calendar } from 'lucide-react';
+import { Heart, Calendar, Clock } from 'lucide-react';
 import { getContrastColor, cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -31,6 +31,12 @@ export default function AssignmentCalendar() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
+  const [tooltip, setTooltip] = useState<{ x: number; y: number; text: string; visible: boolean }>({
+    x: 0,
+    y: 0,
+    text: '',
+    visible: false
+  });
   const { data: session } = useSession();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -158,8 +164,9 @@ export default function AssignmentCalendar() {
       });
 
       if (!response.ok) {
+        const errorMsg = await response.text();
         if (response.status === 409 && !isAppointment) {
-          if (window.confirm("Cet intervenant a déjà une intervention sur ce créneau. Forcer la superposition ?")) {
+          if (window.confirm(`${errorMsg}\n\nSouhaitez-vous quand même forcer la superposition ?`)) {
             const forceRes = await fetch(url, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
@@ -172,7 +179,6 @@ export default function AssignmentCalendar() {
             }
           }
         }
-        const errorMsg = await response.text();
         toast.error(errorMsg || "Erreur lors de la mise à jour");
         changeArg.revert();
       } else {
@@ -295,6 +301,10 @@ export default function AssignmentCalendar() {
           const isDayView = eventInfo.view.type === 'timeGridDay';
           const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
+          const startTime = eventInfo.event.start?.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+          const endTime = eventInfo.event.end?.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+          const timeRange = `${startTime} - ${endTime}`;
+
           return (
             <div
               className={`px-1 py-0.5 rounded-md w-full h-full overflow-hidden flex items-center justify-center transition-all duration-300 ${
@@ -321,7 +331,36 @@ export default function AssignmentCalendar() {
         }}
         dateClick={handleDateClick}
         eventClick={handleEventClick}
+        eventMouseEnter={(arg: any) => {
+          if (arg.view.type !== 'dayGridMonth') return;
+          const startTime = arg.event.start?.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+          const endTime = arg.event.end?.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+          setTooltip({
+            x: arg.jsEvent.clientX,
+            y: arg.jsEvent.clientY,
+            text: `${startTime} - ${endTime}`,
+            visible: true
+          });
+        }}
+        eventMouseLeave={() => {
+          setTooltip(prev => ({ ...prev, visible: false }));
+        }}
       />
+
+      {tooltip.visible && (
+        <div
+          className="fixed z-[9999] pointer-events-none bg-slate-900/90 dark:bg-slate-800/95 text-white px-3 py-1.5 rounded-xl border border-slate-700/50 shadow-2xl backdrop-blur-md text-xs font-black animate-in fade-in zoom-in duration-200"
+          style={{
+            left: tooltip.x + 15,
+            top: tooltip.y + 15
+          }}
+        >
+          <div className="flex items-center gap-2">
+            <Clock size={12} className="text-blue-400" />
+            {tooltip.text}
+          </div>
+        </div>
+      )}
       <AssignmentModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
