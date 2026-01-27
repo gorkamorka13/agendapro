@@ -56,9 +56,7 @@ export async function GET() {
       const end = new Date(assignment.endTime);
 
       const patientName = `${assignment.patient.firstName} ${assignment.patient.lastName}`;
-      const title = hidePatientLabel
-        ? (assignment.user.name || 'Inc.')
-        : `${assignment.user.name || 'Inc.'} - ${patientName}`;
+      const title = assignment.user.name || 'Inc.';
 
       return {
         id: assignment.id.toString(),

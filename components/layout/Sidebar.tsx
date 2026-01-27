@@ -39,9 +39,6 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
 
       <nav className="flex-1 overflow-y-auto">
         <ul>
-          <li className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500 px-4 mt-4 mb-2">
-            Navigation
-          </li>
           <li className="mb-2">
             <Link
               href="/"

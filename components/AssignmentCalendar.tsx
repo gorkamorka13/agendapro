@@ -12,6 +12,7 @@ import AppointmentManager from './AppointmentManager';
 import { useSession } from 'next-auth/react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Heart, Calendar } from 'lucide-react';
+import { getContrastColor } from '@/lib/utils';
 
 interface CalendarEvent {
   id: string;
@@ -127,7 +128,7 @@ export default function AssignmentCalendar() {
 
   return (
     <div
-      className="bg-white dark:bg-slate-800 py-2 px-[6px] sm:py-4 sm:px-[14px] md:py-6 md:px-[22px] rounded-lg shadow-md transition-colors [&_.fc-toolbar-title]:text-[12px] [&_.fc-toolbar-title]:sm:text-xl [&_.fc-toolbar-title]:capitalize [&_.fc-button]:text-[10px] [&_.fc-button]:sm:text-xs [&_.fc-button]:px-1.5 [&_.fc-button]:sm:px-2 [&_.fc-header-toolbar]:flex-wrap [&_.fc-header-toolbar]:justify-center [&_.fc-header-toolbar]:gap-2 [&_.fc-daygrid-day-frame]:!justify-start [&_.fc-daygrid-event-harness]:!mb-[1px] overflow-hidden"
+      className="bg-white dark:bg-slate-800 py-2 px-[3px] sm:py-4 sm:px-[11px] md:py-6 md:px-[19px] rounded-lg shadow-md transition-colors [&_.fc-toolbar-title]:text-[12px] [&_.fc-toolbar-title]:sm:text-xl [&_.fc-toolbar-title]:capitalize [&_.fc-button]:text-[9px] [&_.fc-button]:sm:text-xs [&_.fc-button]:px-1 [&_.fc-button]:sm:px-2 [&_.fc-header-toolbar]:flex-wrap sm:[&_.fc-header-toolbar]:grid sm:[&_.fc-header-toolbar]:grid-cols-3 [&_.fc-header-toolbar]:justify-center sm:[&_.fc-header-toolbar]:justify-between [&_.fc-toolbar-chunk]:flex [&_.fc-toolbar-chunk]:items-center [&_.fc-toolbar-chunk]:gap-1 [&_.fc-header-toolbar]:gap-1 sm:[&_.fc-header-toolbar]:gap-4 [&_.fc-toolbar-chunk:nth-child(2)]:justify-center [&_.fc-toolbar-chunk:last-child]:justify-end [&_.fc-daygrid-day-frame]:!justify-start [&_.fc-daygrid-event-harness]:!mb-[-1px] overflow-hidden [&_.fc-todayCircle-button]:!rounded-full [&_.fc-todayCircle-button]:!w-7 [&_.fc-todayCircle-button]:!h-7 sm:[&_.fc-todayCircle-button]:!w-8 sm:[&_.fc-todayCircle-button]:!h-8 [&_.fc-todayCircle-button]:!p-0 [&_.fc-todayCircle-button]:!flex [&_.fc-todayCircle-button]:!items-center [&_.fc-todayCircle-button]:!justify-center [&_.fc-todayCircle-button]:!bg-blue-600 [&_.fc-todayCircle-button]:!border-none [&_.fc-todayCircle-button]:!text-white [&_.fc-todayCircle-button]:!font-normal [&_.fc-todayCircle-button]:!text-[11px] [&_.fc-todayCircle-button]:!shadow-lg [&_.fc-todayCircle-button]:hover:!bg-blue-700 [&_.fc-todayCircle-button]:!transition-transform [&_.fc-todayCircle-button]:active:!scale-95"
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
@@ -137,16 +138,24 @@ export default function AssignmentCalendar() {
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
         initialView="dayGridMonth"
         displayEventTime={false}
+        customButtons={{
+          todayCircle: {
+            text: new Date().getDate().toString(),
+            click: () => {
+              calendarRef.current?.getApi().today();
+            }
+          }
+        }}
         height={typeof window !== 'undefined' && window.innerWidth < 768 ? '85vh' : 'auto'}
         contentHeight={typeof window !== 'undefined' && window.innerWidth < 768 ? '85vh' : 'auto'}
         aspectRatio={typeof window !== 'undefined' && window.innerWidth < 400 ? 0.55 : (typeof window !== 'undefined' && window.innerWidth < 768 ? 0.7 : 1.35)}
         headerToolbar={typeof window !== 'undefined' && window.innerWidth < 640 ? {
           left: 'prev,next',
-          center: 'title',
+          center: 'title todayCircle',
           right: 'dayGridMonth,timeGridWeek,timeGridDay'
         } : {
-          left: 'prev,next today',
-          center: 'title',
+          left: 'prev,next',
+          center: 'title todayCircle',
           right: 'dayGridMonth,timeGridWeek,timeGridDay'
         }}
         allDaySlot={false}
@@ -159,7 +168,10 @@ export default function AssignmentCalendar() {
             dayHeaderFormat: { weekday: typeof window !== 'undefined' && window.innerWidth < 768 ? 'narrow' : 'long' }
           },
           timeGridWeek: {
-            dayHeaderFormat: { weekday: 'short', day: 'numeric' }
+            dayHeaderFormat: { weekday: 'short', day: 'numeric' },
+            titleFormat: typeof window !== 'undefined' && window.innerWidth < 768
+              ? { day: '2-digit', month: '2-digit' }
+              : { year: 'numeric', month: 'long', day: 'numeric' }
           },
           timeGridDay: {
             dayHeaderFormat: { weekday: 'long', day: 'numeric' }
@@ -183,22 +195,29 @@ export default function AssignmentCalendar() {
            }
 
            /* Mobile options */
-           arg.view.calendar.setOption('headerToolbar', isMobile ? {
-             left: 'prev,next',
-             center: 'title',
-             right: 'dayGridMonth,timeGridWeek,timeGridDay'
-           } : {
-             left: 'prev,next today',
-             center: 'title',
-             right: 'dayGridMonth,timeGridWeek,timeGridDay'
-           });
+            arg.view.calendar.setOption('headerToolbar', isMobile ? {
+              left: 'prev,next',
+              center: 'title todayCircle',
+              right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            } : {
+              left: 'prev,next',
+              center: 'title todayCircle',
+              right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            });
 
-           if (isMobile) {
-             arg.view.calendar.setOption('titleFormat', {
-               month: 'short',
-               year: 'numeric'
-             });
-           }
+            if (isMobile) {
+              arg.view.calendar.setOption('titleFormat',
+                arg.view.type === 'timeGridWeek'
+                  ? { day: '2-digit', month: '2-digit', year: 'numeric' }
+                  : { month: 'short', year: 'numeric' }
+              );
+            } else {
+              arg.view.calendar.setOption('titleFormat',
+                arg.view.type === 'dayGridMonth'
+                  ? { year: 'numeric', month: 'long' }
+                  : { year: 'numeric', month: 'long', day: 'numeric' }
+              );
+            }
         }}
         eventContent={(eventInfo) => {
           const status = eventInfo.event.extendedProps.status;
@@ -207,36 +226,25 @@ export default function AssignmentCalendar() {
           const isCompleted = (status === 'COMPLETED' || isPast) && !isCancelled;
           const bgColor = eventInfo.event.backgroundColor || '#3b82f6';
 
-          // Fonction pour déterminer si le texte doit être noir ou blanc selon le contraste
-          const getContrastColor = (hexcolor: string) => {
-            if (!hexcolor || hexcolor === 'transparent') return 'white';
-            const r = parseInt(hexcolor.substring(1, 3), 16);
-            const g = parseInt(hexcolor.substring(3, 5), 16);
-            const b = parseInt(hexcolor.substring(5, 7), 16);
-            const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
-            return (yiq >= 128) ? 'black' : 'white';
-          };
-
           const textColor = getContrastColor(bgColor);
           const isDayView = eventInfo.view.type === 'timeGridDay';
           const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
           return (
             <div
-              className={`px-0.5 py-0.5 rounded-md shadow-sm w-full h-full overflow-hidden flex items-center gap-0.5 border-l-2 transition-all duration-300 ${
-                isCompleted
-                  ? 'opacity-100 ring-1 ring-white/30 scale-[1.02]'
+              className={`px-1 py-0.5 rounded-md w-full h-full overflow-hidden flex items-center justify-center transition-all duration-300 ${
+                (isPast || status === 'COMPLETED')
+                  ? `opacity-40 ${isCancelled ? 'bg-hatched-pattern' : ''}`
                   : isCancelled
                     ? 'opacity-100 bg-hatched-pattern'
-                    : 'opacity-40 border-dashed border-white/40'
+                    : 'opacity-100'
               }`}
               style={{
                 backgroundColor: bgColor,
-                borderColor: 'rgba(0,0,0,0.1)'
               }}
             >
               <div
-                className={`flex-1 font-black leading-tight truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)] ${
+                className={`text-center font-normal leading-tight ${
                   isDayView && isMobile ? 'text-[14px]' : 'text-[9px] sm:text-[12px]'
                 }`}
                 style={{ color: textColor }}
@@ -282,6 +290,16 @@ export default function AssignmentCalendar() {
           setSelectedDate(new Date());
           setIsAppointmentManagerOpen(false);
           setIsAppointmentModalOpen(true);
+        }}
+        onView={(date) => {
+          const calendarApi = calendarRef.current?.getApi();
+          if (calendarApi) {
+            calendarApi.gotoDate(date);
+            // On peut aussi changer de vue pour mieux voir le RDV
+            if (calendarApi.view.type === 'dayGridMonth') {
+              calendarApi.changeView('timeGridDay', date);
+            }
+          }
         }}
       />
     </div>

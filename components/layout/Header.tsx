@@ -4,6 +4,7 @@
 import { useSession, signOut } from 'next-auth/react';
 import ThemeToggle from '../ThemeToggle';
 import { useTitle } from '../TitleContext';
+import { getInitials, getContrastColor } from '@/lib/utils';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -12,6 +13,9 @@ interface HeaderProps {
 export default function Header({ onMenuClick }: HeaderProps) {
   const { data: session } = useSession();
   const { title } = useTitle();
+  const userName = session?.user?.name || session?.user?.email;
+  const userColor = (session?.user as any)?.color || '#3b82f6';
+  const textColor = getContrastColor(userColor);
 
   return (
     <header className="bg-white dark:bg-slate-900 dark:text-white shadow-md p-3 sm:p-4 flex justify-between items-center transition-colors">
@@ -24,18 +28,23 @@ export default function Header({ onMenuClick }: HeaderProps) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
-
+{/* ... */}
         <h1 className="text-base sm:text-xl font-bold truncate text-blue-600 dark:text-blue-400">
           {title}
         </h1>
       </div>
       <div className="flex items-center gap-1.5 sm:gap-4 ml-2">
-        <span className="hidden sm:inline text-sm sm:text-base font-semibold opacity-80">Bonjour, {session?.user?.name || session?.user?.email}</span>
-        <span
-          className="w-5 h-5 rounded-full border-2 border-white dark:border-slate-800 shadow-md shrink-0 ring-1 ring-slate-200 dark:ring-slate-700"
-          style={{ backgroundColor: (session?.user as any)?.color || '#3b82f6' }}
-          title="Ma couleur d'intervenant"
-        />
+        <span className="hidden sm:inline text-sm sm:text-base font-semibold opacity-80">Bonjour, {userName}</span>
+        <div
+          className="w-8 h-8 rounded-full border-2 border-white dark:border-slate-800 shadow-md shrink-0 ring-1 ring-slate-200 dark:ring-slate-700 flex items-center justify-center text-[18px] font-normal italic"
+          style={{
+            backgroundColor: userColor,
+            color: textColor
+          }}
+          title={`Intervenant: ${userName}`}
+        >
+          {getInitials(userName)}
+        </div>
         <ThemeToggle />
         <button
           onClick={() => signOut({ callbackUrl: '/login' })}

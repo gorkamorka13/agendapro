@@ -8,6 +8,7 @@ import html2canvas from 'html2canvas';
 import * as XLSX from 'xlsx';
 import ExportModal, { ExportFormat } from '@/components/ExportModal';
 import { useTitle } from '@/components/TitleContext';
+import { Select } from '@/components/ui/Select';
 
 interface ExportOptions {
   financialSummary: boolean;
@@ -690,10 +691,10 @@ export default function ReportsPage() {
         <div className="flex flex-col sm:flex-row items-center gap-3">
           {/* Year Selector */}
           <div className="flex-shrink-0 w-full sm:w-auto">
-            <select
+            <Select
               value={selectedYear}
               onChange={(e) => handleYearSelect(parseInt(e.target.value))}
-              className="w-full sm:w-28 px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-black text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer text-sm"
+              className="sm:w-28 text-sm"
             >
               {availableYears.length > 0 ? (
                 availableYears.map(year => (
@@ -702,7 +703,7 @@ export default function ReportsPage() {
               ) : (
                 <option value={selectedYear}>{selectedYear}</option>
               )}
-            </select>
+            </Select>
           </div>
 
           {/* Month Scrollable Area */}
@@ -755,26 +756,18 @@ export default function ReportsPage() {
         <div className="flex flex-col lg:flex-row items-end gap-4 w-full">
             {/* Intervenant */}
             <div className="flex-1 w-full min-w-0">
-                <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase mb-1.5 flex items-center gap-2 px-1">
-                    <UserIcon size={14} className="text-blue-500" />
-                    <span>Sélection Intervenant</span>
-                    {selectedUserId && selectedUserId !== 'all' && (
-                        <span
-                            className="w-2.5 h-2.5 rounded-full border border-white/20 shadow-sm transition-colors duration-300"
-                            style={{ backgroundColor: (users.find(u => u.id === selectedUserId) as any)?.color || '#3b82f6' }}
-                        />
-                    )}
-                </label>
-                <select
+                <Select
+                    label="Sélection Intervenant"
+                    icon={<UserIcon size={14} className="text-blue-500" />}
                     value={selectedUserId}
                     onChange={(e) => setSelectedUserId(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-slate-200 font-bold text-sm"
+                    className="text-sm"
                 >
                     <option value="all">Tous les intervenants</option>
                     {users.map((user) => (
                         <option key={user.id} value={user.id}>{user.name}</option>
                     ))}
-                </select>
+                </Select>
             </div>
 
             {/* Period */}

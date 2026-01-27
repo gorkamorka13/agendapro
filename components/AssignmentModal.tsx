@@ -286,7 +286,7 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
               )}
             </div>
             <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-medium mt-0.5">
-              {isCancelled ? 'Cette intervention a été annulée.' : (isCompleted ? 'Validée et non modifiable.' : 'Détails de l\'affectation')}
+              {isCancelled ? 'Cette intervention a été annulée.' : (isCompleted ? 'Réalisée et non modifiable.' : 'Détails de l\'affectation')}
             </p>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
@@ -389,22 +389,22 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
             </Card>
           )}
 
-          <div className="flex gap-1 pt-4 border-t border-slate-100 dark:border-slate-800">
-            {/* 1. Update / Créer */}
+          <div className="grid grid-cols-2 sm:flex sm:flex-row sm:flex-wrap gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+            {/* 1. Mise à jour / Créer */}
             {hasPermission && !showOverlapWarning && (
               <Button
                 type="submit"
                 isLoading={isSubmitting}
-                className="flex-1 text-[9px] px-1 font-black uppercase order-1"
+                className="w-full sm:flex-1 text-[9px] sm:text-xs px-2 font-black uppercase order-1"
               >
                 {isEditing ? (
                   <>
-                    <Save size={12} />
-                    <span>Update</span>
+                    <Save size={14} />
+                    <span>Mise à jour</span>
                   </>
                 ) : (
                   <>
-                    <Save size={12} />
+                    <Save size={14} />
                     <span>Créer</span>
                   </>
                 )}
@@ -420,9 +420,9 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
                     variant="primary"
                     onClick={handleValidate}
                     isLoading={isSubmitting}
-                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20 text-[9px] px-1 font-black uppercase order-2"
+                    className="w-full sm:flex-1 bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20 text-[9px] sm:text-xs px-2 font-black uppercase order-2"
                   >
-                    <CheckCircle size={12} /> Valider
+                    <CheckCircle size={14} /> Valider
                   </Button>
                 )}
                 {isCancelled && !isPast && !showOverlapWarning && (
@@ -431,9 +431,9 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
                     variant="primary"
                     onClick={handleReplan}
                     isLoading={isSubmitting}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 shadow-blue-500/20 text-[9px] px-1 font-black uppercase order-2"
+                    className="w-full sm:flex-1 bg-blue-600 hover:bg-blue-700 shadow-blue-500/20 text-[9px] sm:text-xs px-2 font-black uppercase order-2"
                   >
-                    <Calendar size={12} /> Replan
+                    <Calendar size={14} /> Replan
                   </Button>
                 )}
                 {isAdmin && status !== 'CANCELLED' && !showOverlapWarning && (
@@ -442,9 +442,9 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
                     variant="amber"
                     onClick={handleCancel}
                     isLoading={isSubmitting}
-                    className="flex-1 text-[9px] px-1 font-black uppercase order-3"
+                    className="w-full sm:flex-1 text-[9px] sm:text-xs px-2 font-black uppercase order-3"
                   >
-                    <X size={12} /> Annuler
+                    <X size={14} /> Annuler
                   </Button>
                 )}
                 {(isAdmin || !isCompleted) && !showOverlapWarning && (
@@ -453,9 +453,9 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
                     variant="danger"
                     onClick={handleDelete}
                     isLoading={isSubmitting}
-                    className={cn("flex-1 text-[9px] px-1 font-black uppercase", isAdmin ? 'order-4' : 'order-3')}
+                    className={cn("w-full sm:flex-1 text-[9px] sm:text-xs px-2 font-black uppercase", isAdmin ? 'order-4' : 'order-3')}
                    >
-                    <Trash2 size={12} /> Supprimer
+                    <Trash2 size={14} /> Supprimer
                    </Button>
                 )}
               </>

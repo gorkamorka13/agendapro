@@ -9,6 +9,7 @@ import html2canvas from 'html2canvas';
 import * as XLSX from 'xlsx';
 import ExportModal, { ExportFormat } from '@/components/ExportModal';
 import { useTitle } from '@/components/TitleContext';
+import { Select } from '@/components/ui/Select';
 
 interface ExportOptions {
   financialSummary: boolean;
@@ -605,10 +606,10 @@ export default function UserReportsPage() {
         <div className="flex flex-col sm:flex-row items-center gap-3">
           {/* Year Selector */}
           <div className="flex-shrink-0 w-full sm:w-auto">
-            <select
+            <Select
               value={selectedYear}
               onChange={(e) => handleYearSelect(parseInt(e.target.value))}
-              className="w-full sm:w-28 px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-black text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer text-sm"
+              className="sm:w-28 text-sm"
             >
               {availableYears.length > 0 ? (
                 availableYears.map(year => (
@@ -617,7 +618,7 @@ export default function UserReportsPage() {
               ) : (
                 <option value={selectedYear}>{selectedYear}</option>
               )}
-            </select>
+            </Select>
           </div>
 
           {/* Month Scrollable Area */}

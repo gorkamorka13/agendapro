@@ -259,7 +259,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
                 )}
             </div>
             <p className="text-slate-500 dark:text-slate-400/80 text-xs sm:text-sm font-medium mt-0.5">
-                {isCancelled ? 'Ce rendez-vous a été annulé.' : (isCompleted ? 'Validé et non modifiable.' : 'Gestion des activités hors-interventions')}
+                {isCancelled ? 'Ce rendez-vous a été annulé.' : (isCompleted ? 'Réalisé et non modifiable.' : 'Gestion des activités hors-interventions')}
             </p>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
@@ -347,22 +347,22 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
             />
           </div>
 
-          <div className="flex gap-1 pt-4 border-t border-slate-100 dark:border-slate-800">
-            {/* 1. Update / Enregistrer */}
+          <div className="grid grid-cols-2 sm:flex sm:flex-row sm:flex-wrap gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+            {/* 1. Mise à jour / Enregistrer */}
             {isAdmin && (
               <Button
                 type="submit"
                 isLoading={isSubmitting}
-                className="flex-1 text-[9px] px-1 font-black uppercase order-1"
+                className="w-full sm:flex-1 text-[10px] sm:text-xs px-2 font-black uppercase order-1"
               >
                 {isEditing ? (
                   <>
-                    <Save size={12} />
-                    <span>Update</span>
+                    <Save size={14} />
+                    <span>Mise à jour</span>
                   </>
                 ) : (
                   <>
-                    <Save size={12} />
+                    <Save size={14} />
                     <span>Créer</span>
                   </>
                 )}
@@ -378,9 +378,9 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
                     variant="primary"
                     onClick={handleValidate}
                     isLoading={isSubmitting}
-                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20 text-[9px] px-1 font-black uppercase order-2"
+                    className="w-full sm:flex-1 bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20 text-[10px] sm:text-xs px-2 font-black uppercase order-2"
                   >
-                    <CheckCircle size={12} /> Valider
+                    <CheckCircle size={14} /> Valider
                   </Button>
                 )}
                 {isCancelled && !isPast && (
@@ -389,9 +389,9 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
                     variant="primary"
                     onClick={handleReplan}
                     isLoading={isSubmitting}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 shadow-blue-500/20 text-[9px] px-1 font-black uppercase order-2"
+                    className="w-full sm:flex-1 bg-blue-600 hover:bg-blue-700 shadow-blue-500/20 text-[10px] sm:text-xs px-2 font-black uppercase order-2"
                   >
-                    <Calendar size={12} /> Replan
+                    <Calendar size={14} /> Replan
                   </Button>
                 )}
                 {!isCancelled && (
@@ -400,9 +400,9 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
                     variant="amber"
                     onClick={handleCancel}
                     isLoading={isSubmitting}
-                    className="flex-1 text-[9px] px-1 font-black uppercase order-3"
+                    className="w-full sm:flex-1 text-[10px] sm:text-xs px-2 font-black uppercase order-3"
                   >
-                    <X size={12} /> Annuler
+                    <X size={14} /> Annuler
                   </Button>
                 )}
                 <Button
@@ -410,9 +410,9 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
                     variant="danger"
                     onClick={handleDelete}
                     isLoading={isSubmitting}
-                    className="flex-1 text-[9px] px-1 font-black uppercase order-4"
+                    className="w-full sm:flex-1 text-[10px] sm:text-xs px-2 font-black uppercase order-4"
                 >
-                    <Trash2 size={12} /> Supprimer
+                    <Trash2 size={14} /> Supprimer
                 </Button>
               </>
             )}

@@ -11,6 +11,7 @@ interface Props {
   onClose: () => void;
   onEdit: (id: string) => void;
   onCreate: () => void;
+  onView?: (date: Date) => void;
 }
 
 interface Appointment {
@@ -21,9 +22,10 @@ interface Appointment {
   endTime: string;
   userId: string;
   user?: { name: string };
+  notes?: string;
 }
 
-export default function AppointmentManager({ isOpen, onClose, onEdit, onCreate }: Props) {
+export default function AppointmentManager({ isOpen, onClose, onEdit, onCreate, onView }: Props) {
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === 'ADMIN';
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -130,6 +132,11 @@ export default function AppointmentManager({ isOpen, onClose, onEdit, onCreate }
                             <div className="flex items-center gap-2 mt-1 text-xs text-slate-500 dark:text-slate-400">
                                 <div className="flex items-center gap-1"><MapPin size={12} /> <span className="truncate max-w-[150px]">{appt.location}</span></div>
                             </div>
+                            {appt.notes && (
+                                <div className="mt-3 p-2 bg-slate-100/50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-700 text-[11px] text-slate-600 dark:text-slate-400 max-h-24 overflow-y-auto custom-scrollbar scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
+                                    <p className="whitespace-pre-wrap">{appt.notes}</p>
+                                </div>
+                            )}
                         </div>
                         {isAdmin && (
                             <div className="flex items-center gap-2 ml-4">
@@ -140,6 +147,15 @@ export default function AppointmentManager({ isOpen, onClose, onEdit, onCreate }
                                 >
                                     <Edit2 size={16} />
                                 </button>
+                                {onView && (
+                                    <button
+                                        onClick={() => onView(new Date(appt.startTime))}
+                                        className="p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg transition-colors shadow-sm"
+                                        title="Voir sur le calendrier"
+                                    >
+                                        <Search size={16} />
+                                    </button>
+                                )}
                             </div>
                         )}
                     </div>

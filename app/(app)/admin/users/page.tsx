@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { User, Role } from '@prisma/client';
 import { useTitle } from '@/components/TitleContext';
 import { Save, X } from 'lucide-react';
+import { Select } from '@/components/ui/Select';
 
 export default function UserManagementPage() {
   const { setTitle } = useTitle();
@@ -287,7 +288,7 @@ export default function UserManagementPage() {
                   />
                 </div>
                 <div className="col-span-2 space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nom complet</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nom</label>
                   <input
                     type="text"
                     required
@@ -321,15 +322,14 @@ export default function UserManagementPage() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Rôle</label>
-                  <select
+                  <Select
+                    label="Rôle"
                     value={role}
                     onChange={(e) => setRole(e.target.value as Role)}
-                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-slate-100 font-bold"
                   >
-                    <option value="USER">Intervenant (Standard)</option>
+                    <option value="USER">Intervenant</option>
                     <option value="ADMIN">Administrateur</option>
-                  </select>
+                  </Select>
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate">Couleur Calendrier</label>
