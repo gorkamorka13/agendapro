@@ -101,6 +101,10 @@ export async function POST(request: Request) {
       return new NextResponse(validatedData.error.issues[0].message, { status: 400 });
     }
 
+    if ((session.user.role as any) === 'VISITEUR') {
+      return new NextResponse('Accès refusé', { status: 403 });
+    }
+
     const { userId, patientId, startTime, endTime, ignoreConflict } = validatedData.data;
 
     const isAdmin = session.user.role === Role.ADMIN;

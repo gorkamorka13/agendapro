@@ -9,6 +9,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
   const { data: session } = useSession();
 
   const isAdmin = session?.user?.role === 'ADMIN';
+  const isVisitor = (session?.user?.role as any) === 'VISITEUR';
 
   const linkStyle = "block py-2 px-4 rounded-md transition-colors";
   const defaultStyle = "hover:bg-gray-700";
@@ -49,15 +50,17 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
             </Link>
           </li>
 
-          <li className="mb-2">
-            <Link
-              href="/user/reports"
-              className={`${linkStyle} ${pathname === '/user/reports' ? activeStyle : defaultStyle}`}
-              onClick={() => onClose()}
-            >
-              Synthèse
-            </Link>
-          </li>
+          {!isVisitor && (
+            <li className="mb-2">
+              <Link
+                href="/user/reports"
+                className={`${linkStyle} ${pathname === '/user/reports' ? activeStyle : defaultStyle}`}
+                onClick={() => onClose()}
+              >
+                Synthèse
+              </Link>
+            </li>
+          )}
 
           {isAdmin && (
             <>

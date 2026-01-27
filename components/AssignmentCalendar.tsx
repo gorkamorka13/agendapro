@@ -70,12 +70,14 @@ export default function AssignmentCalendar() {
   }, [searchParams, router]);
 
   const handleDateClick = (arg: DateClickArg) => {
+    if ((session?.user?.role as any) === 'VISITEUR') return;
     setSelectedDate(arg.date);
     setSelectedAssignmentId(null);
     setIsModalOpen(true);
   };
 
   const handleEventClick = (arg: EventClickArg) => {
+    if ((session?.user?.role as any) === 'VISITEUR') return;
     const isAppointment = arg.event.extendedProps.type === 'APPOINTMENT';
 
     if (isAppointment) {

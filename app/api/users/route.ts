@@ -61,16 +61,25 @@ export async function POST(request: Request) {
       return new NextResponse('Nom et mot de passe requis', { status: 400 });
     }
 
-    // Vérifier si la couleur est déjà utilisée
-    const colorUsed = await prisma.user.findFirst({
-      where: { color: color || '#3b82f6' }
-    });
-
-    if (colorUsed) {
-      return new NextResponse('Cette couleur est déjà attribuée à un autre utilisateur.', { status: 400 });
-    }
-
     const hashedPassword = await bcrypt.hash(password, 12);
+
+    // Strict mapping for Role
+    let targetRole: Role = Role.USER;
+    if (role === 'ADMIN') targetRole = Role.ADMIN;
+    else if (role === 'VISITEUR') targetRole = Role.VISITEUR;
+
+    const isVisitor = targetRole === Role.VISITEUR;
+
+    // Vérifier si la couleur est déjà utilisée (sauf pour les visiteurs qui ont tous la même)
+    if (!isVisitor) {
+      const colorUsed = await prisma.user.findFirst({
+        where: { color: color || '#3b82f6' }
+      });
+
+      if (colorUsed) {
+        return new NextResponse('Cette couleur est déjà attribuée à un autre utilisateur.', { status: 400 });
+      }
+    }
 
     const newUser = await prisma.user.create({
       data: {
@@ -78,11 +87,11 @@ export async function POST(request: Request) {
         fullName,
         email,
         hashedPassword,
-        role: role || Role.USER,
-        hourlyRate: hourlyRate ? parseFloat(hourlyRate) : null,
-        travelCost: travelCost ? parseFloat(travelCost) : null,
-        color: color || '#3b82f6',
-      } as any,
+        role: targetRole,
+        hourlyRate: isVisitor ? null : (hourlyRate ? parseFloat(hourlyRate) : null),
+        travelCost: isVisitor ? null : (travelCost ? parseFloat(travelCost) : null),
+        color: isVisitor ? '#cbd5e1' : (color || '#3b82f6'),
+      },
     });
 
     const { hashedPassword: _, ...userWithoutPassword } = newUser;

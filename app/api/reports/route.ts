@@ -15,7 +15,7 @@ export async function GET(request: Request) {
     return new NextResponse('Non authentifié', { status: 401 });
   }
 
-  if (session.user.role !== Role.ADMIN && session.user.id !== userId) {
+  if (session.user.role !== Role.ADMIN && session.user.id !== userId || (session.user.role as any) === 'VISITEUR') {
     return new NextResponse('Accès refusé', { status: 403 });
   }
   const month = searchParams.get('month'); // Fallback logic
