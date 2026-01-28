@@ -229,234 +229,234 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 overflow-y-auto p-4 animate-in fade-in duration-200">
       <div className="flex min-h-full items-start justify-center py-10">
         <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-100 dark:border-slate-800">
-        <div className="bg-slate-50 dark:bg-slate-800/50 px-8 py-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-          <div>
-            <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight">
-              {expense ? 'Modifier la dépense' : 'Nouvelle dépense'}
-            </h2>
-            <p className="text-slate-500 dark:text-slate-400 text-xs font-medium">Gestion du fonctionnement</p>
-          </div>
-          <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
-            <X size={24} />
-          </Button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-8 space-y-6">
-          <Select
-            label="Bénéficiaire (Intervenant / Admin)"
-            icon={<UserIcon size={12} className="text-blue-500" />}
-            required
-            value={userId}
-            onChange={(e) => setUserId(e.target.value)}
-          >
-            <option value="">Sélectionner un bénéficiaire...</option>
-            {users.map(u => (
-              <option key={u.id} value={u.id}>{u.name}</option>
-            ))}
-          </Select>
-
-          <Input
-            label="Motif de la dépense"
-            icon={<FileText size={12} className="text-blue-500" />}
-            type="text"
-            required
-            value={motif}
-            onChange={(e) => setMotif(e.target.value)}
-            placeholder="ex: Essence, Fournitures, Loyer..."
-          />
-
-          <div className="grid grid-cols-2 gap-6">
-            <div className="relative">
-              <Tooltip content="Ce montant peut être détecté automatiquement via un justificatif" position="right">
-                <Input
-                  label="Montant (€)"
-                  icon={<Euro size={12} className="text-emerald-500" />}
-                  type="number"
-                  step="0.01"
-                  required
-                  value={amount}
-                  onChange={(e) => {
-                    setAmount(e.target.value);
-                    setAutoFilledFields(prev => prev.filter(f => f !== 'amount'));
-                  }}
-                  placeholder="0.00"
-                  className={autoFilledFields.includes('amount') ? 'border-purple-300 dark:border-purple-800 bg-purple-50/30' : ''}
-                />
-              </Tooltip>
-              {autoFilledFields.includes('amount') && (
-                <Sparkles size={14} className="absolute right-3 top-9 text-purple-500 animate-pulse" />
-              )}
+          <div className="bg-slate-50 dark:bg-slate-800/50 px-8 py-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+            <div>
+              <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight">
+                {expense ? 'Modifier la dépense' : 'Nouvelle dépense'}
+              </h2>
+              <p className="text-slate-500 dark:text-slate-400 text-xs font-medium">Gestion du fonctionnement</p>
             </div>
-            <div className="relative">
-              <Tooltip content="La date d'achat figurant sur votre ticket ou justificatif" position="right">
-                <Input
-                  label="Date d'achat / ticket"
-                  icon={<Calendar size={12} className="text-indigo-500" />}
-                  type="date"
-                  required
-                  value={date}
-                  onChange={(e) => {
-                    setDate(e.target.value);
-                    setIsDateManuallyDirty(true);
-                    setAutoFilledFields(prev => prev.filter(f => f !== 'date'));
-                  }}
-                  className={autoFilledFields.includes('date') ? 'border-purple-300 dark:border-purple-800 bg-purple-50/30' : ''}
-                />
-              </Tooltip>
-              {autoFilledFields.includes('date') && (
-                <Sparkles size={14} className="absolute right-3 top-9 text-purple-500 animate-pulse" />
-              )}
-            </div>
-            <div className="relative">
-              <Tooltip content="La date à laquelle cette dépense est enregistrée dans le système" position="left">
-                <Input
-                  label="Date d'enregistrement"
-                  icon={<FileText size={12} className="text-slate-500" />}
-                  type="date"
-                  required
-                  value={recordingDate}
-                  onChange={(e) => setRecordingDate(e.target.value)}
-                />
-              </Tooltip>
-            </div>
+            <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
+              <X size={24} />
+            </Button>
           </div>
 
-          {/* Receipt Upload Section */}
-          <div className="space-y-3">
-            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-              <span className="flex items-center">
-                <Camera size={12} className="inline mr-2 text-purple-500" />
-                Justificatif (Photo/Image)
-              </span>
-              {isAnalyzing && (
-                <span className="text-[10px] text-purple-600 dark:text-purple-400 flex items-center animate-pulse">
-                  <Loader2 size={10} className="mr-1 animate-spin" />
-                  Analyse en cours...
-                </span>
-              )}
-            </label>
+          <form onSubmit={handleSubmit} className="p-8 space-y-6">
+            <Select
+              label="Bénéficiaire (Intervenant / Admin)"
+              icon={<UserIcon size={12} className="text-blue-500" />}
+              required
+              value={userId}
+              onChange={(e) => setUserId(e.target.value)}
+            >
+              <option value="">Sélectionner un bénéficiaire...</option>
+              {users.map(u => (
+                <option key={u.id} value={u.id}>{u.name}</option>
+              ))}
+            </Select>
 
-            {/* Show existing or preview image */}
-            {(receiptPreview || existingReceiptUrl) && (
-              <div className="flex flex-col gap-3">
-                <div className="relative inline-block w-fit group">
-                  <img
-                    src={receiptPreview || existingReceiptUrl || ''}
-                    alt="Justificatif"
-                    className="max-w-full h-32 object-contain rounded-xl border-2 border-slate-200 dark:border-slate-700 shadow-sm"
+            <Input
+              label="Motif de la dépense"
+              icon={<FileText size={12} className="text-blue-500" />}
+              type="text"
+              required
+              value={motif}
+              onChange={(e) => setMotif(e.target.value)}
+              placeholder="ex: Essence, Fournitures, Loyer..."
+            />
+
+            <div className="grid grid-cols-2 gap-6">
+              <div className="relative">
+                <Tooltip content="Ce montant peut être détecté automatiquement via un justificatif" position="right">
+                  <Input
+                    label="Montant (€)"
+                    icon={<Euro size={12} className="text-emerald-500" />}
+                    type="number"
+                    step="0.01"
+                    required
+                    value={amount}
+                    onChange={(e) => {
+                      setAmount(e.target.value);
+                      setAutoFilledFields(prev => prev.filter(f => f !== 'amount'));
+                    }}
+                    placeholder="0.00"
+                    className={autoFilledFields.includes('amount') ? 'border-purple-300 dark:border-purple-800 bg-purple-50/30' : ''}
                   />
-                  <Tooltip content="Retirer ce justificatif">
-                    <button
-                      type="button"
-                      onClick={handleRemoveReceipt}
-                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-all shadow-lg border-2 border-white dark:border-slate-900"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </Tooltip>
-                </div>
-
-                <div className="flex items-center justify-between gap-2 bg-slate-100 dark:bg-slate-800/50 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700/50">
-                  <div className="flex items-center gap-2 text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                    <FileText size={14} className="text-purple-500" />
-                    <span className="truncate max-w-[180px]">
-                      {receiptFile ? receiptFile.name : (existingReceiptUrl ? existingReceiptUrl.split('/').pop() : 'Fichier inconnu')}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {fullOcrResult ? (
-                      <button
-                        type="button"
-                        onClick={() => setShowOcrDetails(!showOcrDetails)}
-                        className={`text-[10px] font-black px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${showOcrDetails ? 'bg-indigo-600 text-white shadow-sm' : 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800'}`}
-                      >
-                        <Sparkles size={10} />
-                        {showOcrDetails ? 'Masquer' : 'Détails IA'}
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={handleManualAnalyze}
-                        disabled={isAnalyzing}
-                        className="text-[10px] font-black px-3 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 border border-purple-100 dark:border-purple-800 hover:bg-purple-100 transition-all flex items-center gap-1.5"
-                      >
-                        <Sparkles size={10} className={isAnalyzing ? 'animate-spin' : ''} />
-                        {isAnalyzing ? 'Analyse...' : 'Analyser avec l\'IA'}
-                      </button>
-                    )}
-                    {fullOcrResult && !isAnalyzing && (
-                      <button
-                        type="button"
-                        onClick={handleManualAnalyze}
-                        title="Relancer l'analyse"
-                        className="p-1.5 text-slate-400 hover:text-purple-500 transition-colors"
-                      >
-                        <Loader2 size={12} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {showOcrDetails && fullOcrResult && (
-                  <div className="bg-slate-900 text-slate-300 p-4 rounded-xl border border-slate-800 font-mono text-[10px] overflow-x-auto animate-in slide-in-from-top-2 duration-200 shadow-inner">
-                    <div className="flex justify-between items-center mb-2 pb-2 border-b border-slate-800">
-                      <span className="text-indigo-400 font-bold uppercase tracking-widest text-[9px]">Analyse Technique OCR</span>
-                      <span className="text-slate-500">{fullOcrResult.model}</span>
-                    </div>
-                    <pre className="whitespace-pre-wrap">{JSON.stringify(fullOcrResult.rawData || fullOcrResult, null, 2)}</pre>
-                    {fullOcrResult.usage && (
-                      <div className="mt-4 pt-2 border-t border-slate-800 text-indigo-400 flex justify-between font-bold">
-                        <span>Performance</span>
-                        <span>{fullOcrResult.usage.total} tokens</span>
-                      </div>
-                    )}
-                  </div>
+                </Tooltip>
+                {autoFilledFields.includes('amount') && (
+                  <Sparkles size={14} className="absolute right-3 top-9 text-purple-500 animate-pulse" />
                 )}
               </div>
-            )}
+              <div className="relative">
+                <Tooltip content="La date d'achat figurant sur votre ticket ou justificatif" position="right">
+                  <Input
+                    label="Date d'achat / ticket"
+                    icon={<Calendar size={12} className="text-indigo-500" />}
+                    type="date"
+                    required
+                    value={date}
+                    onChange={(e) => {
+                      setDate(e.target.value);
+                      setIsDateManuallyDirty(true);
+                      setAutoFilledFields(prev => prev.filter(f => f !== 'date'));
+                    }}
+                    className={autoFilledFields.includes('date') ? 'border-purple-300 dark:border-purple-800 bg-purple-50/30' : ''}
+                  />
+                </Tooltip>
+                {autoFilledFields.includes('date') && (
+                  <Sparkles size={14} className="absolute right-3 top-9 text-purple-500 animate-pulse" />
+                )}
+              </div>
+              <div className="relative col-span-2">
+                <Tooltip content="La date à laquelle cette dépense est enregistrée dans le système" position="bottom">
+                  <Input
+                    label="Date d'enregistrement"
+                    icon={<FileText size={12} className="text-slate-500" />}
+                    type="date"
+                    required
+                    value={recordingDate}
+                    onChange={(e) => setRecordingDate(e.target.value)}
+                  />
+                </Tooltip>
+              </div>
+            </div>
 
-            {/* File input */}
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={handleFileChange}
-              className="block w-full text-sm text-slate-500 dark:text-slate-400
-                file:mr-4 file:py-2 file:px-4
-                file:rounded-full file:border-0
-                file:text-sm file:font-semibold
-                file:bg-purple-50 file:text-purple-700
-                hover:file:bg-purple-100
-                dark:file:bg-purple-900/30 dark:file:text-purple-400
-                dark:hover:file:bg-purple-900/50
-                cursor-pointer"
-            />
-            <p className="text-xs text-slate-500 dark:text-slate-400 text-center italic">
-              Prenez une photo ou choisissez un fichier (max 5MB)
-            </p>
-          </div>
+            {/* Receipt Upload Section */}
+            <div className="space-y-3">
+              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                <span className="flex items-center">
+                  <Camera size={12} className="inline mr-2 text-purple-500" />
+                  Justificatif (Photo/Image)
+                </span>
+                {isAnalyzing && (
+                  <span className="text-[10px] text-purple-600 dark:text-purple-400 flex items-center animate-pulse">
+                    <Loader2 size={10} className="mr-1 animate-spin" />
+                    Analyse en cours...
+                  </span>
+                )}
+              </label>
 
-          <div className="flex flex-wrap gap-3 pt-6 border-t border-slate-100 dark:border-slate-800 mt-6">
-            <Button
-              type="submit"
-              isLoading={isSubmitting}
-              className="flex-1 order-1 text-xs uppercase h-12 rounded-2xl"
-            >
-              <Save size={18} />
-              {expense ? 'Mettre à jour' : 'Enregistrer'}
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={onClose}
-              className="flex-1 order-2 text-xs h-12 rounded-2xl"
-            >
-              <X size={18} /> Annuler
-            </Button>
-          </div>
-        </form>
+              {/* Show existing or preview image */}
+              {(receiptPreview || existingReceiptUrl) && (
+                <div className="flex flex-col gap-3">
+                  <div className="relative inline-block w-fit group">
+                    <img
+                      src={receiptPreview || existingReceiptUrl || ''}
+                      alt="Justificatif"
+                      className="max-w-full h-32 object-contain rounded-xl border-2 border-slate-200 dark:border-slate-700 shadow-sm"
+                    />
+                    <Tooltip content="Retirer ce justificatif">
+                      <button
+                        type="button"
+                        onClick={handleRemoveReceipt}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-all shadow-lg border-2 border-white dark:border-slate-900"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </Tooltip>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 bg-slate-100 dark:bg-slate-800/50 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700/50">
+                    <div className="flex items-center gap-2 text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                      <FileText size={14} className="text-purple-500" />
+                      <span className="truncate max-w-[180px]">
+                        {receiptFile ? receiptFile.name : (existingReceiptUrl ? existingReceiptUrl.split('/').pop() : 'Fichier inconnu')}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {fullOcrResult ? (
+                        <button
+                          type="button"
+                          onClick={() => setShowOcrDetails(!showOcrDetails)}
+                          className={`text-[10px] font-black px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${showOcrDetails ? 'bg-indigo-600 text-white shadow-sm' : 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800'}`}
+                        >
+                          <Sparkles size={10} />
+                          {showOcrDetails ? 'Masquer' : 'Détails IA'}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleManualAnalyze}
+                          disabled={isAnalyzing}
+                          className="text-[10px] font-black px-3 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 border border-purple-100 dark:border-purple-800 hover:bg-purple-100 transition-all flex items-center gap-1.5"
+                        >
+                          <Sparkles size={10} className={isAnalyzing ? 'animate-spin' : ''} />
+                          {isAnalyzing ? 'Analyse...' : 'Analyser avec l\'IA'}
+                        </button>
+                      )}
+                      {fullOcrResult && !isAnalyzing && (
+                        <button
+                          type="button"
+                          onClick={handleManualAnalyze}
+                          title="Relancer l'analyse"
+                          className="p-1.5 text-slate-400 hover:text-purple-500 transition-colors"
+                        >
+                          <Loader2 size={12} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {showOcrDetails && fullOcrResult && (
+                    <div className="bg-slate-900 text-slate-300 p-4 rounded-xl border border-slate-800 font-mono text-[10px] overflow-x-auto animate-in slide-in-from-top-2 duration-200 shadow-inner">
+                      <div className="flex justify-between items-center mb-2 pb-2 border-b border-slate-800">
+                        <span className="text-indigo-400 font-bold uppercase tracking-widest text-[9px]">Analyse Technique OCR</span>
+                        <span className="text-slate-500">{fullOcrResult.model}</span>
+                      </div>
+                      <pre className="whitespace-pre-wrap">{JSON.stringify(fullOcrResult.rawData || fullOcrResult, null, 2)}</pre>
+                      {fullOcrResult.usage && (
+                        <div className="mt-4 pt-2 border-t border-slate-800 text-indigo-400 flex justify-between font-bold">
+                          <span>Performance</span>
+                          <span>{fullOcrResult.usage.total} tokens</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* File input */}
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleFileChange}
+                className="block w-full text-sm text-slate-500 dark:text-slate-400
+                  file:mr-4 file:py-2 file:px-4
+                  file:rounded-full file:border-0
+                  file:text-sm file:font-semibold
+                  file:bg-purple-50 file:text-purple-700
+                  hover:file:bg-purple-100
+                  dark:file:bg-purple-900/30 dark:file:text-purple-400
+                  dark:hover:file:bg-purple-900/50
+                  cursor-pointer"
+              />
+              <p className="text-xs text-slate-500 dark:text-slate-400 text-center italic">
+                Prenez une photo ou choisissez un fichier (max 5MB)
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-3 pt-6 border-t border-slate-100 dark:border-slate-800 mt-6">
+              <Button
+                type="submit"
+                isLoading={isSubmitting}
+                className="flex-1 order-1 text-xs uppercase h-12 rounded-2xl"
+              >
+                <Save size={18} />
+                {expense ? 'Mettre à jour' : 'Enregistrer'}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={onClose}
+                className="flex-1 order-2 text-xs h-12 rounded-2xl"
+              >
+                <X size={18} /> Annuler
+              </Button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
-  </div>
   );
 }

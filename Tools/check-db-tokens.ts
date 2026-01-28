@@ -17,7 +17,7 @@ async function main() {
 
     if (usage.length > 0) {
       console.log('\n10 derniers enregistrements :');
-      console.table(usage.map(u => ({
+      console.table(usage.map((u: any) => ({
         id: u.id,
         model: u.model,
         total: u.totalTokens,
@@ -32,9 +32,9 @@ async function main() {
     } else {
       console.log('\nAucun enregistrement trouvé.');
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erreur lors de la vérification :', error.message);
-    if (error.message.includes('not found')) {
+    if (error.message?.includes('not found')) {
       console.log('CONSEIL : La table n\'existe peut-être pas encore. Avez-vous fait "npx prisma db push" ?');
     }
   } finally {
