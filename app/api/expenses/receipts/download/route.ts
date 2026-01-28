@@ -25,7 +25,7 @@ export async function GET(request: Request) {
     };
 
     if (startDate && endDate) {
-      where.date = {
+      where.recordingDate = {
         gte: new Date(startDate),
         lte: new Date(endDate)
       };
@@ -39,7 +39,7 @@ export async function GET(request: Request) {
     const expenses = await (prisma as any).expense.findMany({
       where,
       include: { user: true },
-      orderBy: { date: 'desc' }
+      orderBy: { recordingDate: 'desc' }
     });
 
     if (expenses.length === 0) {
@@ -53,15 +53,35 @@ export async function GET(request: Request) {
       if (!expense.receiptUrl) continue;
 
       try {
-        // Read file from disk
-        const filePath = path.join(process.cwd(), 'public', expense.receiptUrl);
-        const fileBuffer = await fs.readFile(filePath);
+        let fileBuffer: Buffer | ArrayBuffer;
+
+        if (expense.receiptUrl.startsWith('http')) {
+          // Fetch from external URL (Vercel Blob)
+          const response = await fetch(expense.receiptUrl);
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          fileBuffer = await response.arrayBuffer();
+        } else {
+          // Read file from disk
+          const filePath = path.join(process.cwd(), 'public', expense.receiptUrl);
+          fileBuffer = await fs.readFile(filePath);
+        }
 
         // Generate readable filename
-        const date = new Date(expense.date).toISOString().split('T')[0];
+        const date = new Date(expense.recordingDate || expense.date).toISOString().split('T')[0];
         const motif = expense.motif.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
         const amount = expense.amount.toFixed(2).replace('.', ',');
-        const ext = path.extname(expense.receiptUrl);
+
+        // Handle extension carefully for URLs
+        let ext = '.jpg'; // Default extension
+        try {
+          const urlPath = expense.receiptUrl.startsWith('http')
+            ? new URL(expense.receiptUrl).pathname
+            : expense.receiptUrl;
+          ext = path.extname(urlPath) || '.jpg';
+        } catch (e) {
+          ext = path.extname(expense.receiptUrl) || '.jpg';
+        }
+
         const fileName = `${date}_${motif}_${amount}€${ext}`;
 
         // Add to ZIP
