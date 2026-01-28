@@ -273,8 +273,8 @@ export default function ExpensesPage() {
             <div className="hidden lg:flex flex-col gap-1 mr-4 min-w-[200px] border-r border-slate-200 dark:border-slate-700 pr-4">
               <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                 <span className="flex items-center gap-1.5">
-                  <HardDrive size={10} className={storageStats.usagePercentage > 80 ? "text-orange-500" : "text-blue-500"} />
-                  Stockage Cloud
+                  <HardDrive size={10} className={storageStats.usagePercentage > 80 ? "text-orange-500" : (storageStats.storageType === 'local' ? "text-indigo-500" : "text-blue-500")} />
+                  Stockage {storageStats.storageType === 'local' ? 'Local' : 'Cloud'}
                 </span>
                 <span>{Math.round(storageStats.usagePercentage)}%</span>
               </div>
