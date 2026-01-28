@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { useTitle } from '@/components/TitleContext';
 import { getContrastColor, cn } from '@/lib/utils';
+import EventModal from '@/components/EventModal';
 
 interface Worker {
   id: string;
@@ -26,6 +27,7 @@ interface PlanningEvent {
   type: 'ASSIGNMENT' | 'APPOINTMENT';
   backgroundColor: string;
   patientName?: string;
+  workerName?: string;
   location?: string;
   status?: string;
 }
@@ -41,6 +43,11 @@ export default function TeamPlanningPage() {
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [events, setEvents] = useState<PlanningEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Modal states
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [selectedEventType, setSelectedEventType] = useState<'ASSIGNMENT' | 'APPOINTMENT'>('ASSIGNMENT');
 
   const isAdmin = session?.user?.role === 'ADMIN';
 
@@ -78,7 +85,8 @@ export default function TeamPlanningPage() {
             userId: e.extendedProps?.userId,
             type: e.extendedProps?.type,
             backgroundColor: e.backgroundColor,
-            patientName: e.extendedProps?.patientName,
+            patientName: e.extendedProps?.patientName || e.patientName,
+            workerName: e.extendedProps?.workerName,
             location: e.extendedProps?.location,
             status: e.extendedProps?.status
           }));
@@ -183,13 +191,10 @@ export default function TeamPlanningPage() {
                 </div>
                 {workers.map(worker => (
                   <div key={worker.id} className="h-20 flex flex-col items-center justify-center p-3 border-r border-slate-100 last:border-r-0 dark:border-slate-800">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: worker.color }} />
                       <span className="font-extrabold text-sm text-slate-800 dark:text-slate-100 truncate max-w-[140px] tracking-tight">{worker.name}</span>
                     </div>
-                    <Badge variant="slate" className="text-[9px] px-2 py-0 h-4 bg-slate-200/50 dark:bg-slate-800 text-slate-500 font-black uppercase tracking-tighter">
-                      {worker.role}
-                    </Badge>
                   </div>
                 ))}
               </div>
@@ -220,37 +225,49 @@ export default function TeamPlanningPage() {
                       {workerEvents.map(event => {
                         const style = getEventStyle(event);
                         const isCancelled = event.status === 'CANCELLED';
-                        const isAppointment = event.type === 'APPOINTMENT';
+                        const start = parseISO(event.startTime);
+                        const end = parseISO(event.endTime);
+                        const durationMin = differenceInMinutes(end, start);
+                        const durationStr = durationMin >= 60
+                          ? `${Math.floor(durationMin / 60)}h${durationMin % 60 > 0 ? (durationMin % 60).toString().padStart(2, '0') : ''}`
+                          : `${durationMin}min`;
 
                         return (
                           <div
                             key={event.id}
+                            onClick={() => {
+                              setSelectedEventId(event.id);
+                              setSelectedEventType(event.type);
+                              setIsModalOpen(true);
+                            }}
                             className={cn(
-                              "absolute left-1 right-1 rounded-xl p-2 text-[10px] leading-tight shadow-md overflow-hidden flex flex-col justify-center border border-white/20 transition-transform active:scale-95 z-10",
+                              "absolute left-1 right-1 rounded-xl shadow-md overflow-hidden transition-all active:scale-95 z-10 cursor-pointer hover:brightness-110 hover:shadow-lg border border-white/20",
                               isCancelled && "bg-hatched-pattern opacity-60 grayscale-[0.5]"
                             )}
                             style={style}
                           >
-                            <div className="font-black truncate mb-0.5">{event.title}</div>
+                            <div className="flex flex-col items-center justify-center p-1 text-center h-full gap-0.5">
+                                {/* Worker Name (Intervenant) / Title - Prominent */}
+                                <div className="font-black text-[12px] sm:text-[14px] leading-tight w-full line-clamp-1 px-1">
+                                    {event.workerName || event.title}
+                                </div>
 
-                            {event.patientName && (
-                              <div className="flex items-center gap-1 font-bold opacity-90 truncate">
-                                <Heart size={10} className="shrink-0" />
-                                {event.patientName}
-                              </div>
-                            )}
+                                {/* Patient Name (Au profit de...) */}
+                                {event.patientName && (
+                                    <div className="font-extrabold text-[11px] sm:text-[13px] leading-tight w-full line-clamp-1 px-1 uppercase opacity-90">
+                                        {event.patientName}
+                                    </div>
+                                )}
 
-                            {event.location && (
-                              <div className="flex items-center gap-1 font-bold opacity-90 truncate">
-                                <MapPin size={10} className="shrink-0" />
-                                {event.location}
-                              </div>
-                            )}
+                                {/* Time Range */}
+                                <div className="bg-black/10 rounded-lg font-black text-[10px] sm:text-xs px-2 py-0.5 mt-0.5 whitespace-nowrap">
+                                    {format(start, 'HH:mm')} - {format(end, 'HH:mm')}
+                                </div>
 
-                            <div className="mt-1 flex items-center justify-between">
-                                <span className="p-0.5 bg-black/10 rounded font-black text-[8px] px-1">
-                                    {format(parseISO(event.startTime), 'HH:mm')} - {format(parseISO(event.endTime), 'HH:mm')}
-                                </span>
+                                {/* Duration */}
+                                <div className="text-[9px] sm:text-[10px] font-bold opacity-80 italic leading-none">
+                                    {durationStr}
+                                </div>
                             </div>
                           </div>
                         );
@@ -263,6 +280,20 @@ export default function TeamPlanningPage() {
           </div>
         </div>
       )}
+
+      <EventModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedEventId(null);
+        }}
+        onSave={() => {
+          fetchData();
+        }}
+        selectedDate={selectedDate}
+        eventId={selectedEventId}
+        eventType={selectedEventType}
+      />
     </div>
   );
 }

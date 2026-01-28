@@ -5,6 +5,7 @@ import { fr } from 'date-fns/locale';
 import { useSession } from 'next-auth/react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
+import { cn } from '@/lib/utils';
 
 interface Props {
   isOpen: boolean;
@@ -31,6 +32,53 @@ export default function AppointmentManager({ isOpen, onClose, onEdit, onCreate, 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Draggable state
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    if (isOpen) {
+      setPosition({ x: 0, y: 0 });
+    }
+  }, [isOpen]);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('.drag-handle')) {
+        setIsDragging(true);
+        setDragOffset({
+          x: e.clientX - position.x,
+          y: e.clientY - position.y
+        });
+    }
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isDragging) {
+        setPosition({
+          x: e.clientX - dragOffset.x,
+          y: e.clientY - dragOffset.y
+        });
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, dragOffset]);
 
   const fetchAppointments = async () => {
     setIsLoading(true);
@@ -60,13 +108,25 @@ export default function AppointmentManager({ isOpen, onClose, onEdit, onCreate, 
   );
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 overflow-y-auto p-2 sm:p-4 md:p-8 animate-in fade-in duration-200">
+    <div className="fixed inset-0 bg-slate-900/20 z-50 overflow-y-auto p-2 sm:p-4 md:p-8 animate-in fade-in duration-200 pointer-events-none">
       <div className="flex min-h-full items-start justify-center py-4 sm:py-10">
-        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-100 dark:border-slate-800 flex flex-col md:max-h-[90vh]">
+        <div
+          className={cn(
+            "bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-2xl border border-slate-100 dark:border-slate-800 flex flex-col md:max-h-[90vh] transition-shadow pointer-events-auto",
+            isDragging ? "shadow-blue-500/20 shadow-2xl ring-2 ring-blue-500/20" : ""
+          )}
+          style={{
+            transform: `translate(${position.x}px, ${position.y}px)`,
+            cursor: isDragging ? 'grabbing' : 'auto'
+          }}
+        >
 
         {/* Header */}
-        <div className="bg-slate-50 dark:bg-slate-900/50 px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-            <div className="flex items-center gap-3">
+        <div
+          onMouseDown={handleMouseDown}
+          className="bg-slate-50 dark:bg-slate-900/50 px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center drag-handle cursor-grab active:cursor-grabbing"
+        >
+            <div className="flex items-center gap-3 pointer-events-none">
                 <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
                     <Calendar size={20} />
                 </div>

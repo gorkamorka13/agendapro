@@ -41,7 +41,7 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
       return new NextResponse(validatedData.error.issues[0].message, { status: 400 });
     }
 
-    const { userId, patientId, startTime, endTime, ignoreConflict } = validatedData.data;
+    const { userId, patientId, startTime, endTime, ignoreConflict, status, notes } = validatedData.data;
 
     const start = new Date(startTime);
     const end = new Date(endTime);
@@ -79,9 +79,11 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
       where: { id },
       data: {
         userId,
-        patientId: patientId,
+        patientId,
         startTime: start,
         endTime: end,
+        status,
+        notes,
       },
     });
 

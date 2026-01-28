@@ -26,6 +26,53 @@ export default function EventModal({ isOpen, onClose, onSave, selectedDate, even
   const queryClient = useQueryClient();
   const { data: session } = useSession();
 
+  // Draggable state
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    if (isOpen) {
+      setPosition({ x: 0, y: 0 });
+    }
+  }, [isOpen]);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('.drag-handle')) {
+        setIsDragging(true);
+        setDragOffset({
+          x: e.clientX - position.x,
+          y: e.clientY - position.y
+        });
+    }
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isDragging) {
+        setPosition({
+          x: e.clientX - dragOffset.x,
+          y: e.clientY - dragOffset.y
+        });
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, dragOffset]);
+
   // Type selection (disabled when editing)
   const [eventType, setEventType] = useState<'ASSIGNMENT' | 'APPOINTMENT'>(initialEventType);
 
@@ -179,6 +226,7 @@ export default function EventModal({ isOpen, onClose, onSave, selectedDate, even
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: [eventType === 'ASSIGNMENT' ? 'assignment' : 'appointment', eventId] });
       const eventLabel = eventType === 'ASSIGNMENT' ? 'Intervention' : 'Rendez-vous';
       toast.success(isEditing ? `${eventLabel} mis(e) à jour` : `${eventLabel} créé(e)`);
       onSave();
@@ -258,6 +306,7 @@ export default function EventModal({ isOpen, onClose, onSave, selectedDate, even
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: [eventType === 'ASSIGNMENT' ? 'assignment' : 'appointment', eventId] });
       const actionMap: Record<string, string> = {
         'complete': eventType === 'ASSIGNMENT' ? 'validée' : 'validé',
         'cancel': eventType === 'ASSIGNMENT' ? 'annulée' : 'annulé',
@@ -332,11 +381,23 @@ export default function EventModal({ isOpen, onClose, onSave, selectedDate, even
       : (eventType === 'ASSIGNMENT' ? 'Détails de l\'affectation' : 'Gestion des activités hors-interventions');
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 overflow-y-auto p-2 sm:p-4 md:p-8 animate-in fade-in duration-200">
+    <div className="fixed inset-0 bg-slate-900/20 z-50 overflow-y-auto p-2 sm:p-4 md:p-8 animate-in fade-in duration-200 pointer-events-none">
       <div className="flex min-h-full items-start justify-center py-4 sm:py-10">
-        <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-lg border border-slate-100 dark:border-slate-800 flex flex-col overflow-hidden">
-          <div className="bg-slate-50 dark:bg-slate-800/50 px-4 sm:px-8 py-4 sm:py-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-            <div className="flex-1">
+        <div
+          className={cn(
+            "bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-lg border border-slate-100 dark:border-slate-800 flex flex-col overflow-hidden pointer-events-auto transition-shadow",
+            isDragging ? "shadow-blue-500/20 shadow-2xl ring-2 ring-blue-500/20" : ""
+          )}
+          style={{
+            transform: `translate(${position.x}px, ${position.y}px)`,
+            cursor: isDragging ? 'grabbing' : 'auto'
+          }}
+        >
+          <div
+            onMouseDown={handleMouseDown}
+            className="bg-slate-50 dark:bg-slate-800/50 px-4 sm:px-8 py-4 sm:py-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center drag-handle cursor-grab active:cursor-grabbing"
+          >
+            <div className="flex-1 pointer-events-none">
               <div className="flex items-center gap-3">
                 <h2 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tight">
                   {modalTitle}

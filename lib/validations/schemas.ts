@@ -1,5 +1,6 @@
 // Fichier: lib/validations/schemas.ts
 import { z } from 'zod';
+import { AssignmentStatus } from '@prisma/client';
 
 export const assignmentSchema = z.object({
   userId: z.string().min(1, "L'intervenant est requis"),
@@ -7,6 +8,8 @@ export const assignmentSchema = z.object({
   startTime: z.string().datetime(),
   endTime: z.string().datetime(),
   ignoreConflict: z.boolean().optional().default(false),
+  status: z.nativeEnum(AssignmentStatus).optional(),
+  notes: z.string().optional().nullable(),
   // Recurrence fields
   isRecurring: z.boolean().optional().default(false),
   frequency: z.enum(['DAILY', 'WEEKLY', 'MONTHLY']).optional(),

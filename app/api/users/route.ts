@@ -15,15 +15,30 @@ export async function GET() {
   }
 
   try {
-    let whereClause = {};
-    if (session.user.role !== Role.ADMIN) {
-      whereClause = { id: session.user.id };
-    } else {
-      whereClause = {}; // L'admin voit TOUT le monde (incluant les autres admins)
+    const isVisitor = (session.user.role as any) === 'VISITEUR';
+    const isAdmin = session.user.role === Role.ADMIN;
+
+    if (isVisitor) {
+      // Les visiteurs ne voient que leur propre compte
+      const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: {
+          id: true,
+          name: true,
+          fullName: true,
+          email: true,
+          role: true,
+          hourlyRate: true,
+          travelCost: true,
+          color: true,
+        }
+      });
+      return NextResponse.json(user ? [user] : []);
     }
 
+    // Pour les USERS (Intervenants) et ADMINS
+    // On récupère tout le monde pour le planning d'équipe
     const users = await prisma.user.findMany({
-      where: whereClause,
       orderBy: {
         name: 'asc',
       },
@@ -39,7 +54,21 @@ export async function GET() {
       }
     });
 
-    return NextResponse.json(users);
+    // Nettoyage des données sensibles pour les non-admins
+    const filteredUsers = users.map(u => {
+      const canSeeSensitive = isAdmin || u.id === session.user.id;
+      if (!canSeeSensitive) {
+        return {
+          ...u,
+          hourlyRate: null,
+          travelCost: null,
+          email: null, // On peut aussi masquer l'email par sécurité si besoin
+        };
+      }
+      return u;
+    });
+
+    return NextResponse.json(filteredUsers);
 
   } catch (error) {
     console.error("Erreur lors de la récupération des utilisateurs:", error);

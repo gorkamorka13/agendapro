@@ -66,12 +66,13 @@ export async function GET() {
         end: assignment.endTime,
         backgroundColor,
         borderColor: backgroundColor,
+        patientName: patientName,
         extendedProps: {
           type: 'ASSIGNMENT',
           userId: assignment.userId,
           patientId: assignment.patientId,
           workerName: assignment.user.name,
-          patientName: hidePatientLabel ? '' : patientName,
+          patientName: patientName,
           status: assignment.status,
           isRecurring: assignment.isRecurring
         }
