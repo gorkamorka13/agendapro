@@ -10,6 +10,7 @@ interface ExportOptions {
   dailyAmplitude: boolean;
   detailedLogs: boolean;
   evaluationAnalytics: boolean;
+  includeReceipts: boolean;
 }
 
 export type ExportFormat = 'pdf' | 'excel';
@@ -26,6 +27,7 @@ export default function ExportModal({ isOpen, onClose, onExport }: Props) {
     dailyAmplitude: true,
     detailedLogs: true,
     evaluationAnalytics: true,
+    includeReceipts: false,
   });
   const [format, setFormat] = useState<ExportFormat>('pdf');
 
@@ -108,6 +110,19 @@ export default function ExportModal({ isOpen, onClose, onExport }: Props) {
               <span className={`text-sm font-bold ${options.evaluationAnalytics ? 'text-slate-800 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`}>Analyses & Graphiques (%)</span>
             </div>
             {options.evaluationAnalytics ? <CheckSquare className="text-blue-600 dark:text-blue-400" size={20} /> : <Square className="text-slate-200 dark:text-slate-700" size={20} />}
+          </button>
+
+          <button
+            onClick={() => toggleOption('includeReceipts')}
+            className="w-full flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-2xl hover:border-blue-200 dark:hover:border-blue-500/50 transition-all text-left"
+          >
+            <div className="flex items-center gap-3">
+              <div className={`p-1.5 rounded-md ${options.includeReceipts ? 'text-purple-600 dark:text-purple-400' : 'text-slate-300 dark:text-slate-600'}`}>
+                <Download size={18} />
+              </div>
+              <span className={`text-sm font-bold ${options.includeReceipts ? 'text-slate-800 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`}>Justificatifs Photos (Cloud/Blob)</span>
+            </div>
+            {options.includeReceipts ? <CheckSquare className="text-purple-600 dark:text-purple-400" size={20} /> : <Square className="text-slate-200 dark:text-slate-700" size={20} />}
           </button>
         </div>
 

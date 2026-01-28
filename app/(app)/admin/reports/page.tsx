@@ -16,6 +16,7 @@ interface ExportOptions {
   dailyAmplitude: boolean;
   detailedLogs: boolean;
   evaluationAnalytics: boolean;
+  includeReceipts: boolean;
 }
 import {
   BarChart,
@@ -93,6 +94,7 @@ interface ExpenseEntry {
   amount: number;
   date: string;
   recordingDate: string;
+  receiptUrl?: string | null;
 }
 
 interface AppointmentEntry {
@@ -707,6 +709,103 @@ export default function ReportsPage() {
 
         doc.text(`AGENDA PRO - © Michel ESPARSA`, 14, 290);
         doc.text(`Page ${i} sur ${pageCount}`, 185, 290);
+    }
+
+    // --- 9. RECEIPTS PHOTOS CHAPTER ---
+    if (options.includeReceipts && reportData.expenses && reportData.expenses.length > 0) {
+      const expensesWithReceipts = reportData.expenses.filter(exp => exp.receiptUrl);
+
+      if (expensesWithReceipts.length > 0) {
+        doc.addPage();
+        currentY = 20;
+
+        doc.setFillColor(30, 41, 59); // Slate 900
+        doc.rect(0, 0, 210, 30, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(18);
+        doc.setFont('helvetica', 'bold');
+        doc.text('GALERIE DES JUSTIFICATIFS', 105, 18, { align: 'center' });
+
+        currentY = 45;
+
+        for (let i = 0; i < expensesWithReceipts.length; i++) {
+          const exp = expensesWithReceipts[i];
+          if (!exp.receiptUrl) continue;
+
+          // Before adding anything, check if we need a new page for the TITLE area
+          if (currentY > 260) {
+            doc.addPage();
+            currentY = 20;
+          }
+
+          // Title for each receipt
+          doc.setTextColor(30, 41, 59);
+          doc.setFontSize(12);
+          doc.setFont('helvetica', 'bold');
+          const dateStr = new Date(exp.recordingDate || exp.date).toLocaleDateString('fr-FR');
+          doc.text(`${i + 1}. ${exp.motif.toUpperCase()} (${exp.amount.toFixed(2)} €) - ${dateStr}`, 14, currentY);
+
+          doc.setDrawColor(226, 232, 240);
+          doc.line(14, currentY + 2, 196, currentY + 2);
+
+          currentY += 12; // Extra space after title line
+
+          try {
+            // Fetch image and convert to Base64
+            const imgUrl = exp.receiptUrl.startsWith('http')
+              ? exp.receiptUrl
+              : `${window.location.origin}/${exp.receiptUrl}`;
+
+            const imgResponse = await fetch(imgUrl);
+            const blob = await imgResponse.blob();
+
+            // Get original image dimensions to calculate proper height
+            const imgData = await new Promise<{base64: string, w: number, h: number}>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => {
+                const base64 = reader.result as string;
+                const img = new Image();
+                img.onload = () => resolve({ base64, w: img.width, h: img.height });
+                img.onerror = reject;
+                img.src = base64;
+              };
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
+
+            // Calculate display height based on fixed width (140mm)
+            const targetWidth = 140;
+            const targetHeight = (imgData.h * targetWidth) / imgData.w;
+
+            // Page break check: if title + image exceeds page, move image (and maybe title) to next page
+            if (currentY + targetHeight > 275) {
+              doc.addPage();
+              currentY = 20;
+              // Re-draw title on new page
+              doc.setTextColor(30, 41, 59);
+              doc.setFontSize(12);
+              doc.setFont('helvetica', 'bold');
+              doc.text(`${i + 1}. ${exp.motif.toUpperCase()} (${exp.amount.toFixed(2)} €) - ${dateStr} (Suite)`, 14, currentY);
+              doc.setDrawColor(226, 232, 240);
+              doc.line(14, currentY + 2, 196, currentY + 2);
+              currentY += 12;
+            }
+
+            // Draw image
+            doc.addImage(imgData.base64, 'JPEG', 35, currentY, targetWidth, targetHeight);
+
+            // Update currentY for next entry
+            currentY += targetHeight + 20; // Padding
+
+          } catch (e) {
+            console.error("Erreur chargement image PDF:", e);
+            doc.setTextColor(239, 68, 68);
+            doc.setFontSize(10);
+            doc.text("Échec du chargement de l'image justificatif.", 14, currentY);
+            currentY += 15;
+          }
+        }
+      }
     }
 
     doc.save(`Rapport_${selectedUser?.name || 'Global'}_${startDate}.pdf`);
