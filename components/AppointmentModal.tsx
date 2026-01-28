@@ -236,7 +236,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
                 )}
             </div>
             <p className="text-slate-500 dark:text-slate-400/80 text-xs sm:text-sm font-medium mt-0.5">
-                {isCancelled ? 'Ce rendez-vous a été annulé.' : (isCompleted ? 'Réalisé et non modifiable.' : 'Gestion des activités hors-interventions')}
+                {isCancelled ? 'Ce rendez-vous a été annulé.' : (isCompleted ? (isAdmin ? 'Réalisé (Modifiable par l\'Admin)' : 'Réalisé et non modifiable.') : 'Gestion des activités hors-interventions')}
             </p>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
@@ -257,7 +257,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
             required
-            disabled={!isAdmin || isCompleted}
+            disabled={(!isAdmin && isCompleted)}
             placeholder="Rendezvous medecin, visite..."
           />
 
@@ -268,7 +268,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               required
-              disabled={!isAdmin || isCompleted}
+              disabled={(!isAdmin && isCompleted)}
               placeholder="Ex: Bureau, Domicile..."
             />
             <Select
@@ -277,7 +277,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
               value={userId}
               onChange={(e) => setUserId(e.target.value)}
               required
-              disabled={!isAdmin || isCompleted}
+              disabled={(!isAdmin && isCompleted)}
             >
               <option value="">Sélectionner...</option>
               {users.map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}
@@ -319,7 +319,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
-              disabled={!isAdmin || isCompleted}
+              disabled={(!isAdmin && isCompleted)}
               className="w-full p-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl outline-none text-sm text-slate-700 dark:text-slate-200 resize-none"
             />
           </div>

@@ -51,6 +51,7 @@ export async function GET(request: Request) {
         startTime: { gte: startDate, lt: endDate },
         status: { not: 'CANCELLED' }
       },
+      orderBy: { startTime: 'asc' },
       include: {
         patient: true,
         user: true,
@@ -128,7 +129,49 @@ export async function GET(request: Request) {
       teamDistributionDataMap[workerName] = (teamDistributionDataMap[workerName] || 0) + durationHours;
     });
 
-    // 2. Récupérer les dépenses de la période
+    // 2. Récupérer les rendez-vous (Appointments)
+    const appointments = await prisma.appointment.findMany({
+      where: {
+        startTime: { gte: startDate, lt: endDate },
+        status: { not: 'CANCELLED' },
+        ...(userId !== 'all' ? { userId } : {})
+      },
+      orderBy: { startTime: 'asc' },
+      include: { user: true }
+    });
+
+    const appointmentEntries = appointments.map(apt => {
+      const start = new Date(apt.startTime);
+      const end = new Date(apt.endTime);
+      const durationMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
+      const isRealized = apt.status === 'COMPLETED' || end < new Date();
+      const user = apt.user;
+
+      if (isRealized) {
+        realizedTotalMinutes += durationMinutes;
+      } else {
+        plannedTotalMinutes += durationMinutes;
+      }
+
+      // Add to chart data
+      const dayKey = start.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+      chartDataMap[dayKey] = (chartDataMap[dayKey] || 0) + (durationMinutes / 60);
+
+      return {
+        id: apt.id,
+        date: start.toLocaleDateString('fr-FR'),
+        subject: apt.subject,
+        location: apt.location,
+        worker: user.name || 'Inconnu',
+        startTime: start.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+        endTime: end.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+        duration: (durationMinutes / 60).toFixed(2),
+        status: apt.status,
+        isRealized
+      };
+    });
+
+    // 3. Récupérer les dépenses de la période
     const expensesQuery: any = {
       where: {
         date: {
@@ -165,6 +208,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       workedHours: detailedEntries,
+      appointments: appointmentEntries,
       chartData,
       dailySummaries: [],
       distributionData,

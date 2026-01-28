@@ -73,11 +73,21 @@ export async function DELETE(request: Request, props: { params: Promise<{ id: st
 
   try {
     const id = parseInt(params.id.replace('apt-', ''), 10);
+
+    // Check if appointment exists first
+    const existing = await prisma.appointment.findUnique({
+      where: { id },
+    });
+
+    if (!existing) {
+      return new NextResponse('Rendez-vous non trouvé', { status: 404 });
+    }
+
     await prisma.appointment.delete({
       where: { id },
     });
 
-    return new NextResponse('Rendez-vous supprimé', { status: 200 });
+    return new NextResponse(null, { status: 204 });
   } catch (error) {
     console.error("Erreur lors de la suppression du rendez-vous:", error);
     return new NextResponse('Erreur interne du serveur', { status: 500 });

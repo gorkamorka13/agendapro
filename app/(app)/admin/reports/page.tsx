@@ -94,8 +94,22 @@ interface ExpenseEntry {
   date: string;
 }
 
+interface AppointmentEntry {
+  date: string;
+  subject: string;
+  location: string;
+  worker: string;
+  startTime: string;
+  endTime: string;
+  duration: string;
+  pay: string;
+  status: string;
+  isRealized: boolean;
+}
+
 interface ReportData {
   workedHours: DetailedEntry[];
+  appointments: AppointmentEntry[];
   chartData: ChartEntry[];
   dailySummaries: DailySummary[];
   distributionData: DistributionEntry[];
@@ -259,7 +273,13 @@ export default function ReportsPage() {
 
       const res = await fetch(endpoint);
       if (res.ok) {
-        setReportData(await res.json());
+        const data = await res.json();
+        console.log('📊 Données du rapport reçues:', {
+          interventions: data.workedHours?.length,
+          appointments: data.appointments?.length,
+          appointmentsData: data.appointments
+        });
+        setReportData(data);
       } else {
         const errorText = await res.text();
         console.error(`Erreur: ${errorText}`);
@@ -1024,7 +1044,7 @@ export default function ReportsPage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* DETAILS CARD */}
+            {/* INTERVENTIONS CARD */}
             <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col col-span-3 lg:col-span-2">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 uppercase tracking-tight">Journal des Interventions</h3>
@@ -1088,6 +1108,36 @@ export default function ReportsPage() {
               </div>
             </div>
           </div>
+
+          {/* APPOINTMENTS CARD */}
+          {reportData.appointments && reportData.appointments.length > 0 && (
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 uppercase tracking-tight">Journal des Rendez-vous</h3>
+                <Calendar size={20} className="text-purple-500 opacity-50" />
+              </div>
+
+              <div className="overflow-y-auto max-h-[500px] space-y-3 pr-2 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700 text-xs">
+                {reportData.appointments.map((entry, i) => (
+                  <div key={i} className="p-3 bg-purple-50/50 dark:bg-purple-900/10 rounded-xl border border-purple-100 dark:border-purple-500/20">
+                    <div className="flex justify-between items-start mb-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-slate-400">{entry.date}</span>
+                        <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-md ${entry.isRealized ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20' : 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400'}`}>
+                          {entry.isRealized ? 'Réalisé' : 'Planifié'}
+                        </span>
+                      </div>
+                      <span className="font-bold text-purple-600">{entry.duration} h</span>
+                    </div>
+                    <div className="font-bold text-slate-700 dark:text-slate-200">{entry.subject}</div>
+                    <div className="text-purple-600 dark:text-purple-400 font-bold uppercase text-[10px]">Lieu: {entry.location}</div>
+                    {selectedUserId === 'all' && <div className="text-indigo-600 font-bold uppercase text-[10px]">Intervenant: {entry.worker}</div>}
+                    <div className="text-slate-500 mt-1">{entry.startTime} - {entry.endTime} | <span className="font-bold">{entry.pay} €</span></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

@@ -7,8 +7,7 @@ import { EventClickArg } from '@fullcalendar/core';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin, { DateClickArg } from '@fullcalendar/interaction';
-import AssignmentModal from './AssignmentModal';
-import AppointmentModal from './AppointmentModal';
+import EventModal from './EventModal';
 import AppointmentManager from './AppointmentManager';
 import { useSession } from 'next-auth/react';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -44,12 +43,11 @@ export default function AssignmentCalendar() {
 
 
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
+  const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const [isAppointmentManagerOpen, setIsAppointmentManagerOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
-  const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [selectedEventType, setSelectedEventType] = useState<'ASSIGNMENT' | 'APPOINTMENT'>('ASSIGNMENT');
   const [tooltip, setTooltip] = useState<{ x: number; y: number; text: string; visible: boolean }>({
     x: 0,
     y: 0,
@@ -119,8 +117,9 @@ export default function AssignmentCalendar() {
   const handleDateClick = (arg: DateClickArg) => {
     if ((session?.user?.role as Role) === 'VISITEUR') return;
     setSelectedDate(arg.date);
-    setSelectedAssignmentId(null);
-    setIsModalOpen(true);
+    setSelectedEventId(null);
+    setSelectedEventType('ASSIGNMENT'); // Default to assignment
+    setIsEventModalOpen(true);
   };
 
   const handleEventClick = (arg: EventClickArg) => {
@@ -130,13 +129,9 @@ export default function AssignmentCalendar() {
     // (la checkbox gère sa propre sélection via stopPropagation)
     const isAppointment = arg.event.extendedProps.type === 'APPOINTMENT';
 
-    if (isAppointment) {
-      setSelectedAppointmentId(arg.event.id);
-      setIsAppointmentModalOpen(true);
-    } else {
-      setSelectedAssignmentId(arg.event.id);
-      setIsModalOpen(true);
-    }
+    setSelectedEventId(arg.event.id);
+    setSelectedEventType(isAppointment ? 'APPOINTMENT' : 'ASSIGNMENT');
+    setIsEventModalOpen(true);
   };
 
   const handleSave = () => {
@@ -278,7 +273,7 @@ export default function AssignmentCalendar() {
         </div>
 
         <div className="flex items-center gap-2">
-            {isAdmin && isSelectionMode && (
+            {isAdmin && (
               <>
                 <Button
                   variant="outline"
@@ -510,13 +505,7 @@ export default function AssignmentCalendar() {
           </div>
         </div>
       )}
-      <AssignmentModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSave={handleSave}
-        selectedDate={selectedDate}
-        assignmentId={selectedAssignmentId}
-      />
+
 
       {/* Bulk Action Bar */}
       {isSelectionMode && selectedEvents.size > 0 && (
@@ -642,39 +631,32 @@ export default function AssignmentCalendar() {
         </div>
       )}
 
-      <AssignmentModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+      <EventModal
+        isOpen={isEventModalOpen}
+        onClose={() => {
+          setIsEventModalOpen(false);
+          setSelectedEventId(null);
+        }}
         onSave={handleSave}
         selectedDate={selectedDate}
-        assignmentId={selectedAssignmentId}
-      />
-      <AppointmentModal
-        isOpen={isAppointmentModalOpen}
-        onClose={() => {
-          setIsAppointmentModalOpen(false);
-          setSelectedAppointmentId(null);
-        }}
-        onSave={() => {
-          handleSave();
-          setSelectedAppointmentId(null);
-        }}
-        selectedDate={selectedDate}
-        appointmentId={selectedAppointmentId}
+        eventId={selectedEventId}
+        eventType={selectedEventType}
       />
       <AppointmentManager
         isOpen={isAppointmentManagerOpen}
         onClose={() => setIsAppointmentManagerOpen(false)}
         onEdit={(id) => {
-          setSelectedAppointmentId(id);
+          setSelectedEventId(id);
           setIsAppointmentManagerOpen(false);
-          setIsAppointmentModalOpen(true);
+          setSelectedEventType('APPOINTMENT');
+          setIsEventModalOpen(true);
         }}
         onCreate={() => {
-          setSelectedAppointmentId(null);
+          setSelectedEventId(null);
           setSelectedDate(new Date());
           setIsAppointmentManagerOpen(false);
-          setIsAppointmentModalOpen(true);
+          setSelectedEventType('APPOINTMENT');
+          setIsEventModalOpen(true);
         }}
         onView={(date) => {
           const calendarApi = calendarRef.current?.getApi();

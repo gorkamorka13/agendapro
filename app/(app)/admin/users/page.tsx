@@ -362,7 +362,7 @@ export default function UserManagementPage() {
                     )}
                   </div>
                 )}
-                {role === 'USER' && (
+                {(role === 'USER' || (role === 'ADMIN' && name !== 'admin')) && (
                   <>
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate">Taux Horaire (€/h)</label>

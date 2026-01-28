@@ -288,7 +288,7 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
               )}
             </div>
             <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-medium mt-0.5">
-              {isCancelled ? 'Cette intervention a été annulée.' : (isCompleted ? 'Réalisée et non modifiable.' : 'Détails de l\'affectation')}
+              {isCancelled ? 'Cette intervention a été annulée.' : (isCompleted ? (isAdmin ? 'Réalisée (Modifiable par l\'Admin)' : 'Réalisée et non modifiable.') : 'Détails de l\'affectation')}
             </p>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
@@ -316,7 +316,7 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
               value={userId}
               onChange={(e) => setUserId(e.target.value)}
               required
-              disabled={!isAdmin || isCompleted || showOverlapWarning}
+              disabled={(!isAdmin && isCompleted) || showOverlapWarning}
             >
               <option value="">Sélectionner...</option>
               {users
@@ -330,7 +330,7 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
               value={patientId}
               onChange={(e) => setPatientId(e.target.value)}
               required
-              disabled={(isCompleted && !isAdmin) || showOverlapWarning}
+              disabled={(!isAdmin && isCompleted) || showOverlapWarning}
             >
               <option value="">Sélectionner...</option>
               {patients.map((patient) => <option key={patient.id} value={patient.id}>{patient.firstName} {patient.lastName}</option>)}
