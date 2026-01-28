@@ -171,16 +171,16 @@ export async function GET(request: Request) {
       };
     });
 
-    // 3. Récupérer les dépenses de la période
+    // 3. Récupérer les dépenses de la période (basé sur la date de saisie)
     const expensesQuery: any = {
       where: {
-        date: {
+        recordingDate: {
           gte: startDate,
           lt: endDate,
         },
       },
       include: { user: true },
-      orderBy: { date: 'asc' },
+      orderBy: { recordingDate: 'asc' },
     };
 
     if (userId !== 'all') {

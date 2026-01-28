@@ -13,7 +13,7 @@ export async function GET() {
   try {
     const expenses = await (prisma as any).expense.findMany({
       include: { user: true },
-      orderBy: { date: 'desc' },
+      orderBy: { recordingDate: 'desc' },
     });
     return NextResponse.json(expenses);
   } catch (error) {

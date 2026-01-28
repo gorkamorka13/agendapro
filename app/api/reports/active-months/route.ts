@@ -41,6 +41,19 @@ export async function GET(request: Request) {
       where: assignmentWhere,
       select: { startTime: true }
     });
+
+    // Récupérer aussi les dépenses (basé sur la date de saisie)
+    const expenseWhere: any = {};
+    if (session.user.role !== Role.ADMIN) {
+      expenseWhere.userId = session.user.id;
+    } else if (userId && userId !== 'all') {
+      expenseWhere.userId = userId;
+    }
+
+    const expenses = await prisma.expense.findMany({
+      where: expenseWhere,
+      select: { recordingDate: true }
+    });
     // END CHANGE
 
     const activeMonthsSet = new Set<string>();
@@ -53,6 +66,7 @@ export async function GET(request: Request) {
 
     workedHours.forEach(wh => addToSet(new Date(wh.startTime)));
     assignments.forEach(a => addToSet(new Date(a.startTime)));
+    expenses.forEach(e => addToSet(new Date(e.recordingDate)));
 
     const activeMonths = Array.from(activeMonthsSet).map(s => {
       const [year, month] = s.split('-').map(Number);

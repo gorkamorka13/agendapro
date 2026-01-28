@@ -92,6 +92,7 @@ interface ExpenseEntry {
   motif: string;
   amount: number;
   date: string;
+  recordingDate: string;
 }
 
 interface AppointmentEntry {
@@ -356,7 +357,7 @@ export default function ReportsPage() {
     // 4. Sheet: Expenses
     if (options.financialSummary && reportData.expenses && reportData.expenses.length > 0) {
       const expensesData = reportData.expenses.map(exp => ({
-        "Date": new Date(exp.date).toLocaleDateString('fr-FR'),
+        "Date": new Date(exp.recordingDate || exp.date).toLocaleDateString('fr-FR'),
         "Bénéficiaire": (exp as any).user?.name || '-',
         "Motif": exp.motif,
         "Montant (€)": exp.amount
@@ -665,7 +666,7 @@ export default function ReportsPage() {
             startY: currentY + 5,
             head: [['Date', 'Beneficiaire', 'Motif de la dépense', 'Montant']],
             body: reportData.expenses.map(exp => [
-                new Date(exp.date).toLocaleDateString('fr-FR'),
+                new Date(exp.recordingDate || exp.date).toLocaleDateString('fr-FR'),
                 (exp as any).user?.name || '-',
                 exp.motif,
                 `${exp.amount.toFixed(2)} €`
@@ -1088,7 +1089,7 @@ export default function ReportsPage() {
                     <div key={i} className="p-3 bg-emerald-50/50 dark:bg-emerald-500/5 rounded-xl border border-emerald-100/50 dark:border-emerald-500/20 flex justify-between items-center group">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                           <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">{new Date(expense.date).toLocaleDateString('fr-FR')}</span>
+                           <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase">{new Date(expense.recordingDate || expense.date).toLocaleDateString('fr-FR')}</span>
                            <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase truncate">| {expense.user?.name || 'Inconnu'}</span>
                         </div>
                         <div className="text-sm font-black text-slate-700 dark:text-slate-200 truncate">{expense.motif}</div>

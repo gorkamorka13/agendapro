@@ -29,8 +29,8 @@ export default function ExpensesPage() {
       const res = await fetch('/api/expenses');
       if (res.ok) {
         const data = await res.json();
-        // Sort by date descending (newest first)
-        const sortedData = data.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        // Sort by recordingDate descending (newest first)
+        const sortedData = data.sort((a: any, b: any) => new Date(b.recordingDate).getTime() - new Date(a.recordingDate).getTime());
         setExpenses(sortedData);
       }
     } catch (error) {
@@ -452,20 +452,27 @@ export default function ExpensesPage() {
               <div className="space-y-4">
                 <div>
                     <div className="flex items-center gap-2 mb-2">
-                        <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-md border border-indigo-100 dark:border-indigo-800 flex items-center gap-1">
+                        <span
+                          className="text-[9px] font-black uppercase px-2 py-0.5 rounded-md flex items-center gap-1 border"
+                          style={{
+                            backgroundColor: `${expense.user?.color}15`,
+                            color: expense.user?.color || '#6366f1',
+                            borderColor: `${expense.user?.color}40`
+                          }}
+                        >
                             <UserIcon size={10} />
                             {expense.user?.name || 'Système'}
                         </span>
                     </div>
                   <h3 className="text-lg font-black text-slate-800 dark:text-white truncate">{expense.motif}</h3>
                   <div className="flex flex-col gap-1 text-[10px] font-bold uppercase tracking-wider mt-1">
-                    <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500">
-                      <Calendar size={12} className="text-blue-500" />
-                      Achat : {new Date(expense.date).toLocaleDateString('fr-FR')}
-                    </div>
-                    <div className="flex items-center gap-2 text-slate-300 dark:text-slate-600 italic">
-                      <FileText size={12} />
+                    <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-black">
+                      <FileText size={12} className="text-blue-600 dark:text-blue-400" />
                       Saisie : {expense.recordingDate ? new Date(expense.recordingDate).toLocaleDateString('fr-FR') : 'Inconnue'}
+                    </div>
+                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-bold italic">
+                      <Calendar size={12} className="text-slate-400 dark:text-slate-500" />
+                      Achat : {new Date(expense.date).toLocaleDateString('fr-FR')}
                     </div>
                   </div>
                 </div>
