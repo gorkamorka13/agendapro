@@ -118,14 +118,16 @@ export default function TeamPlanningPage() {
     };
   };
 
-  if (!isAdmin) {
+  const isVisitor = (session?.user?.role as any) === 'VISITEUR';
+
+  if (isVisitor) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
         <div className="p-4 bg-amber-100 text-amber-600 rounded-full">
             <Info size={48} />
         </div>
         <h2 className="text-xl font-bold">Accès non autorisé</h2>
-        <p className="text-slate-500">Seuls les administrateurs peuvent consulter le planning d'équipe.</p>
+        <p className="text-slate-500">Les comptes Visiteur ne peuvent pas consulter le planning d'équipe.</p>
       </div>
     );
   }

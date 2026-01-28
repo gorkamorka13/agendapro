@@ -112,7 +112,7 @@ export default function AppointmentManager({ isOpen, onClose, onEdit, onCreate, 
       <div className="flex min-h-full items-start justify-center py-4 sm:py-10">
         <div
           className={cn(
-            "bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-2xl border border-slate-100 dark:border-slate-800 flex flex-col md:max-h-[90vh] transition-shadow pointer-events-auto",
+            "bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-2xl border border-slate-100 dark:border-slate-800 flex flex-col md:max-h-[90vh] transition-shadow pointer-events-auto overflow-hidden",
             isDragging ? "shadow-blue-500/20 shadow-2xl ring-2 ring-blue-500/20" : ""
           )}
           style={{

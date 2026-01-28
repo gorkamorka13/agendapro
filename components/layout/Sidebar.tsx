@@ -54,6 +54,18 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
           {!isVisitor && (
             <li className="mb-2">
               <Link
+                href="/team-planning"
+                className={`${linkStyle} ${pathname === '/team-planning' ? activeStyle : defaultStyle}`}
+                onClick={() => onClose()}
+              >
+                Planning Équipe
+              </Link>
+            </li>
+          )}
+
+          {!isVisitor && (
+            <li className="mb-2">
+              <Link
                 href={isAdmin ? `/admin/reports?userId=${session?.user?.id}` : "/user/reports"}
                 className={`${linkStyle} ${(pathname === '/user/reports' || (isAdmin && pathname === '/admin/reports' && searchParams.get('userId') === (session?.user?.id || ''))) ? activeStyle : defaultStyle}`}
                 onClick={() => onClose()}
@@ -84,15 +96,6 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                   onClick={() => onClose()}
                 >
                   Gestion Utilisateurs
-                </Link>
-              </li>
-              <li className="mb-2">
-                <Link
-                  href="/admin/team-planning"
-                  className={`${linkStyle} ${pathname === '/admin/team-planning' ? activeStyle : defaultStyle}`}
-                  onClick={() => onClose()}
-                >
-                  Planning Équipe
                 </Link>
               </li>
               <li className="mb-2">
