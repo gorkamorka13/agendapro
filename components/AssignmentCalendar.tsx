@@ -283,7 +283,7 @@ export default function AssignmentCalendar() {
                   title="Télécharger une sauvegarde de la base de données"
                 >
                   <Database size={16} className="text-blue-600 dark:text-blue-400" />
-                  <span className="hidden lg:inline">Sauvegarder BDD</span>
+                  <span className="inline">Sauvegarder BDD</span>
                 </Button>
 
                 <Button
@@ -300,12 +300,12 @@ export default function AssignmentCalendar() {
                   {isSelectionMode ? (
                     <>
                       <X size={14} />
-                      <span className="hidden sm:inline">Quitter</span>
+                      <span className="inline">Quitter</span>
                     </>
                   ) : (
                     <>
                       <Settings2 size={14} />
-                      <span className="hidden sm:inline">Sélection</span>
+                      <span className="inline">Sélection</span>
                     </>
                   )}
                 </Button>

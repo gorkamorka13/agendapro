@@ -22,6 +22,7 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
   const [motif, setMotif] = useState('');
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState('');
+  const [recordingDate, setRecordingDate] = useState('');
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const [existingReceiptUrl, setExistingReceiptUrl] = useState<string | null>(null);
@@ -29,6 +30,8 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [autoFilledFields, setAutoFilledFields] = useState<string[]>([]);
   const [isDateManuallyDirty, setIsDateManuallyDirty] = useState(false);
+  const [fullOcrResult, setFullOcrResult] = useState<any>(null);
+  const [showOcrDetails, setShowOcrDetails] = useState(false);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -48,6 +51,7 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
       setMotif(expense.motif);
       setAmount(expense.amount.toString());
       setDate(new Date(expense.date).toISOString().split('T')[0]);
+      setRecordingDate(expense.recordingDate ? new Date(expense.recordingDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
       setExistingReceiptUrl(expense.receiptUrl || null);
       setReceiptFile(null);
       setReceiptPreview(null);
@@ -57,12 +61,16 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
       setUserId('');
       setMotif('');
       setAmount('');
-      setDate(new Date().toISOString().split('T')[0]);
+      const today = new Date().toISOString().split('T')[0];
+      setDate(today);
+      setRecordingDate(today);
       setExistingReceiptUrl(null);
       setReceiptFile(null);
       setReceiptPreview(null);
       setAutoFilledFields([]);
       setIsDateManuallyDirty(false);
+      setFullOcrResult(null);
+      setShowOcrDetails(false);
     }
   }, [expense, isOpen]);
 
@@ -82,10 +90,15 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
       setAutoFilledFields([]);
       try {
         const result = await analyzeReceipt(file);
+        setFullOcrResult(result);
 
         if (result.amount || result.date || result.merchant || result.tax || result.category) {
           const dateStr = result.date ? new Date(result.date).toLocaleDateString('fr-FR') : '?';
-          const modelName = result.model === 'gemini-2.0-flash-exp' ? 'Gemini 2.0 Flash' : 'Gemini 1.5 Flash';
+
+          let modelName = 'IA Gemini';
+          if (result.model?.includes('2.5')) modelName = 'Gemini 2.5 Flash 🚀';
+          else if (result.model?.includes('2.0')) modelName = 'Gemini 2.0 Flash ✨';
+          else if (result.model?.includes('1.5')) modelName = 'Gemini 1.5 Flash';
 
           let msg = `Analyse ${modelName} ✨\n\n`;
           if (result.merchant) msg += `- Commerçant : ${result.merchant}\n`;
@@ -95,7 +108,13 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
           if (result.paymentMethod) msg += `- Paiement : ${result.paymentMethod}\n`;
 
           msg += `- Date : ${dateStr}${isDateManuallyDirty ? ' (remplacera la vôtre)' : ''}\n`;
-          msg += `\nVoulez-vous remplir automatiquement le formulaire ?`;
+
+          if (result.usage) {
+            msg += `\n📊 Consommation : ${result.usage.total} tokens`;
+            msg += ` (Total global : ${result.usage.globalTotal.toLocaleString()} tokens)`;
+          }
+
+          msg += `\n\nVoulez-vous remplir automatiquement le formulaire ?`;
 
           if (window.confirm(msg)) {
             const newAutoFields = [];
@@ -127,11 +146,33 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
     }
   };
 
+  const handleManualAnalyze = async () => {
+    const target = receiptFile || existingReceiptUrl;
+    if (!target) return;
+
+    setIsAnalyzing(true);
+    setAutoFilledFields([]);
+    try {
+      const result = await analyzeReceipt(target);
+      setFullOcrResult(result);
+
+      if (result.amount || result.date || result.merchant || result.tax || result.category) {
+        toast.info("Analyse réussie. Cliquez sur 'Détails IA' pour voir les résultats.");
+      }
+    } catch (error) {
+      console.error("Manual OCR Analysis failed:", error);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   const handleRemoveReceipt = () => {
     setReceiptFile(null);
     setReceiptPreview(null);
     setExistingReceiptUrl(null);
     setAutoFilledFields([]);
+    setFullOcrResult(null);
+    setShowOcrDetails(false);
   };
 
   if (!isOpen) return null;
@@ -152,6 +193,7 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
       formData.append('motif', motif);
       formData.append('amount', amount);
       formData.append('date', date);
+      formData.append('recordingDate', recordingDate);
       formData.append('userId', userId);
       if (receiptFile) {
         formData.append('receipt', receiptFile);
@@ -246,9 +288,9 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
               )}
             </div>
             <div className="relative">
-              <Tooltip content="La date peut être extraite de la photo du ticket" position="right">
+              <Tooltip content="La date d'achat figurant sur votre ticket ou justificatif" position="right">
                 <Input
-                  label="Date"
+                  label="Date d'achat / ticket"
                   icon={<Calendar size={12} className="text-indigo-500" />}
                   type="date"
                   required
@@ -264,6 +306,18 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
               {autoFilledFields.includes('date') && (
                 <Sparkles size={14} className="absolute right-3 top-9 text-purple-500 animate-pulse" />
               )}
+            </div>
+            <div className="relative">
+              <Tooltip content="La date à laquelle cette dépense est enregistrée dans le système" position="left">
+                <Input
+                  label="Date d'enregistrement"
+                  icon={<FileText size={12} className="text-slate-500" />}
+                  type="date"
+                  required
+                  value={recordingDate}
+                  onChange={(e) => setRecordingDate(e.target.value)}
+                />
+              </Tooltip>
             </div>
           </div>
 
@@ -284,21 +338,80 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
 
             {/* Show existing or preview image */}
             {(receiptPreview || existingReceiptUrl) && (
-              <div className="relative inline-block">
-                <img
-                  src={receiptPreview || existingReceiptUrl || ''}
-                  alt="Justificatif"
-                  className="max-w-full h-32 object-contain rounded-lg border-2 border-slate-200 dark:border-slate-700"
-                />
-                <Tooltip content="Retirer ce justificatif">
-                  <button
-                    type="button"
-                    onClick={handleRemoveReceipt}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </Tooltip>
+              <div className="flex flex-col gap-3">
+                <div className="relative inline-block w-fit group">
+                  <img
+                    src={receiptPreview || existingReceiptUrl || ''}
+                    alt="Justificatif"
+                    className="max-w-full h-32 object-contain rounded-xl border-2 border-slate-200 dark:border-slate-700 shadow-sm"
+                  />
+                  <Tooltip content="Retirer ce justificatif">
+                    <button
+                      type="button"
+                      onClick={handleRemoveReceipt}
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-all shadow-lg border-2 border-white dark:border-slate-900"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </Tooltip>
+                </div>
+
+                <div className="flex items-center justify-between gap-2 bg-slate-100 dark:bg-slate-800/50 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700/50">
+                  <div className="flex items-center gap-2 text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                    <FileText size={14} className="text-purple-500" />
+                    <span className="truncate max-w-[180px]">
+                      {receiptFile ? receiptFile.name : (existingReceiptUrl ? existingReceiptUrl.split('/').pop() : 'Fichier inconnu')}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {fullOcrResult ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowOcrDetails(!showOcrDetails)}
+                        className={`text-[10px] font-black px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${showOcrDetails ? 'bg-indigo-600 text-white shadow-sm' : 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800'}`}
+                      >
+                        <Sparkles size={10} />
+                        {showOcrDetails ? 'Masquer' : 'Détails IA'}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleManualAnalyze}
+                        disabled={isAnalyzing}
+                        className="text-[10px] font-black px-3 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 border border-purple-100 dark:border-purple-800 hover:bg-purple-100 transition-all flex items-center gap-1.5"
+                      >
+                        <Sparkles size={10} className={isAnalyzing ? 'animate-spin' : ''} />
+                        {isAnalyzing ? 'Analyse...' : 'Analyser avec l\'IA'}
+                      </button>
+                    )}
+                    {fullOcrResult && !isAnalyzing && (
+                      <button
+                        type="button"
+                        onClick={handleManualAnalyze}
+                        title="Relancer l'analyse"
+                        className="p-1.5 text-slate-400 hover:text-purple-500 transition-colors"
+                      >
+                        <Loader2 size={12} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {showOcrDetails && fullOcrResult && (
+                  <div className="bg-slate-900 text-slate-300 p-4 rounded-xl border border-slate-800 font-mono text-[10px] overflow-x-auto animate-in slide-in-from-top-2 duration-200 shadow-inner">
+                    <div className="flex justify-between items-center mb-2 pb-2 border-b border-slate-800">
+                      <span className="text-indigo-400 font-bold uppercase tracking-widest text-[9px]">Analyse Technique OCR</span>
+                      <span className="text-slate-500">{fullOcrResult.model}</span>
+                    </div>
+                    <pre className="whitespace-pre-wrap">{JSON.stringify(fullOcrResult.rawData || fullOcrResult, null, 2)}</pre>
+                    {fullOcrResult.usage && (
+                      <div className="mt-4 pt-2 border-t border-slate-800 text-indigo-400 flex justify-between font-bold">
+                        <span>Performance</span>
+                        <span>{fullOcrResult.usage.total} tokens</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
@@ -318,8 +431,8 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
                 dark:hover:file:bg-purple-900/50
                 cursor-pointer"
             />
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              JPG, PNG, WEBP ou GIF (max 5MB)
+            <p className="text-xs text-slate-500 dark:text-slate-400 text-center italic">
+              Prenez une photo ou choisissez un fichier (max 5MB)
             </p>
           </div>
 
@@ -327,7 +440,7 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
             <Button
               type="submit"
               isLoading={isSubmitting}
-              className="flex-1 order-1 text-xs uppercase"
+              className="flex-1 order-1 text-xs uppercase h-12 rounded-2xl"
             >
               <Save size={18} />
               {expense ? 'Mettre à jour' : 'Enregistrer'}
@@ -336,7 +449,7 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
               type="button"
               variant="secondary"
               onClick={onClose}
-              className="flex-1 order-2 text-xs"
+              className="flex-1 order-2 text-xs h-12 rounded-2xl"
             >
               <X size={18} /> Annuler
             </Button>

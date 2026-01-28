@@ -81,15 +81,27 @@ model WorkedHours {
 }
 
 model Expense {
-  id         Int      @id @default(autoincrement())
-  motif      String
-  amount     Float
-  date       DateTime @default(now())
-  receiptUrl String?
-  userId     String?
-  user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            Int      @id @default(autoincrement())
+  motif         String
+  amount        Float
+  date          DateTime @default(now()) // Date de l'achat / ticket
+  recordingDate DateTime @default(now()) // Date de saisie
+  receiptUrl    String?
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, date])
+  @@index([recordingDate])
+}
+
+model AiUsage {
+  id               Int      @id @default(autoincrement())
+  model            String
+  promptTokens     Int
+  candidatesTokens Int
+  totalTokens      Int
+  feature          String   @default("OCR")
+  createdAt        DateTime @default(now())
 }
 
 model Invoice {

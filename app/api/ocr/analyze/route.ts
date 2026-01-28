@@ -53,9 +53,9 @@ export async function POST(request: Request) {
 
     // Liste des modèles à essayer par ordre de préférence (Précision/Vitesse)
     const modelsToTry = [
-      { name: "gemini-2.0-flash-exp", version: "v1beta" as const },
-      { name: "gemini-1.5-flash", version: "v1" as const },
-      { name: "gemini-1.5-flash-latest", version: "v1beta" as const }
+      { name: "gemini-2.5-flash", version: "v1beta" as const },
+      { name: "gemini-2.0-flash", version: "v1beta" as const },
+      { name: "gemini-2.0-flash-001", version: "v1beta" as const }
     ];
 
     let result;
@@ -65,7 +65,13 @@ export async function POST(request: Request) {
     for (const modelCfg of modelsToTry) {
       try {
         console.log(`Tentative d'analyse avec ${modelCfg.name}...`);
-        const model = genAI.getGenerativeModel({ model: modelCfg.name }, { apiVersion: modelCfg.version });
+        const model = genAI.getGenerativeModel({
+          model: modelCfg.name,
+          generationConfig: {
+            responseMimeType: "application/json",
+          }
+        }, { apiVersion: modelCfg.version });
+
         result = await model.generateContent([SYSTEM_PROMPT, modelParams]);
         successfulModel = modelCfg.name;
         // Si on arrive ici, l'analyse a réussi
@@ -86,13 +92,47 @@ export async function POST(request: Request) {
     }
 
     const text = result.response.text();
+    const usage = result.response.usageMetadata;
+
+    // Enregistrer l'utilisation en base de données de manière asynchrone (pas besoin d'attendre pour répondre)
+    const { prisma } = await import('@/lib/prisma');
+    let globalTotal = 0;
+
+    // @ts-ignore
+    if (prisma.aiUsage && usage) {
+      // @ts-ignore
+      await prisma.aiUsage.create({
+        data: {
+          model: successfulModel,
+          promptTokens: usage.promptTokenCount,
+          candidatesTokens: usage.candidatesTokenCount,
+          totalTokens: usage.totalTokenCount,
+          feature: "OCR"
+        }
+      }).catch(err => console.error("Erreur enregistrement usage IA:", err));
+
+      // Calculer le total cumulé pour l'afficher
+      // @ts-ignore
+      const totalUsage = await prisma.aiUsage.aggregate({
+        _sum: { totalTokens: true }
+      });
+      globalTotal = totalUsage._sum.totalTokens || 0;
+    }
+
     // Nettoyer le texte au cas où Gemini ajouterait des balises ```json
     const jsonString = text.replace(/```json/g, '').replace(/```/g, '').trim();
 
     try {
       const parsedData = JSON.parse(jsonString);
-      // Ajouter le nom du modèle aux données retournées
+      // Ajouter le nom du modèle et les jetons aux données retournées
       parsedData.model = successfulModel;
+      parsedData.usage = usage ? {
+        prompt: usage.promptTokenCount,
+        candidates: usage.candidatesTokenCount,
+        total: usage.totalTokenCount,
+        globalTotal
+      } : null;
+
       return NextResponse.json(parsedData);
     } catch (parseError) {
       console.error("Erreur de parsing JSON Gemini:", text);
@@ -101,6 +141,12 @@ export async function POST(request: Request) {
 
   } catch (error: any) {
     console.error("Erreur Gemini OCR:", error);
+
+    // Gestion spécifique du quota (429 Too Many Requests)
+    if (error.status === 429 || error.message?.includes('429')) {
+      return new NextResponse('Quota IA dépassé ou trop de requêtes. Veuillez patienter 30 secondes avant de réessayer.', { status: 429 });
+    }
+
     return new NextResponse(error.message || 'Erreur lors de l\'analyse par l\'IA', { status: 500 });
   }
 }

@@ -23,6 +23,19 @@ export async function GET() {
       cursor = result.cursor;
     }
 
+    // Calculer le total des jetons consommés
+    const { prisma } = await import('@/lib/prisma');
+    let totalAiTokens = 0;
+
+    // @ts-ignore
+    if (prisma.aiUsage) {
+      // @ts-ignore
+      const tokenStats = await prisma.aiUsage.aggregate({
+        _sum: { totalTokens: true }
+      });
+      totalAiTokens = tokenStats._sum.totalTokens || 0;
+    }
+
     // Limite gratuite Vercel Blob : 250 MB
     const limitBytes = 250 * 1024 * 1024;
     const usagePercentage = (totalSize / limitBytes) * 100;
@@ -32,7 +45,8 @@ export async function GET() {
       limitBytes,
       usagePercentage: Math.min(usagePercentage, 100),
       formattedSize: formatBytes(totalSize),
-      formattedLimit: formatBytes(limitBytes)
+      formattedLimit: formatBytes(limitBytes),
+      totalAiTokens
     });
   } catch (error) {
     console.error("Erreur lors du calcul de l'usage stockage:", error);

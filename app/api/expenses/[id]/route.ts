@@ -16,6 +16,7 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
     const motif = formData.get('motif') as string | null;
     const amount = formData.get('amount') as string | null;
     const date = formData.get('date') as string | null;
+    const recordingDate = formData.get('recordingDate') as string | null;
     const userId = formData.get('userId') as string | null;
     const receiptFile = formData.get('receipt') as File | null;
     const deleteReceipt = formData.get('deleteReceipt') === 'true';
@@ -69,7 +70,8 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
     const data: any = {};
     if (motif !== null) data.motif = motif;
     if (amount !== null) data.amount = parseFloat(amount);
-    if (date !== null) data.date = new Date(date);
+    if (date !== null) data.date = new Date(date as string);
+    if (recordingDate !== null) data.recordingDate = new Date(recordingDate as string);
     if (userId !== null) data.userId = userId;
     data.receiptUrl = receiptUrl;
 

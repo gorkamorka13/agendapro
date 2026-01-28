@@ -77,6 +77,7 @@ export default function ExpensesPage() {
         motif: expense.motif,
         amount: expense.amount,
         date: expense.date,
+        recordingDate: expense.recordingDate,
         userName: expense.user?.name
       });
     }
@@ -129,9 +130,9 @@ export default function ExpensesPage() {
 
       if (ocrResult.amount || ocrResult.date || ocrResult.merchant || ocrResult.tax || ocrResult.category) {
         const dateStr = ocrResult.date ? new Date(ocrResult.date).toLocaleDateString('fr-FR') : '?';
-        const modelName = ocrResult.model === 'gemini-2.0-flash-exp' ? 'Gemini 2.0 Flash' : 'Gemini 1.5 Flash';
+        const modelName = ocrResult.model?.includes('2.0') ? 'Gemini 2.0 Flash ✨' : 'Gemini 1.5 Flash';
 
-        let msg = `Justificatif analysé avec ${modelName} ✨\n\nDonnées détectées :\n`;
+        let msg = `Justificatif analysé avec ${modelName}\n\nDonnées détectées :\n`;
         if (ocrResult.merchant) msg += `- Commerçant : ${ocrResult.merchant}\n`;
         msg += `- Montant : ${ocrResult.amount || '?'} €\n`;
         if (ocrResult.tax) msg += `- TVA : ${ocrResult.tax} €\n`;
@@ -139,7 +140,12 @@ export default function ExpensesPage() {
         if (ocrResult.paymentMethod) msg += `- Paiement : ${ocrResult.paymentMethod}\n`;
         msg += `- Date : ${dateStr}\n`;
 
-        msg += `\nVoulez-vous mettre à jour la dépense avec ces données ?`;
+        if (ocrResult.usage) {
+          msg += `\n📊 Consommation : ${ocrResult.usage.total} tokens`;
+          msg += ` (Total global : ${ocrResult.usage.globalTotal.toLocaleString()} tokens)`;
+        }
+
+        msg += `\n\nVoulez-vous mettre à jour la dépense avec ces données ?`;
 
         if (window.confirm(msg)) {
           finalAmount = ocrResult.amount;
@@ -185,9 +191,9 @@ export default function ExpensesPage() {
 
       if (ocrResult.amount || ocrResult.date || ocrResult.merchant || ocrResult.tax || ocrResult.category) {
         const dateStr = ocrResult.date ? new Date(ocrResult.date).toLocaleDateString('fr-FR') : '?';
-        const modelName = ocrResult.model === 'gemini-2.0-flash-exp' ? 'Gemini 2.0 Flash' : 'Gemini 1.5 Flash';
+        const modelName = ocrResult.model?.includes('2.0') ? 'Gemini 2.0 Flash ✨' : 'Gemini 1.5 Flash';
 
-        let msg = `Analyse ${modelName} ✨\n\nDonnées détectées :\n`;
+        let msg = `Analyse ${modelName}\n\nDonnées détectées :\n`;
         if (ocrResult.merchant) msg += `- Commerçant : ${ocrResult.merchant}\n`;
         msg += `- Montant : ${ocrResult.amount || '?'} €\n`;
         if (ocrResult.tax) msg += `- TVA : ${ocrResult.tax} €\n`;
@@ -195,7 +201,12 @@ export default function ExpensesPage() {
         if (ocrResult.paymentMethod) msg += `- Paiement : ${ocrResult.paymentMethod}\n`;
         msg += `- Date : ${dateStr}\n`;
 
-        msg += `\nVoulez-vous mettre à jour la dépense avec ces données ?`;
+        if (ocrResult.usage) {
+          msg += `\n📊 Consommation : ${ocrResult.usage.total} tokens`;
+          msg += ` (Total global : ${ocrResult.usage.globalTotal.toLocaleString()} tokens)`;
+        }
+
+        msg += `\n\nVoulez-vous mettre à jour la dépense avec ces données ?`;
 
         if (window.confirm(msg)) {
           const formData = new FormData();
@@ -259,7 +270,7 @@ export default function ExpensesPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-3">
           {storageStats && (
-            <div className="hidden lg:flex flex-col gap-1 mr-4 min-w-[150px]">
+            <div className="hidden lg:flex flex-col gap-1 mr-4 min-w-[200px] border-r border-slate-200 dark:border-slate-700 pr-4">
               <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                 <span className="flex items-center gap-1.5">
                   <HardDrive size={10} className={storageStats.usagePercentage > 80 ? "text-orange-500" : "text-blue-500"} />
@@ -276,8 +287,12 @@ export default function ExpensesPage() {
                   style={{ width: `${storageStats.usagePercentage}%` }}
                 />
               </div>
-              <div className="text-[10px] text-slate-400 font-medium">
-                {storageStats.formattedSize} / {storageStats.formattedLimit}
+              <div className="flex justify-between items-center text-[10px] font-medium mt-0.5">
+                <span className="text-slate-400">{storageStats.formattedSize} / {storageStats.formattedLimit}</span>
+                <span className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-black">
+                  <Sparkles size={8} />
+                  {(storageStats.totalAiTokens || 0).toLocaleString()} tokens
+                </span>
               </div>
             </div>
           )}
@@ -443,9 +458,15 @@ export default function ExpensesPage() {
                         </span>
                     </div>
                   <h3 className="text-lg font-black text-slate-800 dark:text-white truncate">{expense.motif}</h3>
-                  <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-wider mt-1">
-                    <Calendar size={12} />
-                    {new Date(expense.date).toLocaleDateString('fr-FR')}
+                  <div className="flex flex-col gap-1 text-[10px] font-bold uppercase tracking-wider mt-1">
+                    <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500">
+                      <Calendar size={12} className="text-blue-500" />
+                      Achat : {new Date(expense.date).toLocaleDateString('fr-FR')}
+                    </div>
+                    <div className="flex items-center gap-2 text-slate-300 dark:text-slate-600 italic">
+                      <FileText size={12} />
+                      Saisie : {expense.recordingDate ? new Date(expense.recordingDate).toLocaleDateString('fr-FR') : 'Inconnue'}
+                    </div>
                   </div>
                 </div>
                 <div className="pt-4 border-t border-slate-50 dark:border-slate-700/50 flex items-center justify-between">

@@ -12,6 +12,13 @@ export interface OCRResult {
   paymentMethod: string | null;
   currency: string | null;
   model: string | null;
+  usage?: {
+    prompt: number;
+    candidates: number;
+    total: number;
+    globalTotal: number;
+  } | null;
+  rawData?: any;
 }
 
 /**
@@ -37,7 +44,19 @@ export async function analyzeReceipt(fileOrUrl: File | string): Promise<OCRResul
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(errorText || 'Erreur lors de l\'analyse IA');
+      console.warn(`OCR API Error (${response.status}):`, errorText);
+
+      if (response.status === 429 || errorText.includes('Quota')) {
+        toast.error(errorText || "Quota Gemini dépassé (429). Réessayez dans 30s.");
+      } else {
+        toast.error(errorText || "L'IA n'a pas pu analyser le ticket.");
+      }
+
+      return {
+        amount: null, date: null, merchant: null, tax: null,
+        category: null, paymentMethod: null, currency: null,
+        model: null, usage: null
+      };
     }
 
     const data = await response.json();
@@ -50,12 +69,14 @@ export async function analyzeReceipt(fileOrUrl: File | string): Promise<OCRResul
       category: data.category || null,
       paymentMethod: data.paymentMethod || null,
       currency: data.currency || null,
-      model: data.model || null
+      model: data.model || null,
+      usage: data.usage || null,
+      rawData: data
     };
 
-  } catch (error) {
-    console.error("Gemini AI Analysis failed:", error);
-    toast.error("L'IA n'a pas pu analyser le ticket. Veuillez saisir les données manuellement.");
-    return { amount: null, date: null, merchant: null, tax: null, category: null, paymentMethod: null, currency: null, model: null };
+  } catch (error: any) {
+    console.error("Gemini AI Analysis critical failure:", error);
+    toast.error("Erreur de connexion avec l'IA.");
+    return { amount: null, date: null, merchant: null, tax: null, category: null, paymentMethod: null, currency: null, model: null, usage: null };
   }
 }

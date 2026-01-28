@@ -20,12 +20,16 @@ export async function uploadFile(
   directory: string = 'receipts'
 ): Promise<StorageResult> {
   const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+  const storageType = process.env.NEXT_PUBLIC_STORAGE_TYPE;
   const timestamp = Date.now();
   const cleanName = (file.name || 'image').replace(/[^a-zA-Z0-9.-]/g, '_');
   const filename = `${directory}/${timestamp}_${cleanName}`;
 
-  // 1. Priorité : Vercel Blob (Cloud)
-  if (blobToken) {
+  // 1. Priorité : Local (si forcé par env)
+  if (storageType === 'local') {
+    console.log("Stockage local forcé par NEXT_PUBLIC_STORAGE_TYPE");
+  } else if (blobToken) {
+    // 2. Vercel Blob (Cloud)
     try {
       const blob = await put(filename, file, {
         access: 'public',

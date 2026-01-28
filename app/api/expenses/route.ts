@@ -33,6 +33,7 @@ export async function POST(request: Request) {
     const motif = formData.get('motif') as string;
     const amount = formData.get('amount') as string;
     const date = formData.get('date') as string;
+    const recordingDate = formData.get('recordingDate') as string;
     const userId = formData.get('userId') as string;
     const receiptFile = formData.get('receipt') as File | null;
 
@@ -69,6 +70,7 @@ export async function POST(request: Request) {
         motif,
         amount: parseFloat(amount),
         date: new Date(date),
+        recordingDate: recordingDate ? new Date(recordingDate) : new Date(),
         userId: userId,
         receiptUrl
       },
