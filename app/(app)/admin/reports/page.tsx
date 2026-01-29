@@ -17,6 +17,7 @@ interface ExportOptions {
   detailedLogs: boolean;
   evaluationAnalytics: boolean;
   includeReceipts: boolean;
+  appointments: boolean;
 }
 import {
   BarChart,
@@ -368,6 +369,22 @@ export default function ReportsPage() {
       XLSX.utils.book_append_sheet(workbook, ws_expenses, "Dépenses");
     }
 
+    // 5. Sheet: Appointments
+    if (options.appointments && reportData.appointments && reportData.appointments.length > 0) {
+      const appointmentsData = reportData.appointments.map(apt => ({
+        "Date": apt.date,
+        "Sujet": apt.subject,
+        "Lieu": apt.location,
+        "Intervenant": apt.worker,
+        "Début": apt.startTime,
+        "Fin": apt.endTime,
+        "Durée (h)": parseFloat(apt.duration),
+        "Statut": apt.isRealized ? "Réalisé" : "Planifié"
+      }));
+      const ws_apt = XLSX.utils.json_to_sheet(appointmentsData);
+      XLSX.utils.book_append_sheet(workbook, ws_apt, "Agenda");
+    }
+
     const fileName = `Rapport_${selectedUser?.name?.replace(/\s/g, '_') || 'Global'}_${startDate}.xlsx`;
     XLSX.writeFile(workbook, fileName);
     setIsExportModalOpen(false);
@@ -380,9 +397,13 @@ export default function ReportsPage() {
     const selectedUser = users.find(u => u.id === selectedUserId);
     let currentY = 0;
 
-    // --- 1. MODERN PREMIUM HEADER ---
-    doc.setFillColor(30, 41, 59); // Slate 900
+    // --- 1. MODERN PRINT-FRIENDLY HEADER ---
+    doc.setFillColor(248, 250, 252); // Slate 50
     doc.rect(0, 0, 210, 45, 'F');
+    // Bottom border for header
+    doc.setDrawColor(226, 232, 240); // Slate 200
+    doc.setLineWidth(0.5);
+    doc.line(0, 45, 210, 45);
 
     // Add Logo
     try {
@@ -391,18 +412,18 @@ export default function ReportsPage() {
       console.error("Could not load logo in PDF", e);
     }
 
-    doc.setTextColor(255, 255, 255);
+    doc.setTextColor(30, 41, 59); // Slate 900
     doc.setFontSize(22);
     doc.setFont('helvetica', 'bold');
     doc.text('AGENDA PRO', 45, 24);
 
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(148, 163, 184); // Slate 400
+    doc.setTextColor(100, 116, 139); // Slate 500
     doc.text('GESTION INTELLIGENTE D\'INTERVENTIONS', 45, 30);
 
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(10);
+    doc.setTextColor(71, 85, 105); // Slate 600
+    doc.setFontSize(9);
     doc.text(`GÉNÉRÉ LE : ${new Date().toLocaleDateString('fr-FR')}`, 145, 20);
     doc.text(`PÉRIODE : ${new Date(startDate).toLocaleDateString('fr-FR')} - ${new Date(endDate).toLocaleDateString('fr-FR')}`, 145, 27);
 
@@ -475,22 +496,24 @@ export default function ReportsPage() {
 
       // ROW 2
       const largeCardW = (cardW * 2) + spacing;
-      // 5. Expenses
-      doc.setFillColor(30, 41, 59); // Slate 800
-      doc.roundedRect(startX, currentY, largeCardW, cardH, 3, 3, 'F');
-      doc.setFontSize(7); doc.setTextColor(148, 163, 184);
+      // 5. Expenses (Light Slate)
+      doc.setFillColor(248, 250, 252); // Slate 50
+      doc.setDrawColor(203, 213, 225); // Slate 300
+      doc.roundedRect(startX, currentY, largeCardW, cardH, 3, 3, 'FD');
+      doc.setFontSize(7); doc.setTextColor(100, 116, 139);
       doc.text('TOTAL DÉPENSES FONCTIONNEMENT', startX + 5, currentY + 7);
-      doc.setFontSize(14); doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14); doc.setTextColor(30, 41, 59); doc.setFont('helvetica', 'bold');
       doc.text(`${reportData.summary.totalExpenses.toFixed(2)} €`, startX + 5, currentY + 18);
 
-      // 6. Impact Trésorerie (Rose/Crimson)
-      doc.setFillColor(190, 18, 60); // Rose 700
-      doc.roundedRect(startX + largeCardW + spacing, currentY, largeCardW, cardH, 3, 3, 'F');
-      doc.setFontSize(7); doc.setTextColor(244, 244, 245); // Slate 50 (slightly off-white)
+      // 6. Impact Trésorerie (Light Rose)
+      doc.setFillColor(255, 241, 242); // Rose 50
+      doc.setDrawColor(253, 164, 175); // Rose 300
+      doc.roundedRect(startX + largeCardW + spacing, currentY, largeCardW, cardH, 3, 3, 'FD');
+      doc.setFontSize(7); doc.setTextColor(190, 18, 60); // Rose 700
       doc.text('IMPACT SUR TRÉSORERIE', startX + largeCardW + spacing + 5, currentY + 7);
-      doc.setFontSize(14); doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14); doc.setTextColor(159, 18, 57); doc.setFont('helvetica', 'bold'); // Rose 800
       doc.text(`${(reportData.summary.realizedPay + reportData.summary.totalExpenses).toFixed(2)} €`, startX + largeCardW + spacing + 5, currentY + 16);
-      doc.setFontSize(6); doc.setTextColor(244, 244, 245); doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6); doc.setTextColor(190, 18, 60); doc.setFont('helvetica', 'normal');
       doc.text('TOTAL PAIES + DÉPENSES', startX + largeCardW + spacing + 5, currentY + 22);
 
       currentY += cardH + 15;
@@ -655,7 +678,49 @@ export default function ReportsPage() {
       }
     }
 
-    // --- 8. EXPENSES TABLE ---
+    // --- 8. APPOINTMENTS TABLE ---
+    if (options.appointments && reportData.appointments && reportData.appointments.length > 0) {
+      if (currentY > 250) { doc.addPage(); currentY = 20; }
+
+      doc.setTextColor(30, 41, 59);
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Journal des Rendez-vous (Agenda)', 14, currentY);
+
+      autoTable(doc, {
+        startY: currentY + 5,
+        head: [['Date', 'Sujet', 'Lieu', 'Intervenant', 'Début', 'Fin', 'Durée']],
+        body: reportData.appointments.map(apt => [
+          apt.date,
+          apt.subject,
+          apt.location || '-',
+          apt.worker,
+          apt.startTime,
+          apt.endTime,
+          `${apt.duration} h`
+        ]),
+        headStyles: {
+          fillColor: [245, 158, 11], // Amber for appointments
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          halign: 'center'
+        },
+        bodyStyles: {
+          fontSize: 8,
+          textColor: [51, 65, 85]
+        },
+        alternateRowStyles: {
+          fillColor: [248, 250, 252]
+        },
+        columnStyles: {
+          6: { halign: 'right', fontStyle: 'bold' }
+        },
+        margin: { top: 20 },
+      });
+      currentY = (doc as any).lastAutoTable.finalY + 15;
+    }
+
+    // --- 9. EXPENSES TABLE ---
     if (options.financialSummary && reportData.expenses && reportData.expenses.length > 0) {
         if (currentY > 250) { doc.addPage(); currentY = 20; }
 

@@ -11,6 +11,7 @@ interface ExportOptions {
   detailedLogs: boolean;
   evaluationAnalytics: boolean;
   includeReceipts: boolean;
+  appointments: boolean;
 }
 
 export type ExportFormat = 'pdf' | 'excel';
@@ -27,6 +28,7 @@ export default function ExportModal({ isOpen, onClose, onExport }: Props) {
     dailyAmplitude: true,
     detailedLogs: true,
     evaluationAnalytics: true,
+    appointments: true,
     includeReceipts: false,
   });
   const [format, setFormat] = useState<ExportFormat>('pdf');
@@ -97,6 +99,19 @@ export default function ExportModal({ isOpen, onClose, onExport }: Props) {
               <span className={`text-sm font-bold ${options.detailedLogs ? 'text-slate-800 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`}>Détails des interventions</span>
             </div>
             {options.detailedLogs ? <CheckSquare className="text-blue-600 dark:text-blue-400" size={20} /> : <Square className="text-slate-200 dark:text-slate-700" size={20} />}
+          </button>
+
+          <button
+            onClick={() => toggleOption('appointments')}
+            className="w-full flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-2xl hover:border-blue-200 dark:hover:border-blue-500/50 transition-all text-left"
+          >
+            <div className="flex items-center gap-3">
+              <div className={`p-1.5 rounded-md ${options.appointments ? 'text-blue-600 dark:text-blue-400' : 'text-slate-300 dark:text-slate-600'}`}>
+                <FileText size={18} />
+              </div>
+              <span className={`text-sm font-bold ${options.appointments ? 'text-slate-800 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`}>Synthèse de l'agenda (Rendez-vous)</span>
+            </div>
+            {options.appointments ? <CheckSquare className="text-blue-600 dark:text-blue-400" size={20} /> : <Square className="text-slate-200 dark:text-slate-700" size={20} />}
           </button>
 
           <button
