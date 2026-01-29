@@ -94,14 +94,11 @@ export default function AssignmentCalendar() {
       router.replace('/');
     }
 
-    if (searchParams.get('mode') === 'management' && session?.user?.role === 'ADMIN') {
-      setIsSelectionMode(true);
-    } else {
-      setIsSelectionMode(false);
-      setSelectedEvents(new Map());
-      setIsReassignOpen(false);
-    }
-  }, [searchParams, router, session?.user?.role]);
+    // Reset selection mode on mount/navigation to ensure it's off by default
+    setIsSelectionMode(false);
+    setSelectedEvents(new Map());
+    setIsReassignOpen(false);
+  }, [searchParams, router]);
 
   const toggleSelectionMode = () => {
     setIsSelectionMode(prev => {
@@ -466,7 +463,6 @@ export default function AssignmentCalendar() {
                 style={{ color: textColor }}
               >
                 <div className="flex items-center justify-center gap-1">
-                  {isRecurring && <Repeat size={10} className="shrink-0 opacity-80" />}
                   <span>{eventInfo.event.title}</span>
                 </div>
               </div>

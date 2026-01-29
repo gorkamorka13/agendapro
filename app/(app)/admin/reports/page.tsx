@@ -599,9 +599,12 @@ export default function ReportsPage() {
           doc.setFont('helvetica', 'bold');
           doc.text('Journal des Interventions RÉALISÉES', 14, currentY);
 
+          const totalDuration = realizedEntries.reduce((acc, current) => acc + parseFloat(current.duration), 0);
+          const totalPay = realizedEntries.reduce((acc, current) => acc + parseFloat(current.pay.replace(',', '.')), 0);
+
           autoTable(doc, {
             startY: currentY + 5,
-            head: [['Date', 'Statut', 'Intervenant', 'Patient', 'Début', 'Fin', 'Durée', 'Cout']],
+            head: [['Date', 'Statut', 'Intervenant', 'Patient', 'Début', 'Fin', 'Durée', 'Coût']],
             body: realizedEntries.map(entry => [
               entry.date,
               'Réalisé',
@@ -612,11 +615,19 @@ export default function ReportsPage() {
               `${entry.duration} h`,
               `${entry.pay} €`
             ]),
+            foot: [['TOTAL', '', '', '', '', '', `${totalDuration.toFixed(2)} h`, `${totalPay.toFixed(2)} €`]],
+            showFoot: 'lastPage',
             headStyles: {
               fillColor: [16, 185, 129], // Emerald for realized
               textColor: [255, 255, 255],
               fontStyle: 'bold',
               halign: 'center'
+            },
+            footStyles: {
+              fillColor: [16, 185, 129],
+              textColor: [255, 255, 255],
+              fontStyle: 'bold',
+              halign: 'right'
             },
             bodyStyles: {
               fontSize: 8,
@@ -642,9 +653,12 @@ export default function ReportsPage() {
           doc.setFont('helvetica', 'bold');
           doc.text('Journal des Interventions PLANIFIÉES', 14, currentY);
 
+          const totalDuration = plannedEntries.reduce((acc, current) => acc + parseFloat(current.duration), 0);
+          const totalPay = plannedEntries.reduce((acc, current) => acc + parseFloat(current.pay.replace(',', '.')), 0);
+
           autoTable(doc, {
             startY: currentY + 5,
-            head: [['Date', 'Statut', 'Intervenant', 'Patient', 'Début', 'Fin', 'Durée', 'Cout']],
+            head: [['Date', 'Statut', 'Intervenant', 'Patient', 'Début', 'Fin', 'Durée', 'Coût']],
             body: plannedEntries.map(entry => [
               entry.date,
               'Planifié',
@@ -655,11 +669,19 @@ export default function ReportsPage() {
               `${entry.duration} h`,
               `${entry.pay} €`
             ]),
+            foot: [['TOTAL', '', '', '', '', '', `${totalDuration.toFixed(2)} h`, `${totalPay.toFixed(2)} €`]],
+            showFoot: 'lastPage',
             headStyles: {
               fillColor: [37, 99, 235], // Blue for planned
               textColor: [255, 255, 255],
               fontStyle: 'bold',
               halign: 'center'
+            },
+            footStyles: {
+              fillColor: [37, 99, 235],
+              textColor: [255, 255, 255],
+              fontStyle: 'bold',
+              halign: 'right'
             },
             bodyStyles: {
               fontSize: 8,
@@ -687,6 +709,8 @@ export default function ReportsPage() {
       doc.setFont('helvetica', 'bold');
       doc.text('Journal des Rendez-vous (Agenda)', 14, currentY);
 
+      const totalDuration = reportData.appointments.reduce((acc, current) => acc + parseFloat(current.duration), 0);
+
       autoTable(doc, {
         startY: currentY + 5,
         head: [['Date', 'Sujet', 'Lieu', 'Intervenant', 'Début', 'Fin', 'Durée']],
@@ -699,11 +723,19 @@ export default function ReportsPage() {
           apt.endTime,
           `${apt.duration} h`
         ]),
+        foot: [['TOTAL', '', '', '', '', '', `${totalDuration.toFixed(2)} h`]],
+        showFoot: 'lastPage',
         headStyles: {
           fillColor: [245, 158, 11], // Amber for appointments
           textColor: [255, 255, 255],
           fontStyle: 'bold',
           halign: 'center'
+        },
+        footStyles: {
+          fillColor: [245, 158, 11],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          halign: 'right'
         },
         bodyStyles: {
           fontSize: 8,
@@ -731,18 +763,26 @@ export default function ReportsPage() {
 
         autoTable(doc, {
             startY: currentY + 5,
-            head: [['Date', 'Beneficiaire', 'Motif de la dépense', 'Montant']],
+            head: [['Date', 'Bénéficiaire', 'Motif de la dépense', 'Montant']],
             body: reportData.expenses.map(exp => [
                 new Date(exp.recordingDate || exp.date).toLocaleDateString('fr-FR'),
                 (exp as any).user?.name || '-',
                 exp.motif,
                 `${exp.amount.toFixed(2)} €`
             ]),
+            foot: [['TOTAL', '', '', `${reportData.summary.totalExpenses.toFixed(2)} €`]],
+            showFoot: 'lastPage',
             headStyles: {
                 fillColor: [30, 41, 59],
                 textColor: [255, 255, 255],
                 fontStyle: 'bold',
                 halign: 'center'
+            },
+            footStyles: {
+                fillColor: [30, 41, 59],
+                textColor: [255, 255, 255],
+                fontStyle: 'bold',
+                halign: 'right'
             },
             bodyStyles: {
                 fontSize: 8,
@@ -757,9 +797,7 @@ export default function ReportsPage() {
         });
 
         currentY = (doc as any).lastAutoTable.finalY + 10;
-        doc.setFontSize(10);
-        doc.setTextColor(30, 41, 59);
-        doc.text(`TOTAL DÉPENSES : ${reportData.summary.totalExpenses.toFixed(2)} €`, 196, currentY + 5, { align: 'right' });
+        // Separate total text removed for standardization with footer row
     }
 
     // --- 6. MODERN FOOTER ---
