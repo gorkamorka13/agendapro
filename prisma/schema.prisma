@@ -41,6 +41,7 @@ model Appointment {
   user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, startTime])
+  @@index([startTime, endTime])
 }
 
 model Patient {
@@ -69,6 +70,8 @@ model Assignment {
 
   @@index([userId, startTime])
   @@index([patientId, startTime])
+  @@index([startTime, endTime])
+  @@index([status])
 }
 
 model WorkedHours {
@@ -92,6 +95,7 @@ model Expense {
 
   @@index([userId, date])
   @@index([recordingDate])
+  @@index([date])
 }
 
 model AiUsage {

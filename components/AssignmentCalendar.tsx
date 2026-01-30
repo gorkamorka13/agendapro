@@ -23,12 +23,27 @@ import { FullCalendarEvent, Role } from '@/types';
 
 export default function AssignmentCalendar() {
   const queryClient = useQueryClient();
+
+  // État pour la plage de dates visible
+  const [dateRange, setDateRange] = useState(() => {
+    const now = new Date();
+    return {
+      start: new Date(now.getFullYear(), now.getMonth() - 1, 1),
+      end: new Date(now.getFullYear(), now.getMonth() + 2, 0),
+    };
+  });
+
   const { data: events = [], isLoading, error: fetchError } = useQuery<FullCalendarEvent[]>({
-    queryKey: ['events'],
+    queryKey: ['events', dateRange],
     queryFn: async () => {
+      const params = new URLSearchParams({
+        startDate: dateRange.start.toISOString(),
+        endDate: dateRange.end.toISOString(),
+      });
+
       const [assignmentsRes, appointmentsRes] = await Promise.all([
-        fetch('/api/assignments'),
-        fetch('/api/appointments')
+        fetch(`/api/assignments?${params}`),
+        fetch(`/api/appointments?${params}`)
       ]);
 
       if (!assignmentsRes.ok || !appointmentsRes.ok) throw new Error('Erreur de chargement');
@@ -42,6 +57,18 @@ export default function AssignmentCalendar() {
   });
 
 
+
+  // Handler pour le changement de vue
+  const handleDatesSet = (dateInfo: any) => {
+    // On ajoute une marge de 1 mois avant et après
+    const newStart = new Date(dateInfo.start);
+    newStart.setMonth(newStart.getMonth() - 1);
+
+    const newEnd = new Date(dateInfo.end);
+    newEnd.setMonth(newEnd.getMonth() + 1);
+
+    setDateRange({ start: newStart, end: newEnd });
+  };
 
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const [isAppointmentManagerOpen, setIsAppointmentManagerOpen] = useState(false);
@@ -270,50 +297,51 @@ export default function AssignmentCalendar() {
         </div>
 
         <div className="flex items-center gap-2">
-            {isAdmin && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.open('/api/admin/backup', '_blank')}
-                  className="gap-2 flex bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"
-                  title="Télécharger une sauvegarde de la base de données"
-                >
-                  <Database size={16} className="text-blue-600 dark:text-blue-400" />
-                  <span className="inline">Sauvegarder BDD</span>
-                </Button>
+          {isAdmin && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.open('/api/admin/backup', '_blank')}
+                className="gap-2 flex bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"
+                title="Télécharger une sauvegarde de la base de données"
+              >
+                <Database size={16} className="text-blue-600 dark:text-blue-400" />
+                <span className="inline">Sauvegarder BDD</span>
+              </Button>
 
-                <Button
-                  variant={isSelectionMode ? "primary" : "outline"}
-                  size="sm"
-                  onClick={toggleSelectionMode}
-                  className={cn(
-                    "gap-2 transition-all",
-                    isSelectionMode
-                      ? "bg-slate-900 border-transparent text-white hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-700 dark:text-white"
-                      : ""
-                  )}
-                >
-                  {isSelectionMode ? (
-                    <>
-                      <X size={14} />
-                      <span className="inline">Quitter</span>
-                    </>
-                  ) : (
-                    <>
-                      <Settings2 size={14} />
-                      <span className="inline">Sélection</span>
-                    </>
-                  )}
-                </Button>
-              </>
-            )}
+              <Button
+                variant={isSelectionMode ? "primary" : "outline"}
+                size="sm"
+                onClick={toggleSelectionMode}
+                className={cn(
+                  "gap-2 transition-all",
+                  isSelectionMode
+                    ? "bg-slate-900 border-transparent text-white hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-700 dark:text-white"
+                    : ""
+                )}
+              >
+                {isSelectionMode ? (
+                  <>
+                    <X size={14} />
+                    <span className="inline">Quitter</span>
+                  </>
+                ) : (
+                  <>
+                    <Settings2 size={14} />
+                    <span className="inline">Sélection</span>
+                  </>
+                )}
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
       <FullCalendar
         ref={calendarRef}
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+        datesSet={handleDatesSet}
         editable={isAdmin}
         eventDrop={handleEventChange}
         eventResize={handleEventChange}
@@ -365,40 +393,40 @@ export default function AssignmentCalendar() {
           day: 'Jour'
         }}
         windowResize={(arg) => {
-           const isMobile = window.innerWidth < 768;
-           arg.view.calendar.setOption('aspectRatio', isMobile ? 0.8 : 1.35);
+          const isMobile = window.innerWidth < 768;
+          arg.view.calendar.setOption('aspectRatio', isMobile ? 0.8 : 1.35);
 
-           // Forcer le format d'en-tête selon la vue actuelle pour éviter les dates fixes
-           if (arg.view.type === 'dayGridMonth') {
-             arg.view.calendar.setOption('dayHeaderFormat', { weekday: isMobile ? 'narrow' : 'long' });
-           } else {
-             arg.view.calendar.setOption('dayHeaderFormat', { weekday: 'short', day: 'numeric' });
-           }
+          // Forcer le format d'en-tête selon la vue actuelle pour éviter les dates fixes
+          if (arg.view.type === 'dayGridMonth') {
+            arg.view.calendar.setOption('dayHeaderFormat', { weekday: isMobile ? 'narrow' : 'long' });
+          } else {
+            arg.view.calendar.setOption('dayHeaderFormat', { weekday: 'short', day: 'numeric' });
+          }
 
-           /* Mobile options */
-            arg.view.calendar.setOption('headerToolbar', isMobile ? {
-              left: 'prev,next',
-              center: 'title todayCircle',
-              right: 'dayGridMonth,timeGridWeek,timeGridDay'
-            } : {
-              left: 'prev,next',
-              center: 'title todayCircle',
-              right: 'dayGridMonth,timeGridWeek,timeGridDay'
-            });
+          /* Mobile options */
+          arg.view.calendar.setOption('headerToolbar', isMobile ? {
+            left: 'prev,next',
+            center: 'title todayCircle',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+          } : {
+            left: 'prev,next',
+            center: 'title todayCircle',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+          });
 
-            if (isMobile) {
-              arg.view.calendar.setOption('titleFormat',
-                arg.view.type === 'timeGridWeek'
-                  ? { day: '2-digit', month: '2-digit', year: 'numeric' }
-                  : { month: 'short', year: 'numeric' }
-              );
-            } else {
-              arg.view.calendar.setOption('titleFormat',
-                arg.view.type === 'dayGridMonth'
-                  ? { year: 'numeric', month: 'long' }
-                  : { year: 'numeric', month: 'long', day: 'numeric' }
-              );
-            }
+          if (isMobile) {
+            arg.view.calendar.setOption('titleFormat',
+              arg.view.type === 'timeGridWeek'
+                ? { day: '2-digit', month: '2-digit', year: 'numeric' }
+                : { month: 'short', year: 'numeric' }
+            );
+          } else {
+            arg.view.calendar.setOption('titleFormat',
+              arg.view.type === 'dayGridMonth'
+                ? { year: 'numeric', month: 'long' }
+                : { year: 'numeric', month: 'long', day: 'numeric' }
+            );
+          }
         }}
         eventContent={(eventInfo) => {
           const status = eventInfo.event.extendedProps.status;
@@ -420,13 +448,12 @@ export default function AssignmentCalendar() {
 
           return (
             <div
-              className={`px-1 py-0.5 rounded-md w-full h-full overflow-hidden flex items-center gap-1 transition-all duration-300 ${
-                (isPast || status === 'COMPLETED')
-                  ? `opacity-40 ${isCancelled ? 'bg-hatched-pattern' : ''}`
-                  : isCancelled
-                    ? 'opacity-100 bg-hatched-pattern'
-                    : 'opacity-100'
-              } ${isSelected ? 'ring-2 ring-white ring-inset' : ''}`}
+              className={`px-1 py-0.5 rounded-md w-full h-full overflow-hidden flex items-center gap-1 transition-all duration-300 ${(isPast || status === 'COMPLETED')
+                ? `opacity-40 ${isCancelled ? 'bg-hatched-pattern' : ''}`
+                : isCancelled
+                  ? 'opacity-100 bg-hatched-pattern'
+                  : 'opacity-100'
+                } ${isSelected ? 'ring-2 ring-white ring-inset' : ''}`}
               style={{
                 backgroundColor: bgColor,
               }}
@@ -457,9 +484,8 @@ export default function AssignmentCalendar() {
                 </div>
               )}
               <div
-                className={`flex-1 text-center font-normal leading-tight ${
-                  isDayView && isMobile ? 'text-[14px]' : 'text-[9px] sm:text-[12px]'
-                }`}
+                className={`flex-1 text-center font-normal leading-tight ${isDayView && isMobile ? 'text-[14px]' : 'text-[9px] sm:text-[12px]'
+                  }`}
                 style={{ color: textColor }}
               >
                 <div className="flex items-center justify-center gap-1">
@@ -596,13 +622,13 @@ export default function AssignmentCalendar() {
                 <div className="flex items-center gap-1">
                   <Button
                     onClick={() => {
-                       if (!targetUserId) {
-                         toast.error("Veuillez sélectionner un intervenant");
-                         return;
-                       }
-                       bulkActionMutation.mutate({ action: 'reassign', targetUserId });
-                       setIsReassignOpen(false);
-                       setTargetUserId('');
+                      if (!targetUserId) {
+                        toast.error("Veuillez sélectionner un intervenant");
+                        return;
+                      }
+                      bulkActionMutation.mutate({ action: 'reassign', targetUserId });
+                      setIsReassignOpen(false);
+                      setTargetUserId('');
                     }}
                     disabled={bulkActionMutation.isPending || !targetUserId}
                     className="bg-indigo-600 hover:bg-indigo-700 text-white h-8 px-3 text-[10px] font-black uppercase rounded-lg border-none"

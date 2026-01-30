@@ -9,11 +9,9 @@ import { FullCalendarEvent, Role as AppRole } from '@/types';
 /**
  * GET /api/assignments
  * Récupère les affectations en fonction du rôle de l'utilisateur.
- * - ADMIN: voit toutes les affectations.
- * - USER: ne voit que ses propres affectations.
- * Formate les données pour FullCalendar.
+ * Optimisé avec filtrage par période pour réduire la charge.
  */
-export async function GET() {
+export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
@@ -21,15 +19,50 @@ export async function GET() {
   }
 
   try {
-    // Tous les utilisateurs voient désormais l'ensemble des affectations
-    const whereClause = {};
+    // Récupérer les paramètres de date depuis l'URL
+    const { searchParams } = new URL(request.url);
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
 
+    // Par défaut : charger 3 mois (1 mois avant, mois actuel, 1 mois après)
+    const now = new Date();
+    const defaultStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const defaultEnd = new Date(now.getFullYear(), now.getMonth() + 2, 0);
+
+    const whereClause = {
+      startTime: {
+        gte: startDate ? new Date(startDate) : defaultStart,
+        lte: endDate ? new Date(endDate) : defaultEnd,
+      }
+    };
+
+    // Optimisation : ne sélectionner que les champs nécessaires
     const assignments = await prisma.assignment.findMany({
       where: whereClause,
-      include: {
-        patient: true,
-        user: true,
+      select: {
+        id: true,
+        startTime: true,
+        endTime: true,
+        status: true,
+        isRecurring: true,
+        userId: true,
+        patientId: true,
+        patient: {
+          select: {
+            firstName: true,
+            lastName: true,
+          }
+        },
+        user: {
+          select: {
+            name: true,
+            color: true,
+          }
+        },
       },
+      orderBy: {
+        startTime: 'asc'
+      }
     });
 
     const patientCount = await prisma.patient.count();
@@ -48,13 +81,6 @@ export async function GET() {
     // Formater les données pour être compatibles avec FullCalendar
     const formattedEvents: FullCalendarEvent[] = assignments.map((assignment) => {
       let backgroundColor = assignment.user.color || getUserColor(assignment.userId);
-
-      if (assignment.status === AssignmentStatus.COMPLETED) {
-        // Optionnel : On peut garder le vert pour le complété ou mixer avec la couleur
-      }
-
-      const start = new Date(assignment.startTime);
-      const end = new Date(assignment.endTime);
 
       const patientName = `${assignment.patient.firstName} ${assignment.patient.lastName}`;
       const title = assignment.user.name || 'Inc.';

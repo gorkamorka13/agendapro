@@ -1,7 +1,19 @@
 import { readFileSync } from 'fs';
+import bundleAnalyzer from '@next/bundle-analyzer';
+
 const pkg = JSON.parse(readFileSync('./package.json', 'utf8'));
 
+const withBundleAnalyzer = bundleAnalyzer({
+  enabled: process.env.ANALYZE === 'true',
+});
+
 const nextConfig = {
+  // Optimisation des images
+  images: {
+    formats: ['image/avif', 'image/webp'],
+    minimumCacheTTL: 60 * 60 * 24 * 30, // 30 jours
+  },
+
   transpilePackages: [
     '@fullcalendar/core',
     '@fullcalendar/react',
@@ -10,10 +22,12 @@ const nextConfig = {
     '@fullcalendar/interaction',
     'recharts',
   ],
+
   env: {
     APP_VERSION: pkg.version,
     BUILD_DATE: new Date().toLocaleDateString('fr-FR'),
   },
+
   async redirects() {
     return [
       {
@@ -28,6 +42,34 @@ const nextConfig = {
       },
     ];
   },
+
+  // Optimisation du bundle
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.optimization.splitChunks = {
+        chunks: 'all',
+        cacheGroups: {
+          fullcalendar: {
+            test: /[\\/]node_modules[\\/]@fullcalendar[\\/]/,
+            name: 'fullcalendar',
+            priority: 10,
+          },
+          recharts: {
+            test: /[\\/]node_modules[\\/]recharts[\\/]/,
+            name: 'recharts',
+            priority: 10,
+          },
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            priority: 5,
+          },
+        },
+      };
+    }
+    return config;
+  },
 };
 
-export default nextConfig;
+export default withBundleAnalyzer(nextConfig);
+

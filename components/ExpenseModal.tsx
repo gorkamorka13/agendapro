@@ -9,6 +9,8 @@ import { toast } from 'sonner';
 import { analyzeReceipt } from '@/lib/ocr';
 import Tooltip from './Tooltip';
 
+import { compressImage } from '@/lib/image-optimizer';
+
 interface Props {
   isOpen: boolean;
   onClose: () => void;
@@ -75,21 +77,37 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense }: Props
   }, [expense, isOpen]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setReceiptFile(file);
+
+    const originalFile = e.target.files?.[0];
+    if (originalFile) {
+      let fileToProcess = originalFile;
+
+      // Tentative de compression
+      try {
+        const compressedBlob = await compressImage(originalFile);
+        fileToProcess = new File([compressedBlob], originalFile.name, {
+          type: 'image/jpeg',
+          lastModified: Date.now()
+        });
+        console.log(`Image compressée: ${(originalFile.size / 1024).toFixed(0)}KB -> ${(fileToProcess.size / 1024).toFixed(0)}KB`);
+      } catch (error) {
+        console.error("Erreur compression image, utilisation de l'original:", error);
+      }
+
+      setReceiptFile(fileToProcess);
+
       // Create preview URL
       const reader = new FileReader();
       reader.onloadend = () => {
         setReceiptPreview(reader.result as string);
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(fileToProcess);
 
       // Trigger OCR Analysis
       setIsAnalyzing(true);
       setAutoFilledFields([]);
       try {
-        const result = await analyzeReceipt(file);
+        const result = await analyzeReceipt(fileToProcess);
         setFullOcrResult(result);
 
         if (result.amount || result.date || result.merchant || result.tax || result.category) {
