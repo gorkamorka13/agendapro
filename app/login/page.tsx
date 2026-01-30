@@ -39,7 +39,7 @@ export default function LoginPage() {
     <div className="flex items-center justify-center min-h-screen bg-slate-100 dark:bg-slate-950 transition-colors duration-300">
       <div className="p-8 bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-md border border-slate-200 dark:border-slate-800">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-100 dark:border-slate-800 mb-4 overflow-hidden">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl mb-4 overflow-hidden">
             <img src="/agendapro.png" alt="Agenda PRO" className="w-full h-full object-contain p-2" />
           </div>
           <h1 className="text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tight">Agenda PRO</h1>
