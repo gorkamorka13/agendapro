@@ -5,6 +5,7 @@ import { User, Role } from '@prisma/client';
 import { useTitle } from '@/components/TitleContext';
 import { Save, X } from 'lucide-react';
 import { Select } from '@/components/ui/Select';
+import { getContrastColor } from '@/lib/utils';
 
 export default function UserManagementPage() {
   const { setTitle } = useTitle();
@@ -17,6 +18,7 @@ export default function UserManagementPage() {
   const [name, setName] = useState('');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<Role>('USER' as any);
   const [hourlyRate, setHourlyRate] = useState('');
@@ -46,6 +48,7 @@ export default function UserManagementPage() {
     setName('');
     setFullName('');
     setEmail('');
+    setPhone('');
     setPassword('');
     setRole('USER' as any);
     setHourlyRate('');
@@ -60,6 +63,7 @@ export default function UserManagementPage() {
       setName(user.name || '');
       setFullName((user as any).fullName || '');
       setEmail(user.email || '');
+      setPhone((user as any).phone || '');
       setRole(user.role);
       setHourlyRate(user.hourlyRate?.toString() || '');
       setTravelCost(user.travelCost?.toString() || '');
@@ -76,7 +80,7 @@ export default function UserManagementPage() {
     const url = editingUser ? `/api/users/${editingUser.id}` : '/api/users';
     const method = editingUser ? 'PUT' : 'POST';
 
-    const body: any = { name, fullName, email, role, hourlyRate, travelCost, color };
+    const body: any = { name, fullName, email, phone, role, hourlyRate, travelCost, color };
     if (password) body.password = password;
 
     try {
@@ -139,7 +143,9 @@ export default function UserManagementPage() {
             <div key={user.id} className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 transition-all">
               <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full shadow-inner border-2 border-white dark:border-slate-700 shrink-0" style={{ backgroundColor: user.role === ('VISITEUR' as any) ? '#cbd5e1' : ((user as any).color || '#3b82f6') }} />
+                  <div className="w-10 h-10 rounded-full shadow-inner border-2 border-white dark:border-slate-700 shrink-0 flex items-center justify-center font-bold text-sm" style={{ backgroundColor: user.role === ('VISITEUR' as any) ? '#cbd5e1' : ((user as any).color || '#3b82f6'), color: getContrastColor(user.role === ('VISITEUR' as any) ? '#cbd5e1' : ((user as any).color || '#3b82f6')) }}>
+                    {(user.name || '?').substring(0, 2).toUpperCase()}
+                  </div>
                   <div className="min-w-0">
                     <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Nom</div>
                     <div className="font-black text-slate-800 dark:text-slate-100 truncate">{(user as any).fullName || '-'}</div>
@@ -147,13 +153,18 @@ export default function UserManagementPage() {
                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mr-1">Login:</span>
                       <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{user.name}</span>
                     </div>
+                    {((user as any).phone) && (
+                      <div className="mt-0.5">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mr-1">Tél:</span>
+                        <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{(user as any).phone}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
-                <span className={`px-2 py-0.5 text-[10px] font-black rounded-md uppercase tracking-wider ${
-                  user.role === ('ADMIN' as any) ? 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400' :
+                <span className={`px-2 py-0.5 text-[10px] font-black rounded-md uppercase tracking-wider ${user.role === ('ADMIN' as any) ? 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400' :
                   user.role === ('VISITEUR' as any) ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' :
-                  'bg-blue-50 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400'
-                }`}>
+                    'bg-blue-50 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400'
+                  }`}>
                   {user.role}
                 </span>
               </div>
@@ -203,6 +214,7 @@ export default function UserManagementPage() {
             <tr>
               <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Login</th>
               <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Nom</th>
+              <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Contact</th>
               <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Rôle & Droits</th>
               <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Tarification</th>
               <th className="px-8 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Actions</th>
@@ -213,20 +225,29 @@ export default function UserManagementPage() {
               <tr key={user.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors group">
                 <td className="px-8 py-5 whitespace-nowrap">
                   <div className="flex items-center">
-                    <div className="w-10 h-10 rounded-full shadow-inner border-2 border-white dark:border-slate-800 mr-4 shrink-0 transition-transform group-hover:scale-110" style={{ backgroundColor: user.role === ('VISITEUR' as any) ? '#cbd5e1' : ((user as any).color || '#3b82f6') }} />
+                    <div className="w-10 h-10 rounded-full shadow-inner border-2 border-white dark:border-slate-800 mr-4 shrink-0 transition-transform group-hover:scale-110 flex items-center justify-center font-bold text-sm" style={{ backgroundColor: user.role === ('VISITEUR' as any) ? '#cbd5e1' : ((user as any).color || '#3b82f6'), color: getContrastColor(user.role === ('VISITEUR' as any) ? '#cbd5e1' : ((user as any).color || '#3b82f6')) }}>
+                      {(user.name || '?').substring(0, 2).toUpperCase()}
+                    </div>
                     <div className="text-sm font-black text-slate-800 dark:text-slate-100">{user.name}</div>
                   </div>
                 </td>
                 <td className="px-8 py-5 whitespace-nowrap">
                   <div className="text-sm font-bold text-slate-700 dark:text-slate-200">{(user as any).fullName || '-'}</div>
-                  <div className="text-[10px] text-slate-400 font-medium">{user.email || ''}</div>
                 </td>
                 <td className="px-8 py-5 whitespace-nowrap">
-                  <span className={`px-2.5 py-1 inline-flex text-[10px] leading-4 font-black rounded-md uppercase tracking-wider ${
-                    user.role === ('ADMIN' as any) ? 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400' :
+                  <div className="text-[11px] font-bold text-slate-600 dark:text-slate-300">{user.email || '-'}</div>
+                  {(user as any).phone && (
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Tél</span>
+                      <div className="text-[11px] font-bold text-slate-600 dark:text-slate-300">{(user as any).phone}</div>
+                    </div>
+                  )}
+                </td>
+                <td className="px-8 py-5 whitespace-nowrap">
+                  <span className={`px-2.5 py-1 inline-flex text-[10px] leading-4 font-black rounded-md uppercase tracking-wider ${user.role === ('ADMIN' as any) ? 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400' :
                     user.role === ('VISITEUR' as any) ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' :
-                    'bg-blue-50 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400'
-                  }`}>
+                      'bg-blue-50 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400'
+                    }`}>
                     {user.role}
                   </span>
                 </td>
@@ -236,7 +257,7 @@ export default function UserManagementPage() {
                 </td>
                 <td className="px-8 py-5 whitespace-nowrap text-right text-sm">
                   <div className="flex justify-end gap-3 translate-x-2 group-hover:translate-x-0 transition-transform opacity-70 group-hover:opacity-100">
-                     <button
+                    <button
                       onClick={() => handleOpenModal(user)}
                       className="text-blue-600 dark:text-blue-400 p-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-all"
                       title="Modifier"
@@ -314,6 +335,16 @@ export default function UserManagementPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-slate-100 font-medium"
                     placeholder="exemple@agendapro.fr"
+                  />
+                </div>
+                <div className="col-span-2 space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Téléphone (Optionnel)</label>
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-slate-100 font-medium"
+                    placeholder="06 12 34 56 78"
                   />
                 </div>
                 <div className="col-span-2 space-y-1.5">

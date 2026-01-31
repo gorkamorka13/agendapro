@@ -14,7 +14,7 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
   }
 
   try {
-    const { name, fullName, email, password, role, hourlyRate, travelCost, color } = await request.json();
+    const { name, fullName, email, password, role, hourlyRate, travelCost, color, phone } = await request.json();
 
     const data: any = {
       name,
@@ -24,6 +24,7 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
       hourlyRate: hourlyRate ? parseFloat(hourlyRate) : null,
       travelCost: travelCost ? parseFloat(travelCost) : null,
       color: color,
+      phone: phone || null,
     };
 
     if (password) {

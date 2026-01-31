@@ -31,6 +31,7 @@ export async function GET() {
           hourlyRate: true,
           travelCost: true,
           color: true,
+          phone: true,
         }
       });
       return NextResponse.json(user ? [user] : []);
@@ -51,6 +52,7 @@ export async function GET() {
         hourlyRate: true,
         travelCost: true,
         color: true,
+        phone: true,
       }
     });
 
@@ -62,7 +64,8 @@ export async function GET() {
           ...u,
           hourlyRate: null,
           travelCost: null,
-          email: null, // On peut aussi masquer l'email par sécurité si besoin
+          email: null,
+          phone: null, // Masquer le téléphone pour les non-admins et autres utilisateurs si nécessaire
         };
       }
       return u;
@@ -84,7 +87,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { name, fullName, email, password, role, hourlyRate, travelCost, color } = await request.json();
+    const { name, fullName, email, password, role, hourlyRate, travelCost, color, phone } = await request.json();
 
     if (!name || !password) {
       return new NextResponse('Nom et mot de passe requis', { status: 400 });
@@ -120,6 +123,7 @@ export async function POST(request: Request) {
         hourlyRate: isVisitor ? null : (hourlyRate ? parseFloat(hourlyRate) : null),
         travelCost: isVisitor ? null : (travelCost ? parseFloat(travelCost) : null),
         color: isVisitor ? '#cbd5e1' : (color || '#3b82f6'),
+        phone: phone || null,
       },
     });
 

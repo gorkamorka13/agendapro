@@ -13,6 +13,7 @@ model User {
   name           String?       @unique
   email          String?       @unique
   emailVerified  DateTime?
+  phone          String?
   hashedPassword String?
   image          String?
   role           Role          @default(USER)
