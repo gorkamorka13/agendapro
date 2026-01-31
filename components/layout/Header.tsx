@@ -42,7 +42,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
-{/* ... */}
+        {/* ... */}
         <div className="flex items-center gap-2">
           <IconComponent className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 dark:text-blue-400 flex-shrink-0" />
           <h1 className="text-base sm:text-xl font-bold truncate text-blue-600 dark:text-blue-400">
@@ -53,14 +53,14 @@ export default function Header({ onMenuClick }: HeaderProps) {
       <div className="flex items-center gap-1.5 sm:gap-4 ml-2">
         <span className="hidden sm:inline text-sm sm:text-base font-semibold opacity-80">Bonjour, {userName}</span>
         <div
-          className="w-8 h-8 rounded-full border-2 border-white dark:border-slate-800 shadow-md shrink-0 ring-1 ring-slate-200 dark:ring-slate-700 flex items-center justify-center text-[18px] font-normal italic"
+          className="w-10 h-10 rounded-full flex items-center justify-center font-bold shadow-sm ring-2 ring-white dark:ring-slate-800"
           style={{
             backgroundColor: userColor,
             color: textColor
           }}
           title={`Intervenant: ${userName}`}
         >
-          {getInitials(userName)}
+          {userName?.substring(0, 2).toUpperCase()}
         </div>
         <ThemeToggle />
         <button
@@ -69,7 +69,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
         >
           <span className="hidden xs:inline">Déconnexion</span>
           <svg className="xs:hidden w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
           </svg>
         </button>
       </div>
