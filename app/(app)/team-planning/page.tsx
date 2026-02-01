@@ -133,7 +133,7 @@ export default function TeamPlanningPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 animate-in fade-in duration-500 max-w-[1600px] mx-auto">
+    <div className="p-2 sm:p-6 space-y-6 animate-in fade-in duration-500 max-w-[1600px] mx-auto">
       {/* Header & Date Navigation */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white dark:bg-slate-900 p-3 sm:p-6 rounded-2xl sm:rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 gap-3 sm:gap-6 sticky top-0 z-30">
         <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
@@ -249,16 +249,23 @@ export default function TeamPlanningPage() {
                               )}
                               style={style}
                             >
-                              <div className="flex flex-col items-center justify-center p-1 text-center h-full gap-0.5">
-                                <div className="font-black text-[12px] sm:text-[14px] leading-tight w-full line-clamp-1 px-1">
-                                  {event.workerName || event.title}
+                              <div className="flex flex-col items-start justify-start p-1.5 text-left h-full gap-0.5 overflow-hidden">
+                                <div className="font-black text-[12px] sm:text-[13px] leading-tight w-full line-clamp-2 px-0.5">
+                                  {event.title}
                                 </div>
                                 {event.patientName && (
-                                  <div className="font-extrabold text-[11px] sm:text-[13px] leading-tight w-full line-clamp-1 px-1 uppercase opacity-90">
-                                    {event.patientName}
+                                  <div className="flex items-center gap-1 font-bold text-[11px] sm:text-[12px] leading-tight w-full truncate px-0.5 opacity-90">
+                                    <UserIcon size={10} className="inline-block flex-shrink-0" />
+                                    <span className="truncate">{event.patientName}</span>
                                   </div>
                                 )}
-                                <div className="bg-black/10 rounded-lg font-black text-[10px] sm:text-xs px-2 py-0.5 mt-0.5 whitespace-nowrap">
+                                {event.location && (
+                                  <div className="flex items-center gap-1 font-medium text-[10px] sm:text-[11px] leading-tight w-full truncate px-0.5 opacity-80">
+                                    <MapPin size={10} className="inline-block flex-shrink-0" />
+                                    <span className="truncate">{event.location}</span>
+                                  </div>
+                                )}
+                                <div className="bg-black/10 rounded-md font-black text-[10px] px-1.5 py-0.5 mt-auto self-start whitespace-nowrap">
                                   {format(start, 'HH:mm')} - {format(end, 'HH:mm')}
                                 </div>
                               </div>
@@ -274,24 +281,24 @@ export default function TeamPlanningPage() {
           </div>
 
           {/* Mobile View: Horizontal Timeline */}
-          <div className="md:hidden flex flex-col gap-4 pb-20">
+          <div className="md:hidden flex flex-col gap-2 pb-20">
             {workers.map(worker => {
               const workerEvents = events.filter(e => e.userId === worker.id);
 
               return (
-                <div key={worker.id} className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 p-4">
+                <div key={worker.id} className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 p-2">
                   {/* Worker Header */}
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold shadow-sm" style={{ backgroundColor: worker.color, color: getContrastColor(worker.color) }}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold shadow-sm text-xs" style={{ backgroundColor: worker.color, color: getContrastColor(worker.color) }}>
                       {worker.name.substring(0, 2).toUpperCase()}
                     </div>
                     <div>
-                      <h3 className="font-bold text-slate-800 dark:text-slate-100">{worker.name}</h3>
+                      <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100">{worker.name}</h3>
                     </div>
                   </div>
 
                   {/* Timeline Track */}
-                  <div className="relative h-16 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800 mt-2">
+                  <div className="relative h-20 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800 mt-1">
                     {/* Hour Markers */}
                     <div className="absolute inset-0 flex justify-between px-2 pointer-events-none">
                       {/* Simple makers for 8h, 12h, 16h, 20h to avoid clutter */}
@@ -340,7 +347,7 @@ export default function TeamPlanningPage() {
                         >
                           {/* Minimalism for mobile timeline: just icon or very short text */}
                           <div className="text-[10px] font-bold truncate px-1 text-center leading-none">
-                            {event.patientName ? event.patientName.split(' ')[0] : (event.title || 'RDV')}
+                            {format(start, 'HH:mm')} - {format(end, 'HH:mm')}
                           </div>
                         </div>
                       )

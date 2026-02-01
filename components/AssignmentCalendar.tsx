@@ -15,7 +15,7 @@ import { Heart, Calendar, Clock, Repeat, Plus } from 'lucide-react';
 import { getContrastColor, cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useMutation } from '@tanstack/react-query';
-import { Settings2, Trash2, X, CheckCircle, Ban, Users, ArrowRightLeft, Database } from 'lucide-react';
+import { Settings2, Trash2, X, CheckCircle, Ban, Users, User, ArrowRightLeft, Database, MapPin } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
 import { Select } from './ui/Select';
@@ -484,13 +484,34 @@ export default function AssignmentCalendar() {
                 </div>
               )}
               <div
-                className={`flex-1 text-center font-normal leading-tight ${isDayView && isMobile ? 'text-[14px]' : 'text-[9px] sm:text-[12px]'
+                className={`flex-1 flex flex-col items-start justify-start overflow-hidden leading-tight ${isDayView && isMobile ? 'text-[14px]' : 'text-[9px] sm:text-[11px]'
                   }`}
                 style={{ color: textColor }}
               >
-                <div className="flex items-center justify-center gap-1">
-                  <span>{eventInfo.event.title}</span>
+                <div className="font-bold w-full truncate">
+                  {eventInfo.event.title}
                 </div>
+
+                {eventInfo.event.extendedProps.patientName && (
+                  <div className="hidden sm:flex items-center gap-1 w-full truncate opacity-90 overflow-hidden text-[8px] sm:text-[10px]">
+                    <User size={10} className="shrink-0" />
+                    <span className="truncate">{eventInfo.event.extendedProps.patientName}</span>
+                  </div>
+                )}
+
+                {eventInfo.event.extendedProps.location && (
+                  <div className="hidden sm:flex items-center gap-1 w-full truncate opacity-90 overflow-hidden text-[8px] sm:text-[10px]">
+                    <MapPin size={10} className="shrink-0" />
+                    <span className="truncate">{eventInfo.event.extendedProps.location}</span>
+                  </div>
+                )}
+
+                {/* Show time if enough space (mostly for day views) */}
+                {(isDayView || eventInfo.view.type === 'timeGridWeek') && (
+                  <div className="mt-auto pt-1 font-mono text-[8px] sm:text-[10px] opacity-80">
+                    {timeRange}
+                  </div>
+                )}
               </div>
             </div>
           );

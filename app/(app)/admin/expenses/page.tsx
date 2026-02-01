@@ -8,6 +8,7 @@ import { Plus, Edit2, Trash2, Euro, Calendar, FileText, User as UserIcon, Image 
 import { toast } from 'sonner';
 import { analyzeReceipt } from '@/lib/ocr';
 import Tooltip from '@/components/Tooltip';
+import { compressImage } from '@/lib/image-optimizer';
 
 export default function ExpensesPage() {
   const { setTitle } = useTitle();
@@ -121,8 +122,21 @@ export default function ExpensesPage() {
     setUploadingId(expenseId);
 
     try {
-      // 1. Run OCR Analysis first
-      const ocrResult = await analyzeReceipt(file);
+      // 0. Compress image first
+      let fileToUpload = file;
+      try {
+        const compressedBlob = await compressImage(file);
+        fileToUpload = new File([compressedBlob], file.name, {
+          type: 'image/jpeg',
+          lastModified: Date.now()
+        });
+        console.log(`📦 Image compressée: ${(file.size / 1024).toFixed(0)}KB → ${(fileToUpload.size / 1024).toFixed(0)}KB`);
+      } catch (error) {
+        console.error("Erreur compression, utilisation de l'original:", error);
+      }
+
+      // 1. Run OCR Analysis
+      const ocrResult = await analyzeReceipt(fileToUpload);
 
       let finalAmount = null;
       let finalDate = null;
@@ -154,9 +168,9 @@ export default function ExpensesPage() {
         }
       }
 
-      // 2. Prepare Upload
+      // 2. Prepare Upload with compressed file
       const formData = new FormData();
-      formData.append('receipt', file);
+      formData.append('receipt', fileToUpload);
       if (finalAmount !== null) formData.append('amount', finalAmount.toString());
       if (finalDate !== null) formData.append('date', finalDate);
       if (finalMotif !== null) formData.append('motif', finalMotif);
@@ -280,10 +294,9 @@ export default function ExpensesPage() {
               </div>
               <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner border border-slate-200/50 dark:border-slate-700/50">
                 <div
-                  className={`h-full transition-all duration-1000 ${
-                    storageStats.usagePercentage > 90 ? 'bg-red-500' :
+                  className={`h-full transition-all duration-1000 ${storageStats.usagePercentage > 90 ? 'bg-red-500' :
                     storageStats.usagePercentage > 70 ? 'bg-orange-500' : 'bg-blue-500'
-                  }`}
+                    }`}
                   style={{ width: `${storageStats.usagePercentage}%` }}
                 />
               </div>
@@ -367,103 +380,105 @@ export default function ExpensesPage() {
           {filteredExpenses.map((expense) => (
             <div key={expense.id} className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-md transition-all group">
               <div className="flex justify-between items-start mb-4">
-                  {expense.receiptUrl ? (
-                    <div className="flex flex-wrap gap-1.5">
-                      <Tooltip content="Voir le justificatif">
-                        <button
-                          onClick={() => handleViewReceipt(expense)}
-                          className="flex items-center justify-center p-2 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-xl hover:bg-purple-100 transition shadow-sm border border-purple-100 dark:border-purple-800"
-                        >
-                          <ImageIcon size={18} />
-                        </button>
-                      </Tooltip>
-                      <Tooltip content="Relancer l'IA Gemini pour extraire les données">
-                        <button
-                          onClick={() => handleManualOCR(expense)}
-                          disabled={analyzingId === expense.id}
-                          className="flex items-center justify-center p-2 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-xl hover:bg-amber-100 transition shadow-sm border border-amber-100 dark:border-amber-800 disabled:opacity-50"
-                        >
-                          {analyzingId === expense.id ? (
-                            <Loader2 size={18} className="animate-spin" />
-                          ) : (
-                            <Sparkles size={18} />
-                          )}
-                        </button>
-                      </Tooltip>
-                      <Tooltip content="Télécharger ce fichier image">
-                        <a
-                          href={expense.receiptUrl}
-                          download={`justificatif_${expense.motif.replace(/\s+/g, '_')}_${new Date(expense.date).toISOString().split('T')[0]}.jpg`}
-                          className="flex items-center justify-center p-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl hover:bg-blue-100 transition shadow-sm border border-blue-100 dark:border-blue-800"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Download size={18} />
-                        </a>
-                      </Tooltip>
-                      <Tooltip content="Supprimer uniquement le justificatif">
-                        <button
-                          onClick={() => handleDeleteReceipt(expense.id)}
-                          className="flex items-center justify-center p-2 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl hover:bg-red-100 transition shadow-sm border border-red-100 dark:border-red-800"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </Tooltip>
-                    </div>
-                  ) : (
-                    <div className="relative">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) handleCardFileUpload(expense.id, file);
-                        }}
-                        className="hidden"
-                        id={`upload-receipt-${expense.id}`}
-                      />
-                      <Tooltip content="Prendre en photo ou choisir un fichier">
-                        <label
-                          htmlFor={`upload-receipt-${expense.id}`}
-                          className={`p-2 rounded-xl cursor-pointer transition flex items-center justify-center shadow-sm border ${uploadingId === expense.id ? 'bg-slate-100 dark:bg-slate-800 text-slate-400' : 'bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-100 border-purple-100 dark:border-purple-800'}`}
-                        >
-                          {uploadingId === expense.id ? (
-                            <div className="w-5 h-5 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
-                          ) : (
-                            <Camera size={18} />
-                          )}
-                        </label>
-                      </Tooltip>
-                    </div>
-                  )}
+                {expense.receiptUrl ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    <Tooltip content="Voir le justificatif">
+                      <button
+                        onClick={() => handleViewReceipt(expense)}
+                        className="flex items-center justify-center p-2 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-xl hover:bg-purple-100 transition shadow-sm border border-purple-100 dark:border-purple-800"
+                      >
+                        <ImageIcon size={18} />
+                      </button>
+                    </Tooltip>
+                    <Tooltip content="Relancer l'IA Gemini pour extraire les données">
+                      <button
+                        onClick={() => handleManualOCR(expense)}
+                        disabled={analyzingId === expense.id}
+                        className="flex items-center justify-center p-2 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-xl hover:bg-amber-100 transition shadow-sm border border-amber-100 dark:border-amber-800 disabled:opacity-50"
+                      >
+                        {analyzingId === expense.id ? (
+                          <Loader2 size={18} className="animate-spin" />
+                        ) : (
+                          <Sparkles size={18} />
+                        )}
+                      </button>
+                    </Tooltip>
+                    <Tooltip content="Télécharger ce fichier image">
+                      <a
+                        href={expense.receiptUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        download={`justificatif_${expense.motif.replace(/\s+/g, '_')}_${new Date(expense.date).toISOString().split('T')[0]}.jpg`}
+                        className="flex items-center justify-center p-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl hover:bg-blue-100 transition shadow-sm border border-blue-100 dark:border-blue-800"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Download size={18} />
+                      </a>
+                    </Tooltip>
+                    <Tooltip content="Supprimer uniquement le justificatif">
+                      <button
+                        onClick={() => handleDeleteReceipt(expense.id)}
+                        className="flex items-center justify-center p-2 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl hover:bg-red-100 transition shadow-sm border border-red-100 dark:border-red-800"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </Tooltip>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleCardFileUpload(expense.id, file);
+                      }}
+                      className="hidden"
+                      id={`upload-receipt-${expense.id}`}
+                    />
+                    <Tooltip content="Prendre en photo ou choisir un fichier">
+                      <label
+                        htmlFor={`upload-receipt-${expense.id}`}
+                        className={`p-2 rounded-xl cursor-pointer transition flex items-center justify-center shadow-sm border ${uploadingId === expense.id ? 'bg-slate-100 dark:bg-slate-800 text-slate-400' : 'bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-100 border-purple-100 dark:border-purple-800'}`}
+                      >
+                        {uploadingId === expense.id ? (
+                          <div className="w-5 h-5 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Camera size={18} />
+                        )}
+                      </label>
+                    </Tooltip>
+                  </div>
+                )}
                 <div className="flex gap-1 transition-opacity text-xs font-bold">
-                    <Tooltip content="Modifier les détails">
-                      <button onClick={() => handleOpenModal(expense)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                          <Edit2 size={16} />
-                      </button>
-                    </Tooltip>
-                    <Tooltip content="Supprimer la dépense complète">
-                      <button onClick={() => handleDelete(expense.id)} className="p-2 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-colors text-red-500 flex items-center gap-1">
-                          <Trash2 size={16} />
-                      </button>
-                    </Tooltip>
+                  <Tooltip content="Modifier les détails">
+                    <button onClick={() => handleOpenModal(expense)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                      <Edit2 size={16} />
+                    </button>
+                  </Tooltip>
+                  <Tooltip content="Supprimer la dépense complète">
+                    <button onClick={() => handleDelete(expense.id)} className="p-2 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-colors text-red-500 flex items-center gap-1">
+                      <Trash2 size={16} />
+                    </button>
+                  </Tooltip>
                 </div>
               </div>
               <div className="space-y-4">
                 <div>
-                    <div className="flex items-center gap-2 mb-2">
-                        <span
-                          className="text-[9px] font-black uppercase px-2 py-0.5 rounded-md flex items-center gap-1 border"
-                          style={{
-                            backgroundColor: `${expense.user?.color}15`,
-                            color: expense.user?.color || '#6366f1',
-                            borderColor: `${expense.user?.color}40`
-                          }}
-                        >
-                            <UserIcon size={10} />
-                            {expense.user?.name || 'Système'}
-                        </span>
-                    </div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span
+                      className="text-[9px] font-black uppercase px-2 py-0.5 rounded-md flex items-center gap-1 border"
+                      style={{
+                        backgroundColor: `${expense.user?.color}15`,
+                        color: expense.user?.color || '#6366f1',
+                        borderColor: `${expense.user?.color}40`
+                      }}
+                    >
+                      <UserIcon size={10} />
+                      {expense.user?.name || 'Système'}
+                    </span>
+                  </div>
                   <h3 className="text-lg font-black text-slate-800 dark:text-white truncate">{expense.motif}</h3>
                   <div className="flex flex-col gap-1 text-[10px] font-bold uppercase tracking-wider mt-1">
                     <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-black">
@@ -486,7 +501,7 @@ export default function ExpensesPage() {
         </div>
       )}
 
-  <ExpenseModal
+      <ExpenseModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSave={fetchExpenses}

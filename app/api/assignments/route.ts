@@ -51,6 +51,7 @@ export async function GET(request: Request) {
           select: {
             firstName: true,
             lastName: true,
+            address: true,
           }
         },
         user: {
@@ -99,6 +100,7 @@ export async function GET(request: Request) {
           patientId: assignment.patientId,
           workerName: assignment.user.name,
           patientName: patientName,
+          location: assignment.patient.address,
           status: assignment.status,
           isRecurring: assignment.isRecurring
         }

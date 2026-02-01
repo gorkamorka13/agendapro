@@ -160,10 +160,10 @@ export default function ReportsPage() {
 
   // Manual formatting: YYYY-MM-DD
   const formatDate = (d: Date) => {
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${y}-${m}-${day}`;
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
   };
 
   const [startDate, setStartDate] = useState(formatDate(firstDay));
@@ -219,9 +219,9 @@ export default function ReportsPage() {
           const isCurrentActive = data.some((item: any) => item.year === y && item.month === m);
 
           if (!isCurrentActive && data.length > 0) {
-             const lastActive = data.sort((a: any, b: any) => b.year - a.year || b.month - a.month)[0];
-             setSelectedYear(lastActive.year);
-             handleMonthSelect(lastActive.month, lastActive.year);
+            const lastActive = data.sort((a: any, b: any) => b.year - a.year || b.month - a.month)[0];
+            setSelectedYear(lastActive.year);
+            handleMonthSelect(lastActive.month, lastActive.year);
           }
         }
       } catch (e) { console.error(e); }
@@ -544,46 +544,46 @@ export default function ReportsPage() {
 
     // --- 6. EVALUATION ANALYTICS (Charts) ---
     if (options.evaluationAnalytics) {
-        if (currentY > 150) { doc.addPage(); currentY = 20; }
-        doc.setTextColor(30, 41, 59);
-        doc.setFontSize(14);
-        doc.text('Analyses de l\'Activité', 14, currentY);
-        currentY += 10;
+      if (currentY > 150) { doc.addPage(); currentY = 20; }
+      doc.setTextColor(30, 41, 59);
+      doc.setFontSize(14);
+      doc.text('Analyses de l\'Activité', 14, currentY);
+      currentY += 10;
 
-        try {
-            const barContainer = document.getElementById('bar-chart-container');
-            const pieContainer = document.getElementById('pie-chart-container');
-            const teamPieContainer = document.getElementById('team-pie-chart-container');
-            let maxChartHeight = 0;
+      try {
+        const barContainer = document.getElementById('bar-chart-container');
+        const pieContainer = document.getElementById('pie-chart-container');
+        const teamPieContainer = document.getElementById('team-pie-chart-container');
+        let maxChartHeight = 0;
 
-            if (barContainer) {
-                const canvas = await html2canvas(barContainer, { scale: 2 });
-                const imgData = canvas.toDataURL('image/png');
-                const imgWidth = 60;
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                doc.addImage(imgData, 'PNG', 14, currentY, imgWidth, imgHeight);
-                maxChartHeight = Math.max(maxChartHeight, imgHeight);
-            }
-            if (pieContainer) {
-                const canvas = await html2canvas(pieContainer, { scale: 2 });
-                const imgData = canvas.toDataURL('image/png');
-                const imgWidth = 60;
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                doc.addImage(imgData, 'PNG', 76, currentY, imgWidth, imgHeight);
-                maxChartHeight = Math.max(maxChartHeight, imgHeight);
-            }
-            if (teamPieContainer) {
-                const canvas = await html2canvas(teamPieContainer, { scale: 2 });
-                const imgData = canvas.toDataURL('image/png');
-                const imgWidth = 60;
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                doc.addImage(imgData, 'PNG', 138, currentY, imgWidth, imgHeight);
-                maxChartHeight = Math.max(maxChartHeight, imgHeight);
-            }
-            currentY += maxChartHeight + 10;
-        } catch (e) {
-            console.error("Error capturing charts:", e);
+        if (barContainer) {
+          const canvas = await html2canvas(barContainer, { scale: 2 });
+          const imgData = canvas.toDataURL('image/png');
+          const imgWidth = 60;
+          const imgHeight = (canvas.height * imgWidth) / canvas.width;
+          doc.addImage(imgData, 'PNG', 14, currentY, imgWidth, imgHeight);
+          maxChartHeight = Math.max(maxChartHeight, imgHeight);
         }
+        if (pieContainer) {
+          const canvas = await html2canvas(pieContainer, { scale: 2 });
+          const imgData = canvas.toDataURL('image/png');
+          const imgWidth = 60;
+          const imgHeight = (canvas.height * imgWidth) / canvas.width;
+          doc.addImage(imgData, 'PNG', 76, currentY, imgWidth, imgHeight);
+          maxChartHeight = Math.max(maxChartHeight, imgHeight);
+        }
+        if (teamPieContainer) {
+          const canvas = await html2canvas(teamPieContainer, { scale: 2 });
+          const imgData = canvas.toDataURL('image/png');
+          const imgWidth = 60;
+          const imgHeight = (canvas.height * imgWidth) / canvas.width;
+          doc.addImage(imgData, 'PNG', 138, currentY, imgWidth, imgHeight);
+          maxChartHeight = Math.max(maxChartHeight, imgHeight);
+        }
+        currentY += maxChartHeight + 10;
+      } catch (e) {
+        console.error("Error capturing charts:", e);
+      }
     }
 
     // --- 7. DETAILED LOGS TABLES (SPLIT) ---
@@ -593,110 +593,110 @@ export default function ReportsPage() {
 
       // --- 7a. REALIZED TABLE ---
       if (realizedEntries.length > 0) {
-          if (currentY > 250) { doc.addPage(); currentY = 20; }
-          doc.setTextColor(30, 41, 59);
-          doc.setFontSize(14);
-          doc.setFont('helvetica', 'bold');
-          doc.text('Journal des Interventions RÉALISÉES', 14, currentY);
+        if (currentY > 250) { doc.addPage(); currentY = 20; }
+        doc.setTextColor(30, 41, 59);
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Journal des Interventions RÉALISÉES', 14, currentY);
 
-          const totalDuration = realizedEntries.reduce((acc, current) => acc + parseFloat(current.duration), 0);
-          const totalPay = realizedEntries.reduce((acc, current) => acc + parseFloat(current.pay.replace(',', '.')), 0);
+        const totalDuration = realizedEntries.reduce((acc, current) => acc + parseFloat(current.duration), 0);
+        const totalPay = realizedEntries.reduce((acc, current) => acc + parseFloat(current.pay.replace(',', '.')), 0);
 
-          autoTable(doc, {
-            startY: currentY + 5,
-            head: [['Date', 'Statut', 'Intervenant', 'Patient', 'Début', 'Fin', 'Durée', 'Coût']],
-            body: realizedEntries.map(entry => [
-              entry.date,
-              'Réalisé',
-              entry.worker,
-              entry.patient,
-              entry.startTime,
-              entry.endTime,
-              `${entry.duration} h`,
-              `${entry.pay} €`
-            ]),
-            foot: [['TOTAL', '', '', '', '', '', `${totalDuration.toFixed(2)} h`, `${totalPay.toFixed(2)} €`]],
-            showFoot: 'lastPage',
-            headStyles: {
-              fillColor: [16, 185, 129], // Emerald for realized
-              textColor: [255, 255, 255],
-              fontStyle: 'bold',
-              halign: 'center'
-            },
-            footStyles: {
-              fillColor: [16, 185, 129],
-              textColor: [255, 255, 255],
-              fontStyle: 'bold',
-              halign: 'right'
-            },
-            bodyStyles: {
-              fontSize: 8,
-              textColor: [51, 65, 85]
-            },
-            alternateRowStyles: {
-              fillColor: [248, 250, 252]
-            },
-            columnStyles: {
-              6: { halign: 'right', fontStyle: 'bold' },
-              7: { halign: 'right', fontStyle: 'bold', textColor: [37, 99, 235] }
-            },
-            margin: { top: 20 },
-          });
-          currentY = (doc as any).lastAutoTable.finalY + 15;
+        autoTable(doc, {
+          startY: currentY + 5,
+          head: [['Date', 'Statut', 'Intervenant', 'Patient', 'Début', 'Fin', 'Durée', 'Coût']],
+          body: realizedEntries.map(entry => [
+            entry.date,
+            'Réalisé',
+            entry.worker,
+            entry.patient,
+            entry.startTime,
+            entry.endTime,
+            `${entry.duration} h`,
+            `${entry.pay} €`
+          ]),
+          foot: [['TOTAL', '', '', '', '', '', `${totalDuration.toFixed(2)} h`, `${totalPay.toFixed(2)} €`]],
+          showFoot: 'lastPage',
+          headStyles: {
+            fillColor: [16, 185, 129], // Emerald for realized
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+            halign: 'center'
+          },
+          footStyles: {
+            fillColor: [16, 185, 129],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+            halign: 'right'
+          },
+          bodyStyles: {
+            fontSize: 8,
+            textColor: [51, 65, 85]
+          },
+          alternateRowStyles: {
+            fillColor: [248, 250, 252]
+          },
+          columnStyles: {
+            6: { halign: 'right', fontStyle: 'bold' },
+            7: { halign: 'right', fontStyle: 'bold', textColor: [37, 99, 235] }
+          },
+          margin: { top: 20 },
+        });
+        currentY = (doc as any).lastAutoTable.finalY + 15;
       }
 
       // --- 7b. PLANNED TABLE ---
       if (plannedEntries.length > 0) {
-          if (currentY > 250) { doc.addPage(); currentY = 20; }
-          doc.setTextColor(30, 41, 59);
-          doc.setFontSize(14);
-          doc.setFont('helvetica', 'bold');
-          doc.text('Journal des Interventions PLANIFIÉES', 14, currentY);
+        if (currentY > 250) { doc.addPage(); currentY = 20; }
+        doc.setTextColor(30, 41, 59);
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Journal des Interventions PLANIFIÉES', 14, currentY);
 
-          const totalDuration = plannedEntries.reduce((acc, current) => acc + parseFloat(current.duration), 0);
-          const totalPay = plannedEntries.reduce((acc, current) => acc + parseFloat(current.pay.replace(',', '.')), 0);
+        const totalDuration = plannedEntries.reduce((acc, current) => acc + parseFloat(current.duration), 0);
+        const totalPay = plannedEntries.reduce((acc, current) => acc + parseFloat(current.pay.replace(',', '.')), 0);
 
-          autoTable(doc, {
-            startY: currentY + 5,
-            head: [['Date', 'Statut', 'Intervenant', 'Patient', 'Début', 'Fin', 'Durée', 'Coût']],
-            body: plannedEntries.map(entry => [
-              entry.date,
-              'Planifié',
-              entry.worker,
-              entry.patient,
-              entry.startTime,
-              entry.endTime,
-              `${entry.duration} h`,
-              `${entry.pay} €`
-            ]),
-            foot: [['TOTAL', '', '', '', '', '', `${totalDuration.toFixed(2)} h`, `${totalPay.toFixed(2)} €`]],
-            showFoot: 'lastPage',
-            headStyles: {
-              fillColor: [37, 99, 235], // Blue for planned
-              textColor: [255, 255, 255],
-              fontStyle: 'bold',
-              halign: 'center'
-            },
-            footStyles: {
-              fillColor: [37, 99, 235],
-              textColor: [255, 255, 255],
-              fontStyle: 'bold',
-              halign: 'right'
-            },
-            bodyStyles: {
-              fontSize: 8,
-              textColor: [51, 65, 85]
-            },
-            alternateRowStyles: {
-              fillColor: [248, 250, 252]
-            },
-            columnStyles: {
-              6: { halign: 'right', fontStyle: 'bold' },
-              7: { halign: 'right', fontStyle: 'bold', textColor: [37, 99, 235] }
-            },
-            margin: { top: 20 },
-          });
-          currentY = (doc as any).lastAutoTable.finalY + 15;
+        autoTable(doc, {
+          startY: currentY + 5,
+          head: [['Date', 'Statut', 'Intervenant', 'Patient', 'Début', 'Fin', 'Durée', 'Coût']],
+          body: plannedEntries.map(entry => [
+            entry.date,
+            'Planifié',
+            entry.worker,
+            entry.patient,
+            entry.startTime,
+            entry.endTime,
+            `${entry.duration} h`,
+            `${entry.pay} €`
+          ]),
+          foot: [['TOTAL', '', '', '', '', '', `${totalDuration.toFixed(2)} h`, `${totalPay.toFixed(2)} €`]],
+          showFoot: 'lastPage',
+          headStyles: {
+            fillColor: [37, 99, 235], // Blue for planned
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+            halign: 'center'
+          },
+          footStyles: {
+            fillColor: [37, 99, 235],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+            halign: 'right'
+          },
+          bodyStyles: {
+            fontSize: 8,
+            textColor: [51, 65, 85]
+          },
+          alternateRowStyles: {
+            fillColor: [248, 250, 252]
+          },
+          columnStyles: {
+            6: { halign: 'right', fontStyle: 'bold' },
+            7: { halign: 'right', fontStyle: 'bold', textColor: [37, 99, 235] }
+          },
+          margin: { top: 20 },
+        });
+        currentY = (doc as any).lastAutoTable.finalY + 15;
       }
     }
 
@@ -754,64 +754,64 @@ export default function ReportsPage() {
 
     // --- 9. EXPENSES TABLE ---
     if (options.financialSummary && reportData.expenses && reportData.expenses.length > 0) {
-        if (currentY > 250) { doc.addPage(); currentY = 20; }
+      if (currentY > 250) { doc.addPage(); currentY = 20; }
 
-        doc.setTextColor(30, 41, 59); // Slate 900
-        doc.setFontSize(14);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Détail des Dépenses de Fonctionnement', 14, currentY);
+      doc.setTextColor(30, 41, 59); // Slate 900
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Détail des Dépenses de Fonctionnement', 14, currentY);
 
-        autoTable(doc, {
-            startY: currentY + 5,
-            head: [['Date', 'Bénéficiaire', 'Motif de la dépense', 'Montant']],
-            body: reportData.expenses.map(exp => [
-                new Date(exp.recordingDate || exp.date).toLocaleDateString('fr-FR'),
-                (exp as any).user?.name || '-',
-                exp.motif,
-                `${exp.amount.toFixed(2)} €`
-            ]),
-            foot: [['TOTAL', '', '', `${reportData.summary.totalExpenses.toFixed(2)} €`]],
-            showFoot: 'lastPage',
-            headStyles: {
-                fillColor: [30, 41, 59],
-                textColor: [255, 255, 255],
-                fontStyle: 'bold',
-                halign: 'center'
-            },
-            footStyles: {
-                fillColor: [30, 41, 59],
-                textColor: [255, 255, 255],
-                fontStyle: 'bold',
-                halign: 'right'
-            },
-            bodyStyles: {
-                fontSize: 8,
-                textColor: [51, 65, 85]
-            },
-            alternateRowStyles: {
-                fillColor: [248, 250, 252]
-            },
-            columnStyles: {
-                3: { halign: 'right', fontStyle: 'bold' }
-            }
-        });
+      autoTable(doc, {
+        startY: currentY + 5,
+        head: [['Date', 'Bénéficiaire', 'Motif de la dépense', 'Montant']],
+        body: reportData.expenses.map(exp => [
+          new Date(exp.recordingDate || exp.date).toLocaleDateString('fr-FR'),
+          (exp as any).user?.name || '-',
+          exp.motif,
+          `${exp.amount.toFixed(2)} €`
+        ]),
+        foot: [['TOTAL', '', '', `${reportData.summary.totalExpenses.toFixed(2)} €`]],
+        showFoot: 'lastPage',
+        headStyles: {
+          fillColor: [30, 41, 59],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          halign: 'center'
+        },
+        footStyles: {
+          fillColor: [30, 41, 59],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          halign: 'right'
+        },
+        bodyStyles: {
+          fontSize: 8,
+          textColor: [51, 65, 85]
+        },
+        alternateRowStyles: {
+          fillColor: [248, 250, 252]
+        },
+        columnStyles: {
+          3: { halign: 'right', fontStyle: 'bold' }
+        }
+      });
 
-        currentY = (doc as any).lastAutoTable.finalY + 10;
-        // Separate total text removed for standardization with footer row
+      currentY = (doc as any).lastAutoTable.finalY + 10;
+      // Separate total text removed for standardization with footer row
     }
 
     // --- 6. MODERN FOOTER ---
     const pageCount = (doc as any).internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(10);
-        doc.setTextColor(148, 163, 184);
+      doc.setPage(i);
+      doc.setFontSize(10);
+      doc.setTextColor(148, 163, 184);
 
-        doc.setDrawColor(226, 232, 240);
-        doc.line(14, 285, 196, 285);
+      doc.setDrawColor(226, 232, 240);
+      doc.line(14, 285, 196, 285);
 
-        doc.text(`AGENDA PRO - © Michel ESPARSA`, 14, 290);
-        doc.text(`Page ${i} sur ${pageCount}`, 185, 290);
+      doc.text(`AGENDA PRO - © Michel ESPARSA`, 14, 290);
+      doc.text(`Page ${i} sur ${pageCount}`, 185, 290);
     }
 
     // --- 9. RECEIPTS PHOTOS CHAPTER ---
@@ -863,7 +863,7 @@ export default function ReportsPage() {
             const blob = await imgResponse.blob();
 
             // Get original image dimensions to calculate proper height
-            const imgData = await new Promise<{base64: string, w: number, h: number}>((resolve, reject) => {
+            const imgData = await new Promise<{ base64: string, w: number, h: number }>((resolve, reject) => {
               const reader = new FileReader();
               reader.onloadend = () => {
                 const base64 = reader.result as string;
@@ -957,11 +957,10 @@ export default function ReportsPage() {
                     <button
                       key={m.value}
                       onClick={() => handleMonthSelect(m.value)}
-                      className={`relative px-3 py-2 rounded-lg text-[11px] font-black transition-all text-center whitespace-nowrap ${
-                        isActive
-                          ? 'bg-blue-600 text-white shadow-md'
-                          : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 border border-blue-200 dark:border-blue-800'
-                      }`}
+                      className={`relative px-3 py-2 rounded-lg text-[11px] font-black transition-all text-center whitespace-nowrap ${isActive
+                        ? 'bg-blue-600 text-white shadow-md'
+                        : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 border border-blue-200 dark:border-blue-800'
+                        }`}
                       title={m.name}
                     >
                       {m.name.substring(0, 3)}
@@ -986,68 +985,79 @@ export default function ReportsPage() {
         )}
 
         <div className="flex flex-col lg:flex-row items-end gap-4 w-full">
-            {/* Intervenant */}
-            <div className="flex-1 w-full min-w-0">
-                <Select
-                    label="Sélection Intervenant"
-                    icon={<UserIcon size={14} className="text-blue-500" />}
-                    value={selectedUserId}
-                    onChange={(e) => setSelectedUserId(e.target.value)}
-                    className="text-sm"
-                >
-                    <option value="all">Tous les intervenants</option>
-                    {users.map((user) => (
-                        <option key={user.id} value={user.id}>{user.name}</option>
-                    ))}
-                </Select>
+          {/* Intervenant & Mobile Download Group */}
+          <div className="flex-1 w-full min-w-0 flex items-end gap-2">
+            <div className="flex-1 min-w-0">
+              <Select
+                label="Sélection Intervenant"
+                icon={<UserIcon size={14} className="text-blue-500" />}
+                value={selectedUserId}
+                onChange={(e) => setSelectedUserId(e.target.value)}
+                className="text-sm"
+              >
+                <option value="all">Tous les intervenants</option>
+                {users.map((user) => (
+                  <option key={user.id} value={user.id}>{user.name}</option>
+                ))}
+              </Select>
             </div>
-
-            {/* Period */}
-            <div className="w-full lg:w-48">
-                <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase mb-1.5 flex items-center gap-2 px-1">
-                    <FileText size={14} className="text-blue-500" />
-                    <span>Période</span>
-                </label>
-                <div className="px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-slate-700 dark:text-slate-200 text-sm truncate">
-                    {new Date(startDate).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).toUpperCase()}
-                </div>
-            </div>
-
-            {/* Dates */}
-            <div className="flex items-center gap-2 w-full lg:w-auto">
-                <div className="flex-1 lg:w-36">
-                    <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase mb-1.5 flex items-center gap-2 px-1 truncate">
-                        <Calendar size={14} className="text-emerald-500" /> Du
-                    </label>
-                    <input
-                        type="date"
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                        className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-slate-200 font-bold text-xs"
-                    />
-                </div>
-                <div className="flex-1 lg:w-36">
-                     <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase mb-1.5 flex items-center gap-2 px-1 truncate">
-                        <Calendar size={14} className="text-rose-500" /> Au
-                    </label>
-                    <input
-                        type="date"
-                        value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
-                        className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-slate-200 font-bold text-xs"
-                    />
-                </div>
-            </div>
-
-            {/* Download Button */}
+            {/* Download Button (Mobile Only) */}
             <button
-                onClick={() => setIsExportModalOpen(true)}
-                disabled={!reportData}
-                className="p-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-200 dark:shadow-none mb-[1px]"
-                title="Exporter le rapport"
+              onClick={() => setIsExportModalOpen(true)}
+              disabled={!reportData}
+              className="lg:hidden p-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-200 dark:shadow-none mb-[1px]"
+              title="Exporter le rapport"
             >
-                <Download size={20} />
+              <Download size={20} />
             </button>
+          </div>
+
+          {/* Period */}
+          <div className="w-full lg:w-48">
+            <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase mb-1.5 flex items-center gap-2 px-1">
+              <FileText size={14} className="text-blue-500" />
+              <span>Période</span>
+            </label>
+            <div className="px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-slate-700 dark:text-slate-200 text-sm truncate">
+              {new Date(startDate).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).toUpperCase()}
+            </div>
+          </div>
+
+          {/* Dates */}
+          <div className="flex items-center gap-2 w-full lg:w-auto">
+            <div className="flex-1 lg:w-36">
+              <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase mb-1.5 flex items-center gap-2 px-1 truncate">
+                <Calendar size={14} className="text-emerald-500" /> Du
+              </label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-slate-200 font-bold text-xs"
+              />
+            </div>
+            <div className="flex-1 lg:w-36">
+              <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase mb-1.5 flex items-center gap-2 px-1 truncate">
+                <Calendar size={14} className="text-rose-500" /> Au
+              </label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-slate-200 font-bold text-xs"
+              />
+            </div>
+          </div>
+
+          {/* Download Button (Desktop Only) */}
+          <button
+            onClick={() => setIsExportModalOpen(true)}
+            disabled={!reportData}
+            className="hidden lg:block p-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-200 dark:shadow-none mb-[1px]"
+            title="Exporter le rapport"
+          >
+            <Download size={20} />
+          </button>
         </div>
       </div>
 
@@ -1133,20 +1143,20 @@ export default function ReportsPage() {
                       dataKey="day"
                       axisLine={false}
                       tickLine={false}
-                      tick={{fill: '#94a3b8', fontSize: 12}}
+                      tick={{ fill: '#94a3b8', fontSize: 12 }}
                       dy={10}
                     />
                     <YAxis
                       axisLine={false}
                       tickLine={false}
-                      tick={{fill: '#94a3b8', fontSize: 12}}
+                      tick={{ fill: '#94a3b8', fontSize: 12 }}
                       domain={[0, 'auto']}
                       tickFormatter={(value) => `${value}h`}
                     />
                     <Tooltip
-                      cursor={{fill: 'rgba(241, 245, 249, 0.1)'}}
+                      cursor={{ fill: 'rgba(241, 245, 249, 0.1)' }}
                       contentStyle={{ backgroundColor: '#1e293b', borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', color: '#f1f5f9' }}
-                      itemStyle={{ color: '#f1f5f9'}}
+                      itemStyle={{ color: '#f1f5f9' }}
                       formatter={(value: any) => [`${value?.toFixed(2) || 0} h`, 'Heures']}
                     />
                     <Bar dataKey="hours" radius={[6, 6, 0, 0]}>
@@ -1192,7 +1202,7 @@ export default function ReportsPage() {
                     </Pie>
                     <Tooltip
                       contentStyle={{ backgroundColor: '#1e293b', borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', color: '#f1f5f9' }}
-                      itemStyle={{ color: '#f1f5f9'}}
+                      itemStyle={{ color: '#f1f5f9' }}
                       formatter={(value: any, name: any) => [`${value?.toFixed(2) || 0} h`, name || 'Total']}
                     />
                     <Legend
@@ -1232,7 +1242,7 @@ export default function ReportsPage() {
                     </Pie>
                     <Tooltip
                       contentStyle={{ backgroundColor: '#1e293b', borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', color: '#f1f5f9' }}
-                      itemStyle={{ color: '#f1f5f9'}}
+                      itemStyle={{ color: '#f1f5f9' }}
                       formatter={(value: any, name: any) => [`${value?.toFixed(2) || 0} h`, name || 'Total']}
                     />
                     <Legend
@@ -1291,8 +1301,8 @@ export default function ReportsPage() {
                     <div key={i} className="p-3 bg-emerald-50/50 dark:bg-emerald-500/5 rounded-xl border border-emerald-100/50 dark:border-emerald-500/20 flex justify-between items-center group">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                           <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase">{new Date(expense.recordingDate || expense.date).toLocaleDateString('fr-FR')}</span>
-                           <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase truncate">| {expense.user?.name || 'Inconnu'}</span>
+                          <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase">{new Date(expense.recordingDate || expense.date).toLocaleDateString('fr-FR')}</span>
+                          <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase truncate">| {expense.user?.name || 'Inconnu'}</span>
                         </div>
                         <div className="text-sm font-black text-slate-700 dark:text-slate-200 truncate">{expense.motif}</div>
                       </div>
@@ -1306,8 +1316,8 @@ export default function ReportsPage() {
                 )}
               </div>
               <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-baseline font-black">
-                 <span className="text-xs text-slate-400 uppercase">Total Dépenses</span>
-                 <span className="text-xl text-slate-800 dark:text-white">{reportData.summary.totalExpenses.toFixed(2)} €</span>
+                <span className="text-xs text-slate-400 uppercase">Total Dépenses</span>
+                <span className="text-xl text-slate-800 dark:text-white">{reportData.summary.totalExpenses.toFixed(2)} €</span>
               </div>
             </div>
           </div>
