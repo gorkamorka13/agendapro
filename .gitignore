@@ -8,8 +8,9 @@
 
 # testing
 /coverage
-/scripts
+# Keep version bump script for deployment
 !/scripts/bump-version.js
+/scripts
 
 
 # next.js

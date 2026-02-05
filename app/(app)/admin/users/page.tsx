@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { User, Role } from '@prisma/client';
 import { useTitle } from '@/components/TitleContext';
-import { Save, X } from 'lucide-react';
+import { Save, X, Eye, EyeOff } from 'lucide-react';
 import { Select } from '@/components/ui/Select';
 import { getContrastColor } from '@/lib/utils';
 
@@ -20,6 +20,7 @@ export default function UserManagementPage() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<Role>('USER' as any);
   const [hourlyRate, setHourlyRate] = useState('');
   const [travelCost, setTravelCost] = useState('');
@@ -351,14 +352,28 @@ export default function UserManagementPage() {
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                     Mot de passe {editingUser && '(laisser vide si inchangé)'}
                   </label>
-                  <input
-                    type="password"
-                    required={!editingUser}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-slate-100 font-medium"
-                    placeholder="••••••••"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required={!editingUser}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-slate-100 font-medium pr-12"
+                      placeholder="••••••••"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors focus:outline-none"
+                      tabIndex={-1}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
                 </div>
                 <div className="space-y-1.5">
                   <Select
