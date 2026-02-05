@@ -29,8 +29,9 @@ const nextConfig = {
   ],
 
   env: {
-    APP_VERSION: pkg.version,
-    BUILD_DATE: new Date().toLocaleDateString('fr-FR'),
+    NEXT_PUBLIC_APP_VERSION: pkg.version,
+    NEXT_PUBLIC_BUILD_DATE: new Date().toLocaleDateString('fr-FR'),
+    NEXT_PUBLIC_BUILD_ID: Date.now().toString(36).slice(-6).toUpperCase(),
   },
 
   async redirects() {

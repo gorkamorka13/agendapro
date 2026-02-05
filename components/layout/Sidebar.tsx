@@ -142,7 +142,17 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
       <div className="mt-auto pt-6 border-t border-slate-700/50 pb-6">
         <div className="text-[11px] text-slate-500 font-bold opacity-80 space-y-1">
           <p>AGENDA PRO - © Michel ESPARSA</p>
-          <p>v{process.env.APP_VERSION} - {process.env.BUILD_DATE}</p>
+          <p className="flex items-center gap-1.5">
+            <span className="bg-slate-700/30 px-1.5 py-0.5 rounded text-slate-400">
+              v{process.env.NEXT_PUBLIC_APP_VERSION || '0.0.0'}
+            </span>
+            <span className="text-slate-600">|</span>
+            <span className="text-slate-500">{process.env.NEXT_PUBLIC_BUILD_DATE || 'N/A'}</span>
+            <span className="text-slate-600">|</span>
+            <span className="text-[9px] text-slate-600 font-mono tracking-wider">
+              #{process.env.NEXT_PUBLIC_BUILD_ID || '000000'}
+            </span>
+          </p>
         </div>
       </div>
     </div>

@@ -1,16 +1,17 @@
 {
   "name": "agenda-stable",
-  "version": "0.2.2",
+  "version": "0.0.2",
   "private": true,
   "scripts": {
     "dev": "next dev -H 0.0.0.0 --turbo",
     "db:sync": "node Tools/fix-db-sync.js",
     "predev": "node Tools/check-db-sync.js",
-    "build": "next build",
+    "build": "node scripts/bump-version.js && next build",
     "analyze": "cross-env ANALYZE=true npm run build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "version:bump": "node scripts/bump-version.js"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.20",
