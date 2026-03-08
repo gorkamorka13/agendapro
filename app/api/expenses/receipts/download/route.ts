@@ -4,8 +4,6 @@ import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { expenses, users } from '@/lib/db/schema';
 import { eq, gte, lte, and, isNotNull } from 'drizzle-orm';
-import JSZip from 'jszip';
-import path from 'path';
 import type { Role } from '@/types';
 
 export async function GET(request: Request) {
@@ -42,6 +40,8 @@ export async function GET(request: Request) {
 
     if (rows.length === 0) return new NextResponse('Aucun justificatif trouvé', { status: 404 });
 
+    const JSZip = (await import('jszip')).default;
+    const { default: path } = await import('path');
     const zip = new JSZip();
 
     for (const expense of rows) {
