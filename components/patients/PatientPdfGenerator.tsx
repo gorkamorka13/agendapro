@@ -6,6 +6,7 @@ import { fr } from 'date-fns/locale';
 import { Download, FileText, Loader2, Calendar as CalendarIcon } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Select } from '../ui/Select';
+import { toast } from 'sonner';
 
 interface Patient {
   id: number;
@@ -48,8 +49,13 @@ export default function PatientPdfGenerator({ patient }: PatientPdfGeneratorProp
       });
 
       // 3. Generate PDF (dynamically import to avoid Edge SSR crashes)
-      const { jsPDF } = await import('jspdf');
-      const autoTable = (await import('jspdf-autotable')).default;
+      const [jspdfModule, autotableModule] = await Promise.all([
+        import('jspdf'),
+        import('jspdf-autotable')
+      ]);
+
+      const jsPDF = jspdfModule.jsPDF || jspdfModule.default;
+      const autoTable = autotableModule.default;
 
       const doc = new jsPDF();
       const monthName = months[parseInt(selectedMonth)];
@@ -134,9 +140,9 @@ export default function PatientPdfGenerator({ patient }: PatientPdfGeneratorProp
       // Save
       doc.save(`Releve_${patient.lastName}_${monthName}_${selectedYear}.pdf`);
 
-    } catch (error) {
-      console.error(error);
-      alert('Erreur lors de la génération du PDF');
+    } catch (error: any) {
+      console.error('Erreur PDF:', error);
+      toast.error(`Erreur lors de la génération du PDF: ${error.message || 'Problème inconnu'}`);
     } finally {
       setIsGenerating(false);
     }
@@ -146,7 +152,7 @@ export default function PatientPdfGenerator({ patient }: PatientPdfGeneratorProp
     <>
       <div className="flex items-center gap-2 mb-4 text-indigo-900 dark:text-indigo-300">
         <FileText size={20} />
-        <h3 className="font-bold text-lg">Relevé Menusuel</h3>
+        <h3 className="font-bold text-lg">Relevé Mensuel</h3>
       </div>
 
       <p className="text-sm text-indigo-700/80 dark:text-indigo-400/80 mb-5 leading-relaxed">
