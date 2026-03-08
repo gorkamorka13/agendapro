@@ -3,24 +3,31 @@ import { drizzle } from 'drizzle-orm/neon-serverless';
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import * as schema from './schema';
 
-// Support WebSockets pour Node.js (dev local) - Cloudflare a nativement les WebSockets
-if (typeof globalThis.WebSocket === 'undefined') {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const ws = require('ws');
-  neonConfig.webSocketConstructor = ws;
+// Polyfill process pour l'Edge si nécessaire
+if (typeof process === 'undefined') {
+  (globalThis as any).process = { env: {} };
+}
+
+// Support WebSockets pour Node.js (dev local) uniquement
+if (typeof globalThis.WebSocket === 'undefined' && (process.env.NEXT_RUNTIME !== 'edge')) {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const ws = require('ws');
+    neonConfig.webSocketConstructor = ws;
+  } catch (e) {
+    // Silently ignore if ws is not available
+  }
 }
 
 const getDatabaseUrl = (): string => {
   const url =
     process.env.DATABASE_URL ||
+    (globalThis as any).DATABASE_URL ||
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (globalThis as Record<string, any>).__env?.DATABASE_URL ||
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (globalThis as Record<string, any>).env?.DATABASE_URL;
 
-  if (!url) {
-    console.warn('[DB] DATABASE_URL is not defined at module evaluation time. This is normal on Cloudflare Edge cold boots.');
-  }
   return url || '';
 };
 
@@ -36,12 +43,6 @@ function createDbInstance() {
   const connectionString = getDatabaseUrl();
   const pool = new Pool({ connectionString });
   const dbInstance = drizzle(pool, { schema });
-
-  // Workaround: Neon sometimes doesn't set search_path properly
-  dbInstance.execute('SET search_path TO public').catch((err) => {
-    console.error('[DB] Failed to set search_path:', err);
-  });
-
   return { db: dbInstance, pool };
 }
 
@@ -57,34 +58,45 @@ const getRealDb = () => {
 
   const url = getDatabaseUrl();
   if (!url) {
-    // Si on n'a toujours pas d'URL au runtime, on reste sur l'instance buildTime ou on lance une erreur
-    // Pour l'Edge de Cloudflare, l'URL est injectée juste avant l'exécution du handler.
     return buildTimeDb;
   }
 
-  const { db } = createDbInstance();
+  const { db, pool } = createDbInstance();
   realDbInstance = db;
+
+  if (process.env.NODE_ENV !== 'production') {
+    globalForDb.db = db;
+    globalForDb.pool = pool;
+  }
+
   return db;
 };
 
-// Proxy transparent qui utilise buildTimeDb comme cible de type
+// Proxy transparent qui délègue tout à l'instance réelle (ou buildTimeDb)
 export const db = new Proxy(buildTimeDb, {
   get(target, prop, receiver) {
-    // Si on a une URL, on délègue à l'instance réelle
-    // Sinon on reste sur le target (buildTimeDb)
-    const url = getDatabaseUrl();
-    const activeDb = url ? getRealDb() : target;
+    // Cas spécial pour Auth.js/Drizzle qui inspectent le constructeur
+    if (prop === 'constructor') return target.constructor;
 
-    const value = Reflect.get(activeDb, prop, receiver);
+    const activeDb = getRealDb();
+    const value = Reflect.get(activeDb, prop, receiver === target ? activeDb : receiver);
+
     if (typeof value === 'function') {
       return value.bind(activeDb);
     }
     return value;
   },
-  getPrototypeOf(target) {
-    // Crucial pour instanceof Drizzle classes
-    const url = getDatabaseUrl();
-    return Object.getPrototypeOf(url ? getRealDb() : target);
+  getPrototypeOf() {
+    return Object.getPrototypeOf(getRealDb());
+  },
+  has(target, prop) {
+    return Reflect.has(getRealDb(), prop);
+  },
+  ownKeys() {
+    return Reflect.ownKeys(getRealDb());
+  },
+  getOwnPropertyDescriptor(target, prop) {
+    return Reflect.getOwnPropertyDescriptor(getRealDb(), prop);
   }
 });
 
