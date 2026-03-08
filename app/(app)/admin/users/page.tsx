@@ -3,16 +3,17 @@
 import { useState, useEffect } from 'react';
 import type { User, Role } from '@/types';
 import { useTitle } from '@/components/TitleContext';
-import { Save, X, Eye, EyeOff } from 'lucide-react';
+import { Save, X, Eye, EyeOff, Plus, Trash2 } from 'lucide-react';
 import { Select } from '@/components/ui/Select';
 import { getContrastColor } from '@/lib/utils';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Button } from '@/components/ui/Button';
 
 export default function UserManagementPage() {
   const { setTitle } = useTitle();
-  const [users, setUsers] = useState<User[]>([]);
+  const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
   // Form states
   const [name, setName] = useState('');
@@ -26,22 +27,16 @@ export default function UserManagementPage() {
   const [travelCost, setTravelCost] = useState('');
   const [color, setColor] = useState('#3b82f6');
 
-  const fetchUsers = async () => {
-    setIsLoading(true);
-    try {
+  const { data: users = [], isLoading } = useQuery<User[]>({
+    queryKey: ['users'],
+    queryFn: async () => {
       const res = await fetch('/api/users');
-      if (res.ok) {
-        setUsers(await res.json());
-      }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      if (!res.ok) throw new Error('Erreur chargement utilisateurs');
+      return res.json();
+    },
+  });
 
   useEffect(() => {
-    fetchUsers();
     setTitle("Gestion des Utilisateurs");
   }, [setTitle]);
 
@@ -93,7 +88,7 @@ export default function UserManagementPage() {
 
       if (res.ok) {
         setIsModalOpen(false);
-        fetchUsers();
+        queryClient.invalidateQueries({ queryKey: ['users'] });
       } else {
         const errorText = await res.text();
         alert(`Erreur: ${errorText}`);
@@ -108,7 +103,7 @@ export default function UserManagementPage() {
       try {
         const res = await fetch(`/api/users/${userId}`, { method: 'DELETE' });
         if (res.ok) {
-          fetchUsers();
+          queryClient.invalidateQueries({ queryKey: ['users'] });
         }
       } catch (error) {
         console.error(error);
@@ -122,15 +117,13 @@ export default function UserManagementPage() {
         <div className="flex-1">
           {/* Titre supprimé comme demandé */}
         </div>
-        <button
+        <Button
           onClick={() => handleOpenModal()}
-          className="bg-blue-600 text-white px-6 py-2.5 rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-200 dark:shadow-none flex items-center justify-center gap-2 text-sm font-bold"
+          className="rounded-xl shadow-lg shadow-blue-200 dark:shadow-none flex items-center justify-center gap-2 text-sm font-bold h-11 px-6"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-          </svg>
+          <Plus size={20} />
           <span>Nouveau compte</span>
-        </button>
+        </Button>
       </div>
 
       {/* MOBILE VIEW: Cards */}
@@ -444,6 +437,15 @@ export default function UserManagementPage() {
                   <Save size={18} />
                   {editingUser ? 'Enregistrer' : 'Créer le compte'}
                 </button>
+                {editingUser && editingUser.name !== 'admin' && (
+                 <button
+                    type="button"
+                    onClick={() => handleDelete(editingUser.id)}
+                    className="flex-1 px-5 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 font-bold shadow-lg shadow-red-500/20 transition-all flex items-center justify-center gap-2 text-xs order-2"
+                  >
+                    <Trash2 size={16} /> Supprimer
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}

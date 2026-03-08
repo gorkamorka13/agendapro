@@ -3,13 +3,15 @@
 import { useState, useEffect } from 'react';
 import type { Patient } from '@/types';
 import { useTitle } from '@/components/TitleContext';
-import { Trash2, Save, X } from 'lucide-react';
+import { Trash2, Save, X, Plus } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Button } from '@/components/ui/Button';
+
 export default function PatientManagementPage() {
   const { setTitle } = useTitle();
-  const [patients, setPatients] = useState<Patient[]>([]);
+  const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
   // Form states
   const [firstName, setFirstName] = useState('');
@@ -17,22 +19,16 @@ export default function PatientManagementPage() {
   const [address, setAddress] = useState('');
   const [contactInfo, setContactInfo] = useState('');
 
-  const fetchPatients = async () => {
-    setIsLoading(true);
-    try {
+  const { data: patients = [], isLoading } = useQuery<Patient[]>({
+    queryKey: ['patients'],
+    queryFn: async () => {
       const res = await fetch('/api/patients');
-      if (res.ok) {
-        setPatients(await res.json());
-      }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      if (!res.ok) throw new Error('Erreur chargement patients');
+      return res.json();
+    },
+  });
 
   useEffect(() => {
-    fetchPatients();
     setTitle("Gestion des Patients");
   }, [setTitle]);
 
@@ -74,7 +70,7 @@ export default function PatientManagementPage() {
 
       if (res.ok) {
         setIsModalOpen(false);
-        fetchPatients();
+        queryClient.invalidateQueries({ queryKey: ['patients'] });
       } else {
         const errorText = await res.text();
         alert(`Erreur: ${errorText}`);
@@ -89,7 +85,7 @@ export default function PatientManagementPage() {
       try {
         const res = await fetch(`/api/patients?id=${patientId}`, { method: 'DELETE' });
         if (res.ok) {
-          fetchPatients();
+          queryClient.invalidateQueries({ queryKey: ['patients'] });
         }
       } catch (error) {
         console.error(error);
@@ -103,15 +99,13 @@ export default function PatientManagementPage() {
         <div className="flex-1">
           {/* Titre supprimé pour homogénéité */}
         </div>
-        <button
+        <Button
           onClick={() => handleOpenModal()}
-          className="bg-blue-600 text-white px-6 py-2.5 rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-200 dark:shadow-none flex items-center justify-center gap-2 text-sm font-bold"
+          className="rounded-xl shadow-lg shadow-blue-200 dark:shadow-none flex items-center justify-center gap-2 text-sm font-bold h-11 px-6"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-          </svg>
+          <Plus size={20} />
           <span>Nouveau Patient</span>
-        </button>
+        </Button>
       </div>
 
       {/* MOBILE VIEW: Cards */}
