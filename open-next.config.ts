@@ -5,9 +5,20 @@ const config: OpenNextConfig = {
     override: {
       wrapper: 'cloudflare-node',
       converter: 'edge',
+      incrementalCache: 'dummy',
+      tagCache: 'dummy',
+      queue: 'dummy',
     },
   },
-  buildCommand: 'npx next build',
+  middleware: {
+    external: true,
+    override: {
+      wrapper: 'cloudflare-edge',
+      converter: 'edge',
+      proxyExternalRequest: 'fetch',
+    },
+  },
+  edgeExternals: ['node:crypto'],
 };
 
 export default config;
