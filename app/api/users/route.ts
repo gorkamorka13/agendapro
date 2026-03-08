@@ -1,7 +1,6 @@
 // Fichier : app/api/users/route.ts
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
-import bcrypt from 'bcryptjs';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
@@ -76,6 +75,7 @@ export async function POST(request: Request) {
       return new NextResponse('Nom et mot de passe requis', { status: 400 });
     }
 
+    const bcrypt = (await import('bcryptjs')).default;
     const hashedPassword = await bcrypt.hash(password, 12);
     const targetRole: Role =
       role === 'ADMIN' ? 'ADMIN' : role === 'VISITEUR' ? 'VISITEUR' : 'USER';

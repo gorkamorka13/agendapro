@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
@@ -57,6 +56,7 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
     };
 
     if (password) {
+      const bcrypt = (await import('bcryptjs')).default;
       updateData.hashedPassword = await bcrypt.hash(password, 12);
     }
 
