@@ -16,6 +16,8 @@ directory = ".open-next/assets"
 # ========================================
 [vars]
 NEXT_PUBLIC_STORAGE_TYPE = "r2"
+NEXTAUTH_URL = "https://agendapro.michel-esparsa.workers.dev"
+NEXT_PUBLIC_APP_URL = "https://agendapro.michel-esparsa.workers.dev"
 
 # ========================================
 # R2 Buckets for file storage
