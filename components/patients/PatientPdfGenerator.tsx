@@ -36,9 +36,18 @@ export default function PatientPdfGenerator({ patient }: PatientPdfGeneratorProp
   const handleGeneratePdf = async () => {
     setIsGenerating(true);
     try {
-      // 1. Fetch assignments for this patient
-      const res = await fetch(`/api/patients/${patient.id}/assignments`);
-      if (!res.ok) throw new Error('Erreur récupération des données');
+      // 1. Fetch assignments for this patient (avec auto-retry pour contourner les cold starts Cloudflare Edge 1101)
+      let res;
+      for (let i = 0; i < 3; i++) {
+        res = await fetch(`/api/patients/${patient.id}/assignments`);
+        if (res.ok) break;
+        // Si ça rate (ex: 1101 Edge Runtime timeout), on attend 1s et on réessaie, le Worker sera chaud.
+        if (i < 2) await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      if (!res || !res.ok) {
+        throw new Error('Erreur réseau. Le serveur met trop de temps à répondre.');
+      }
 
       const allAssignments: any[] = await res.json();
 
