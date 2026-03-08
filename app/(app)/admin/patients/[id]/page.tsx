@@ -1,32 +1,52 @@
-import { notFound } from 'next/navigation';
-export const dynamic = 'force-dynamic';
-import { db } from '@/lib/db';
-import { patients } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
-import { ArrowLeft, User, MapPin, Phone } from 'lucide-react';
+'use client';
+
+import { useQuery } from '@tanstack/react-query';
+import { notFound, useParams } from 'next/navigation';
+import { ArrowLeft, User, MapPin, Phone, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import PatientHistoryList from '@/components/patients/PatientHistoryList';
 import PatientPdfGenerator from '@/components/patients/PatientPdfGenerator';
+import type { Patient } from '@/types';
 
-interface PatientProfilePageProps {
-  params: Promise<{ id: string }>;
-}
-
-export default async function PatientProfilePage({ params }: PatientProfilePageProps) {
-  const { id } = await params;
-  const patientId = parseInt(id, 10);
+export default function PatientProfilePage() {
+  const params = useParams();
+  const idStr = params?.id as string;
+  const patientId = parseInt(idStr, 10);
 
   if (isNaN(patientId)) {
     notFound();
   }
 
-  const [patient] = await db
-    .select()
-    .from(patients)
-    .where(eq(patients.id, patientId));
+  const { data: patient, isLoading, error } = useQuery<Patient>({
+    queryKey: ['patient', patientId],
+    queryFn: async () => {
+      const res = await fetch(`/api/patients/${patientId}`);
+      if (res.status === 404) throw new Error('NOT_FOUND');
+      if (!res.ok) throw new Error('Erreur réseau');
+      return res.json();
+    },
+    retry: false
+  });
 
-  if (!patient) {
-    notFound();
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="animate-spin text-blue-500 w-8 h-8" />
+        <span className="ml-3 text-slate-500 font-medium">Chargement du dossier...</span>
+      </div>
+    );
+  }
+
+  if (error || !patient) {
+    if (error?.message === 'NOT_FOUND') notFound();
+    return (
+      <div className="text-center py-10">
+        <p className="text-red-500 font-bold text-lg">Impossible de charger ce patient.</p>
+        <Link href="/admin/patients" className="text-blue-500 hover:underline mt-2 inline-block">
+          Retour à la liste
+        </Link>
+      </div>
+    );
   }
 
   return (
