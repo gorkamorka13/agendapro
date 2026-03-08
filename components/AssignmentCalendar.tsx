@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { motion, AnimatePresence } from 'framer-motion';
 import FullCalendar from '@fullcalendar/react';
 import { EventClickArg } from '@fullcalendar/core';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -551,9 +552,16 @@ export default function AssignmentCalendar() {
 
 
       {/* Bulk Action Bar */}
-      {isSelectionMode && selectedEvents.size > 0 && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[100] animate-in slide-in-from-bottom-4 duration-300 w-auto max-w-[95%]">
-          <div className="bg-slate-900/95 dark:bg-slate-800/95 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl p-2 flex flex-row items-center gap-2 overflow-x-auto no-scrollbar">
+      <AnimatePresence>
+        {isSelectionMode && selectedEvents.size > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, x: '-50%' }}
+            animate={{ opacity: 1, y: 0, x: '-50%' }}
+            exit={{ opacity: 0, y: 50, x: '-50%' }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            className="fixed bottom-4 left-1/2 z-[100] w-auto max-w-[95%]"
+          >
+            <div className="bg-slate-900/95 dark:bg-slate-800/95 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl p-2 flex flex-row items-center gap-2 overflow-x-auto no-scrollbar">
 
             {!isReassignOpen ? (
               <>
@@ -671,8 +679,9 @@ export default function AssignmentCalendar() {
               </div>
             )}
           </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <EventModal
         isOpen={isEventModalOpen}

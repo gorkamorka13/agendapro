@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { motion, AnimatePresence } from 'framer-motion';
 import { TableSkeleton } from './ui/Skeleton';
 import { Calendar, Plus, Trash2, Edit2, X, Search, Clock, MapPin, User as UserIcon } from 'lucide-react';
 import { format } from 'date-fns';
@@ -120,24 +121,33 @@ export default function AppointmentManager({ isOpen, onClose, onEdit, onCreate, 
     };
   }, [isDragging, dragOffset]);
 
-  if (!isOpen) return null;
-
   // Filtrage déjà fait côté serveur
   const displayAppointments = appointments;
 
   return (
-    <div className="fixed inset-0 bg-slate-900/20 z-50 overflow-y-auto p-2 sm:p-4 md:p-8 animate-in fade-in duration-200 pointer-events-none">
-      <div className="flex min-h-full items-start justify-center py-4 sm:py-10">
-        <div
-          className={cn(
-            "bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-2xl border border-slate-100 dark:border-slate-800 flex flex-col md:max-h-[90vh] transition-shadow pointer-events-auto overflow-hidden",
-            isDragging ? "shadow-blue-500/20 shadow-2xl ring-2 ring-blue-500/20" : ""
-          )}
-          style={{
-            transform: `translate(${position.x}px, ${position.y}px)`,
-            cursor: isDragging ? 'grabbing' : 'auto'
-          }}
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-[100] overflow-y-auto p-2 sm:p-4 md:p-8 pointer-events-none"
         >
+          <div className="flex min-h-full items-start justify-center py-4 sm:py-10">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: "spring", duration: 0.5, bounce: 0.3 }}
+              className={cn(
+                "bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl w-full max-w-2xl border border-white/20 dark:border-white/10 flex flex-col md:max-h-[90vh] transition-shadow pointer-events-auto overflow-hidden",
+                isDragging ? "shadow-blue-500/20 ring-2 ring-blue-500/20" : ""
+              )}
+              style={{
+                transform: `translate(${position.x}px, ${position.y}px)`,
+                cursor: isDragging ? 'grabbing' : 'auto'
+              }}
+            >
 
           {/* Header */}
           <div
@@ -290,8 +300,10 @@ export default function AppointmentManager({ isOpen, onClose, onEdit, onCreate, 
               </>
             )}
           </div>
-        </div>
-      </div>
-    </div>
+            </motion.div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

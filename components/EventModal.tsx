@@ -2,6 +2,7 @@
 
 import { useState, useEffect, FormEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { User, Patient, Role, AssignmentStatus as AssignmentStatusType } from '@/types';
 import { useSession } from 'next-auth/react';
 import { Clock, Calendar, User as UserIcon, Heart, Trash2, Save, X, CheckCircle, MapPin, Info, Repeat } from 'lucide-react';
@@ -368,8 +369,6 @@ export default function EventModal({ isOpen, onClose, onSave, selectedDate, even
     }
   };
 
-  if (!isOpen) return null;
-
   const modalTitle = isEditing
     ? (eventType === 'ASSIGNMENT' ? "Modifier l'intervention" : 'Modifier le rendez-vous')
     : 'Nouvel événement';
@@ -381,18 +380,29 @@ export default function EventModal({ isOpen, onClose, onSave, selectedDate, even
       : (eventType === 'ASSIGNMENT' ? 'Détails de l\'affectation' : 'Gestion des activités hors-interventions');
 
   return (
-    <div className="fixed inset-0 bg-slate-900/20 z-50 overflow-y-auto p-2 sm:p-4 md:p-8 animate-in fade-in duration-200 pointer-events-none">
-      <div className="flex min-h-full items-start justify-center py-4 sm:py-10">
-        <div
-          className={cn(
-            "bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-lg border border-slate-100 dark:border-slate-800 flex flex-col overflow-hidden pointer-events-auto transition-shadow",
-            isDragging ? "shadow-blue-500/20 shadow-2xl ring-2 ring-blue-500/20" : ""
-          )}
-          style={{
-            transform: `translate(${position.x}px, ${position.y}px)`,
-            cursor: isDragging ? 'grabbing' : 'auto'
-          }}
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-[100] overflow-y-auto p-2 sm:p-4 md:p-8 pointer-events-none"
         >
+          <div className="flex min-h-full items-center justify-center py-4 sm:py-10">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: "spring", duration: 0.5, bounce: 0.3 }}
+              className={cn(
+                "bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-lg border border-white/20 dark:border-white/10 flex flex-col overflow-hidden pointer-events-auto",
+                isDragging ? "shadow-blue-500/20 ring-2 ring-blue-500/20" : ""
+              )}
+              style={{
+                transform: `translate(${position.x}px, ${position.y}px)`,
+                cursor: isDragging ? 'grabbing' : 'auto'
+              }}
+            >
           <div
             onMouseDown={handleMouseDown}
             className="bg-slate-50 dark:bg-slate-800/50 px-4 sm:px-8 py-4 sm:py-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center drag-handle cursor-grab active:cursor-grabbing"
@@ -713,8 +723,10 @@ export default function EventModal({ isOpen, onClose, onSave, selectedDate, even
               )}
             </div>
           </form>
+          </motion.div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

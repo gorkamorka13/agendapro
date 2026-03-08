@@ -1,8 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { format, differenceInMinutes, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Download, FileText, Loader2, Calendar as CalendarIcon } from 'lucide-react';
@@ -49,7 +47,10 @@ export default function PatientPdfGenerator({ patient }: PatientPdfGeneratorProp
         return d.getMonth() === parseInt(selectedMonth) && d.getFullYear() === parseInt(selectedYear);
       });
 
-      // 3. Generate PDF
+      // 3. Generate PDF (dynamically import to avoid Edge SSR crashes)
+      const { jsPDF } = await import('jspdf');
+      const autoTable = (await import('jspdf-autotable')).default;
+
       const doc = new jsPDF();
       const monthName = months[parseInt(selectedMonth)];
 
