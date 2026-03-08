@@ -19,14 +19,31 @@ if (typeof globalThis.WebSocket === 'undefined' && (process.env.NEXT_RUNTIME !==
   }
 }
 
+import { getCloudflareContext } from '@opennextjs/cloudflare';
+
 const getDatabaseUrl = (): string => {
-  const url =
-    process.env.DATABASE_URL ||
-    (globalThis as any).DATABASE_URL ||
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (globalThis as Record<string, any>).__env?.DATABASE_URL ||
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (globalThis as Record<string, any>).env?.DATABASE_URL;
+  let url = process.env.DATABASE_URL;
+
+  // Si on est sur Edge, on tente de récupérer le contexte Cloudflare
+  if (!url) {
+    try {
+      const { env } = getCloudflareContext();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      url = (env as any)?.DATABASE_URL;
+    } catch (e) {
+      // Ignorer l'erreur si le contexte n'est pas dispo
+    }
+  }
+
+  // Fallbacks génériques
+  if (!url) {
+    url =
+      (globalThis as any).DATABASE_URL ||
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (globalThis as Record<string, any>).__env?.DATABASE_URL ||
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (globalThis as Record<string, any>).env?.DATABASE_URL;
+  }
 
   return url || '';
 };
