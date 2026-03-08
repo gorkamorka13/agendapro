@@ -14,8 +14,7 @@
     "cf:build": "opennextjs-cloudflare build",
     "cf:dev": "opennextjs-cloudflare dev",
     "cf:deploy": "opennextjs-cloudflare build && wrangler deploy",
-    "version:bump": "node scripts/bump-version.js",
-    "db:migrate-images": "ts-node --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/migrate-blob-to-r2.ts"
+    "version:bump": "node scripts/bump-version.js"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.1",

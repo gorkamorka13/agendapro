@@ -47,8 +47,6 @@ export async function POST(request: Request) {
 
     const modelsToTry = [
       { name: 'gemini-2.5-flash', version: 'v1beta' as const },
-      { name: 'gemini-2.0-flash', version: 'v1beta' as const },
-      { name: 'gemini-2.0-flash-001', version: 'v1beta' as const },
     ];
 
     let result: any;

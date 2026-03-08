@@ -1,6 +1,6 @@
 # Agenda Pro - Intelligence de Gestion pour le Maintien à Domicile
 
-**Version 0.0.3**
+**Version 0.0.5**
 
 Une plateforme web premium de pointe dédiée à la planification et à la gestion financière pour les services d'aide à la personne. Ce système orchestre les interventions, le suivi du temps, la gestion des frais opérationnels et le calcul automatisé de la paie.
 
@@ -47,11 +47,9 @@ Une plateforme web premium de pointe dédiée à la planification et à la gesti
 - **Inclusion de Justificatifs** : Option d'inclure les images de reçus dans les exports PDF.
 
 #### 🧾 **Gestion des Dépenses & OCR IA**
-- **Analyse par IA (Gemini 2.0 Flash)** : Extraction automatique des données depuis les photos de justificatifs (Marchand, Montant, TVA, Date, Catégorie).
+- **Analyse par IA (Gemini 2.5)** : Extraction automatique des données depuis les photos de justificatifs (Marchand, Montant, TVA, Date, Catégorie).
 - **Double Date** : Distinction entre la date d'achat (ticket) et la date de saisie dans le système.
-- **Stratégie de Stockage Hybride** : Bascule automatique entre **Vercel Blob** (Cloud production) et le système de fichiers local (WAMP/Dev).
-- **Moniteur de Stockage** : Indicateur en temps réel de l'utilisation du quota Cloud (250 Mo gratuit) dans l'interface.
-- **Protection des Saisies** : L'IA ne modifie pas les dates ou montants déjà saisis manuellement par l'utilisateur.
+- **Stratégie de Stockage Hybride** : Utilisation de **Cloudflare R2** pour le stockage cloud permanent et système de fichiers local pour le développement.
 - **Visionneuse de Reçus** : Lightbox intégrée pour visualiser les justificatifs en plein écran.
 
 #### 🎨 **Interface Utilisateur Moderne**
@@ -64,36 +62,34 @@ Une plateforme web premium de pointe dédiée à la planification et à la gesti
 ## 🛠️ Stack Technologique
 
 ### Frontend
-- **Framework**: [Next.js 15.5.12](https://nextjs.org) (App Router) avec Turbopack
-- **React**: 19.2.4
-- **Intelligence Artificielle**: Google Generative AI (Gemini 2.0 Flash) pour l'OCR
+- **Framework**: [Next.js 15.5.x](https://nextjs.org) (App Router) avec Cloudflare Pages
+- **Runtime**: Cloudflare Workers (via OpenNext)
+- **Intelligence Artificielle**: Google Generative AI (Gemini 2.5) pour l'OCR
 - **State Management**: TanStack Query (React Query) v5
 - **UI Components**: Lucide React pour les icônes
 - **Styling**: Tailwind CSS 3.4
 - **Thèmes**: next-themes pour le mode sombre/clair
 - **Calendrier**: FullCalendar 6.1
 - **Graphiques**: Recharts 2.12
-- **Stockage Cloud**: [Vercel Blob](https://vercel.com/storage/blob) 2.0
 
 ### Backend & Data
-- **Runtime**: Node.js 20+
-- **Base de données**: PostgreSQL (Neon.tech en production)
-- **ORM**: Prisma 6.19
+- **Base de données**: PostgreSQL (Neon.tech / Serverless)
+- **ORM**: [Drizzle ORM](https://orm.drizzle.team/)
 - **Authentification**: NextAuth.js v4.24
+- **Stockage Cloud**: [Cloudflare R2](https://www.cloudflare.com/developer-platform/r2/) (Compatible S3)
 - **Validation**: Zod 4.3
 
 ### Génération de Documents
 - **PDF**: jsPDF 3.0 avec jspdf-autotable
 - **Excel**: XLSX 0.18
-- **Capture d'écran**: html2canvas 1.4
 
 ## 🚀 Installation & Déploiement
 
 ### Prérequis
 - Node.js (v20+)
-- Instance PostgreSQL
+- Instance PostgreSQL (Neon recommandé)
 - Clé API Google Gemini (pour l'OCR)
-- Vercel Blob Token (pour le stockage cloud)
+- Compte Cloudflare (pour R2 et Pages)
 
 ### Configuration Rapide
 1. **Dépôt**
@@ -108,29 +104,43 @@ Une plateforme web premium de pointe dédiée à la planification et à la gesti
 3. **Environnement** (`.env.local`)
    ```env
    DATABASE_URL="postgresql://..."
-   GOOGLE_GENAI_API_KEY="..."
-   BLOB_READ_WRITE_TOKEN="..." # Optionnel en local
+   GEMINI_API_KEY="..."
    NEXTAUTH_SECRET="..."
+   NEXTAUTH_URL="http://localhost:3000"
+
+   # Configuration R2
+   R2_ACCOUNT_ID="..."
+   R2_ACCESS_KEY_ID="..."
+   R2_SECRET_ACCESS_KEY="..."
+   R2_BUCKET="agendapro-storage"
+   NEXT_PUBLIC_STORAGE_TYPE="r2"
    ```
 4. **Base de Données**
    ```bash
-   npx prisma generate
-   npx prisma db sync  # Script de diagnostic et synchronisation intelligent
+   npm run db:generate
+   npm run db:migrate
    ```
-5. **Démarrage**
+5. **Démarrage Local**
    ```bash
    npm run dev
    ```
 
-### 🛠️ Maintenance & Diagnostic
-L'application inclut un outil de synchronisation de base de données intelligent :
-```bash
-npm run db:sync
-```
-Ce script détecte les différences entre votre code (schema.prisma) et votre base de données, et aide à corriger les erreurs d'énumérations ou de colonnes manquantes.
+### 🌍 Mise en Production (Cloudflare)
+L'application est déployée sur Cloudflare Pages via OpenNext.
+- **Déploiement** :
+  ```bash
+  npm run cf:deploy
+  ```
+- **Développement Edge** :
+  ```bash
+  npm run cf:dev
+  ```
 
-### 🌍 Mise en Production
-L'application est optimisée pour Vercel. Consultez **[Vercel_Blob_Setup.md](./Vercel_Blob_Setup.md)** pour configurer le stockage d'images cloud permanent.
+### 🛠️ Maintenance & Migration
+- **Studio Database** : Pour visualiser les données localement :
+  ```bash
+  npm run db:studio
+  ```
 
 ---
 **AGENDA PRO** - © Michel ESPARSA
