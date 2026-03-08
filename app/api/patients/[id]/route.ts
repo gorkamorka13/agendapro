@@ -34,8 +34,8 @@ export async function GET(
     }
 
     return NextResponse.json(patient);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erreur lors de la récupération du patient:', error);
-    return new NextResponse('Erreur Serveur', { status: 500 });
+    return new NextResponse('Erreur Serveur: ' + error.message, { status: 500 });
   }
 }

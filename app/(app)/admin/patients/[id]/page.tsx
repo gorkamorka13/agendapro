@@ -24,8 +24,7 @@ export default function PatientProfilePage() {
       if (res.status === 404) throw new Error('NOT_FOUND');
       if (!res.ok) throw new Error('Erreur réseau');
       return res.json();
-    },
-    retry: false
+    }
   });
 
   if (isLoading) {
