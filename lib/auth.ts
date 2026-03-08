@@ -4,7 +4,6 @@ import { DrizzleAdapter } from '@auth/drizzle-adapter';
 import { db } from '@/lib/db';
 import { users, accounts, sessions, verificationTokens } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import bcrypt from 'bcryptjs';
 
 export type Role = 'USER' | 'ADMIN' | 'VISITEUR';
 
@@ -37,6 +36,7 @@ export const authOptions: AuthOptions = {
           throw new Error('Identifiants invalides');
         }
 
+        const bcrypt = (await import('bcryptjs')).default;
         const isCorrectPassword = await bcrypt.compare(
           credentials.password,
           user.hashedPassword

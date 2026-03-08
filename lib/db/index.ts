@@ -19,9 +19,9 @@ const getDatabaseUrl = (): string => {
     (globalThis as Record<string, any>).env?.DATABASE_URL;
 
   if (!url) {
-    throw new Error('DATABASE_URL is not defined. Please check your environment variables.');
+    console.warn('[DB] DATABASE_URL is not defined at module evaluation time. This is normal on Cloudflare Edge cold boots.');
   }
-  return url;
+  return url || '';
 };
 
 // Singleton pattern to avoid multiple pools in development (hot reload)
@@ -45,18 +45,33 @@ function createDbInstance() {
   return { db: dbInstance, pool };
 }
 
-let dbInstance: ReturnType<typeof drizzle<typeof schema>>;
+let dbInstance: ReturnType<typeof drizzle<typeof schema>> | undefined;
 
-if (process.env.NODE_ENV === 'production') {
-  dbInstance = createDbInstance().db;
-} else {
-  if (!globalForDb.db) {
-    const { db, pool } = createDbInstance();
-    globalForDb.db = db;
-    globalForDb.pool = pool;
+const initDb = () => {
+  if (!dbInstance) {
+    if (process.env.NODE_ENV !== 'production' && globalForDb.db) {
+      dbInstance = globalForDb.db;
+    } else {
+      const url = getDatabaseUrl();
+      if (!url) {
+        throw new Error('DATABASE_URL is missing. Ensure Cloudflare Environment variables are set.');
+      }
+      const { db, pool } = createDbInstance();
+      dbInstance = db;
+      if (process.env.NODE_ENV !== 'production') {
+        globalForDb.db = db;
+        globalForDb.pool = pool;
+      }
+    }
   }
-  dbInstance = globalForDb.db;
-}
+  return dbInstance;
+};
 
-export const db = dbInstance;
+export const db = new Proxy({} as ReturnType<typeof drizzle<typeof schema>>, {
+  get(target, prop) {
+    const instance = initDb();
+    return (instance as any)[prop];
+  }
+});
+
 export default db;

@@ -12,7 +12,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "cf:build": "opennextjs-cloudflare build",
-    "cf:dev": "opennextjs-cloudflare dev",
+    "cf:dev": "opennextjs-cloudflare preview",
     "cf:deploy": "opennextjs-cloudflare build && wrangler deploy",
     "version:bump": "node scripts/bump-version.js"
   },
