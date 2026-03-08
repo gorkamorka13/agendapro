@@ -1,9 +1,11 @@
 // Fichier: app/api/assignments/[id]/cancel/route.ts
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { assignments, workedHours } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { Role, AssignmentStatus } from '@prisma/client';
+import type { Role } from '@/types';
 
 export async function PATCH(request: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -12,33 +14,24 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
 
   try {
     const assignmentId = parseInt(params.id, 10);
-    const existing = await prisma.assignment.findUnique({
-      where: { id: assignmentId }
-    });
-
+    const [existing] = await db.select().from(assignments).where(eq(assignments.id, assignmentId)).limit(1);
     if (!existing) return new NextResponse('Affectation non trouvée', { status: 404 });
 
-    const isAdmin = session.user.role === Role.ADMIN;
-    if (!isAdmin) {
-      return new NextResponse('Accès refusé : seuls les administrateurs peuvent annuler une intervention.', { status: 403 });
+    if ((session.user.role as Role) !== 'ADMIN') {
+      return new NextResponse('Accès refusé : seuls les administrateurs peuvent annuler.', { status: 403 });
     }
 
-    const updatedAssignment = await prisma.$transaction(async (tx) => {
-      // 1. Delete associated WorkedHours if they exist
-      await tx.workedHours.deleteMany({
-        where: { assignmentId: assignmentId }
-      });
+    // Delete associated WorkedHours then update status
+    await db.delete(workedHours).where(eq(workedHours.assignmentId, assignmentId));
+    const [updated] = await db
+      .update(assignments)
+      .set({ status: 'CANCELLED' })
+      .where(eq(assignments.id, assignmentId))
+      .returning();
 
-      // 2. Update status to CANCELLED
-      return await tx.assignment.update({
-        where: { id: assignmentId },
-        data: { status: AssignmentStatus.CANCELLED },
-      });
-    });
-
-    return NextResponse.json(updatedAssignment);
+    return NextResponse.json(updated);
   } catch (error) {
-    console.error("Erreur lors de l'annulation de l'affectation:", error);
+    console.error("Erreur annulation affectation:", error);
     return new NextResponse('Erreur interne du serveur', { status: 500 });
   }
 }

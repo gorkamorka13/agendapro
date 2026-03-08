@@ -1,4 +1,4 @@
-import { put, del } from '@vercel/blob';
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -11,33 +11,54 @@ export interface StorageResult {
   storageType: 'cloud' | 'local' | 'none';
 }
 
+const s3Client = new S3Client({
+  region: 'auto',
+  endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
+  },
+});
+
+const BUCKET_NAME = process.env.R2_BUCKET || 'agendapro-storage';
+const PUBLIC_DOMAIN = process.env.NEXT_PUBLIC_STORAGE_DOMAIN; // Facultatif : domaine personnalisé pour R2
+
 /**
  * Upload un fichier en utilisant la meilleure méthode disponible
- * Cloud (Vercel Blob) > Local (public/uploads) > None (Données uniquement)
+ * Cloud (Cloudflare R2) > Local (public/uploads) > None (Données uniquement)
  */
 export async function uploadFile(
   file: File,
   directory: string = 'receipts'
 ): Promise<StorageResult> {
-  const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
-  const storageType = process.env.NEXT_PUBLIC_STORAGE_TYPE;
+  const storageType = process.env.NEXT_PUBLIC_STORAGE_TYPE; // "r2" ou "local"
   const timestamp = Date.now();
   const cleanName = (file.name || 'image').replace(/[^a-zA-Z0-9.-]/g, '_');
   const filename = `${directory}/${timestamp}_${cleanName}`;
 
-  // 1. Priorité : Local (si forcé par env)
-  if (storageType === 'local') {
-    console.log("Stockage local forcé par NEXT_PUBLIC_STORAGE_TYPE");
-  } else if (blobToken) {
-    // 2. Vercel Blob (Cloud)
+  // 1. Priorité : Cloudflare R2 (si configuré ou forcé)
+  if (storageType === 'r2' || process.env.R2_ACCESS_KEY_ID) {
     try {
-      const blob = await put(filename, file, {
-        access: 'public',
-        addRandomSuffix: true
-      });
-      return { url: blob.url, storageType: 'cloud' };
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+
+      await s3Client.send(
+        new PutObjectCommand({
+          Bucket: BUCKET_NAME,
+          Key: filename,
+          Body: buffer,
+          ContentType: file.type,
+        })
+      );
+
+      // URL de l'objet : soit domaine personnalisé, soit URL publique R2 par défaut
+      const url = PUBLIC_DOMAIN
+        ? `${PUBLIC_DOMAIN}/${filename}`
+        : `https://pub-${process.env.R2_ACCOUNT_ID}.r2.dev/${filename}`;
+
+      return { url, storageType: 'cloud' };
     } catch (error) {
-      console.error("Échec Vercel Blob, passage au local:", error);
+      console.error("Échec Cloudflare R2, passage au local:", error);
     }
   }
 
@@ -73,13 +94,30 @@ export async function uploadFile(
 export async function deleteFile(url: string | null): Promise<boolean> {
   if (!url) return true;
 
-  // 1. Cas : Vercel Blob
-  if (url.includes('vercel-storage.com')) {
+  // 1. Cas : Cloudflare R2 (ou compatible S3)
+  if (url.includes('r2.cloudflarestorage.com') || url.includes('r2.dev') || (PUBLIC_DOMAIN && url.includes(PUBLIC_DOMAIN))) {
     try {
-      await del(url);
+      // Extraire la clé (Key) de l'URL
+      let key = '';
+      if (PUBLIC_DOMAIN && url.includes(PUBLIC_DOMAIN)) {
+        key = url.split(`${PUBLIC_DOMAIN}/`)[1];
+      } else {
+        // Format classique : https://pub-xxx.r2.dev/directory/file.ext
+        const urlParts = url.split('/');
+        key = urlParts.slice(3).join('/');
+      }
+
+      if (key) {
+        await s3Client.send(
+          new DeleteObjectCommand({
+            Bucket: BUCKET_NAME,
+            Key: key,
+          })
+        );
+      }
       return true;
     } catch (error) {
-      console.error("Échec suppression Blob:", error);
+      console.error("Échec suppression R2:", error);
       return false;
     }
   }

@@ -25,13 +25,17 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError("Nom d'utilisateur ou mot de passe incorrect.");
+        if (result.error === 'CredentialsSignin') {
+          setError("Nom d'utilisateur ou mot de passe incorrect.");
+        } else {
+          setError("Erreur de connexion : " + result.error);
+        }
       } else {
         // Redirection réussie vers la page principale
         router.push('/');
       }
     } catch (error) {
-      setError('Une erreur est survenue. Veuillez réessayer.');
+      setError('Une erreur est survenue lors de la connexion. Veuillez réessayer.');
     }
   };
 

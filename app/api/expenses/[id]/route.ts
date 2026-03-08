@@ -1,17 +1,21 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
-import { Role } from '@prisma/client';
+import { db } from '@/lib/db';
+import { expenses } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
+import { uploadFile, deleteFile } from '@/lib/storage';
+import type { Role } from '@/types';
 
 export async function PUT(request: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   const session = await getServerSession(authOptions);
-  if (session?.user?.role !== Role.ADMIN) {
+  if ((session?.user?.role as Role) !== 'ADMIN') {
     return new NextResponse('Accès refusé', { status: 403 });
   }
 
   try {
+    const id = parseInt(params.id, 10);
     const formData = await request.formData();
     const motif = formData.get('motif') as string | null;
     const amount = formData.get('amount') as string | null;
@@ -20,72 +24,41 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
     const userId = formData.get('userId') as string | null;
     const receiptFile = formData.get('receipt') as File | null;
     const deleteReceipt = formData.get('deleteReceipt') === 'true';
-    const id = parseInt(params.id, 10);
 
-    // Get existing expense to check for old receipt
-    const existingExpense = await (prisma as any).expense.findUnique({
-      where: { id }
-    });
+    const [existing] = await db.select().from(expenses).where(eq(expenses.id, id)).limit(1);
+    if (!existing) return new NextResponse('Dépense non trouvée', { status: 404 });
 
-    if (!existingExpense) {
-      return new NextResponse('Dépense non trouvée', { status: 404 });
-    }
-
-    let receiptUrl = existingExpense.receiptUrl;
+    let receiptUrl = existing.receiptUrl;
     let storageError: string | undefined;
 
-    // Use the storage utilities
-    const { uploadFile, deleteFile } = require('@/lib/storage');
-
-    // Handle receipt deletion if requested
     if (deleteReceipt) {
-      await deleteFile(existingExpense.receiptUrl);
+      await deleteFile(existing.receiptUrl);
       receiptUrl = null;
-    }
-    // Handle file upload if present (overrides deletion if both are sent)
-    else if (receiptFile && receiptFile.size > 0) {
-      // Validate file type
+    } else if (receiptFile && receiptFile.size > 0) {
       const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
       if (!validTypes.includes(receiptFile.type)) {
-        return new NextResponse('Type de fichier non valide. Utilisez JPG, PNG, WEBP ou GIF.', { status: 400 });
+        return new NextResponse('Type de fichier non valide.', { status: 400 });
       }
-
-      // Validate file size (max 5MB)
       if (receiptFile.size > 5 * 1024 * 1024) {
         return new NextResponse('Fichier trop volumineux. Maximum 5MB.', { status: 400 });
       }
-
-      // Delete old file if it exists
-      if (existingExpense.receiptUrl) {
-        await deleteFile(existingExpense.receiptUrl);
-      }
-
-      // Upload new file using hybrid strategy
+      if (existing.receiptUrl) await deleteFile(existing.receiptUrl);
       const uploadResult = await uploadFile(receiptFile, 'receipts');
-      receiptUrl = uploadResult.url || existingExpense.receiptUrl;
+      receiptUrl = uploadResult.url || existing.receiptUrl;
       storageError = uploadResult.error;
     }
 
-    // Build update data only with provided fields
-    const data: any = {};
-    if (motif !== null) data.motif = motif;
-    if (amount !== null) data.amount = parseFloat(amount);
-    if (date !== null) data.date = new Date(date as string);
-    if (recordingDate !== null) data.recordingDate = new Date(recordingDate as string);
-    if (userId !== null) data.userId = userId;
-    data.receiptUrl = receiptUrl;
+    const updateData: Partial<typeof expenses.$inferInsert> = { receiptUrl };
+    if (motif !== null) updateData.motif = motif;
+    if (amount !== null) updateData.amount = parseFloat(amount);
+    if (date !== null) updateData.date = new Date(date);
+    if (recordingDate !== null) updateData.recordingDate = new Date(recordingDate);
+    if (userId !== null) updateData.userId = userId;
 
-    const expense = await (prisma as any).expense.update({
-      where: { id },
-      data,
-    });
-
-    return NextResponse.json({
-      ...expense,
-      storageError
-    });
+    const [updated] = await db.update(expenses).set(updateData).where(eq(expenses.id, id)).returning();
+    return NextResponse.json({ ...updated, storageError });
   } catch (error) {
-    console.error("Erreur lors de la mise à jour de la dépense:", error);
+    console.error('Erreur mise à jour dépense:', error);
     return new NextResponse('Erreur interne du serveur', { status: 500 });
   }
 }
@@ -93,29 +66,18 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
 export async function DELETE(request: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   const session = await getServerSession(authOptions);
-  if (session?.user?.role !== Role.ADMIN) {
+  if ((session?.user?.role as Role) !== 'ADMIN') {
     return new NextResponse('Accès refusé', { status: 403 });
   }
 
   try {
     const id = parseInt(params.id, 10);
-
-    // Get existing to find receiptUrl for deletion
-    const existingExpense = await (prisma as any).expense.findUnique({
-      where: { id }
-    });
-
-    if (existingExpense?.receiptUrl) {
-      const { deleteFile } = require('@/lib/storage');
-      await deleteFile(existingExpense.receiptUrl);
-    }
-
-    await (prisma as any).expense.delete({
-      where: { id },
-    });
+    const [existing] = await db.select({ receiptUrl: expenses.receiptUrl }).from(expenses).where(eq(expenses.id, id)).limit(1);
+    if (existing?.receiptUrl) await deleteFile(existing.receiptUrl);
+    await db.delete(expenses).where(eq(expenses.id, id));
     return new NextResponse(null, { status: 204 });
   } catch (error) {
-    console.error("Erreur lors de la suppression de la dépense:", error);
+    console.error('Erreur suppression dépense:', error);
     return new NextResponse('Erreur interne du serveur', { status: 500 });
   }
 }

@@ -1,12 +1,20 @@
 import { AuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { PrismaAdapter } from '@next-auth/prisma-adapter';
-import { prisma } from '@/lib/prisma';
-import { Role } from '@prisma/client';
+import { DrizzleAdapter } from '@auth/drizzle-adapter';
+import { db } from '@/lib/db';
+import { users, accounts, sessions, verificationTokens } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 
+export type Role = 'USER' | 'ADMIN' | 'VISITEUR';
+
 export const authOptions: AuthOptions = {
-  adapter: PrismaAdapter(prisma),
+  adapter: DrizzleAdapter(db, {
+    usersTable: users,
+    accountsTable: accounts,
+    sessionsTable: sessions,
+    verificationTokensTable: verificationTokens,
+  }) as AuthOptions['adapter'],
   providers: [
     CredentialsProvider({
       name: 'credentials',
@@ -19,11 +27,13 @@ export const authOptions: AuthOptions = {
           throw new Error('Identifiants invalides');
         }
 
-        const user = await prisma.user.findUnique({
-          where: { name: credentials.name },
-        });
+        const [user] = await db
+          .select()
+          .from(users)
+          .where(eq(users.name, credentials.name))
+          .limit(1);
 
-        if (!user || !user?.hashedPassword) {
+        if (!user || !user.hashedPassword) {
           throw new Error('Identifiants invalides');
         }
 
@@ -36,7 +46,7 @@ export const authOptions: AuthOptions = {
           throw new Error('Identifiants invalides');
         }
 
-        return user;
+        return user as any;
       },
     }),
   ],

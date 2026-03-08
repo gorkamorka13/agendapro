@@ -1,6 +1,6 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { User, Role, AssignmentStatus } from '@prisma/client';
+import type { User, AssignmentStatus as AssignmentStatusType } from '@/types';
 import { useSession } from 'next-auth/react';
 import { Clock, Calendar, User as UserIcon, MapPin, Trash2, Save, X, Info, CheckCircle } from 'lucide-react';
 import { Button } from './ui/Button';
@@ -40,7 +40,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
   const [location, setLocation] = useState('');
   const [userId, setUserId] = useState('');
   const [notes, setNotes] = useState('');
-  const [status, setStatus] = useState<AssignmentStatus>(AssignmentStatus.PLANNED);
+  const [status, setStatus] = useState<AssignmentStatusType>('PLANNED');
 
   // States for Date and Hours
   const [date, setDate] = useState('');
@@ -77,7 +77,7 @@ export default function AppointmentModal({ isOpen, onClose, onSave, selectedDate
     setLocation('');
     setUserId('');
     setNotes('');
-    setStatus(AssignmentStatus.PLANNED);
+    setStatus('PLANNED');
     setDate(formatLocalDate(selectedDate || new Date()));
     setStartTime('09:00');
     setEndTime('10:00');

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { User, Role } from '@prisma/client';
+import type { User, Role } from '@/types';
 import { useTitle } from '@/components/TitleContext';
 import { Save, X, Eye, EyeOff } from 'lucide-react';
 import { Select } from '@/components/ui/Select';

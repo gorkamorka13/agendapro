@@ -2,7 +2,7 @@
 
 import { useState, useEffect, FormEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { User, Patient, Role, AssignmentStatus } from '@prisma/client';
+import type { User, Patient, AssignmentStatus as AssignmentStatusType } from '@/types';
 import { useSession } from 'next-auth/react';
 import { Clock, Calendar, User as UserIcon, Heart, Trash2, Save, X, CheckCircle } from 'lucide-react';
 import { Button } from './ui/Button';
@@ -47,7 +47,7 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
 
   const [userId, setUserId] = useState('');
   const [patientId, setPatientId] = useState('');
-  const [status, setStatus] = useState<AssignmentStatus>(AssignmentStatus.PLANNED);
+  const [status, setStatus] = useState<AssignmentStatusType>('PLANNED');
   const [showOverlapWarning, setShowOverlapWarning] = useState(false);
 
   // Recurrence states
@@ -91,7 +91,7 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
   const resetForm = () => {
     setUserId(session?.user?.id || '');
     setPatientId('');
-    setStatus(AssignmentStatus.PLANNED);
+    setStatus('PLANNED');
     setShowOverlapWarning(false);
     setIsRecurring(false);
     setFrequency('WEEKLY');
@@ -320,7 +320,7 @@ export default function AssignmentModal({ isOpen, onClose, onSave, selectedDate,
             >
               <option value="">Sélectionner...</option>
               {users
-                .filter(user => user.role !== Role.VISITEUR && user.name !== 'admin')
+                .filter(user => user.role !== 'VISITEUR' && user.name !== 'admin')
                 .map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}
             </Select>
 

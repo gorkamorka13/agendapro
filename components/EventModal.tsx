@@ -2,7 +2,7 @@
 
 import { useState, useEffect, FormEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { User, Patient, Role, AssignmentStatus } from '@prisma/client';
+import type { User, Patient, Role, AssignmentStatus as AssignmentStatusType } from '@/types';
 import { useSession } from 'next-auth/react';
 import { Clock, Calendar, User as UserIcon, Heart, Trash2, Save, X, CheckCircle, MapPin, Info, Repeat } from 'lucide-react';
 import { Button } from './ui/Button';
@@ -101,7 +101,7 @@ export default function EventModal({ isOpen, onClose, onSave, selectedDate, even
 
   // Common fields
   const [userId, setUserId] = useState('');
-  const [status, setStatus] = useState<AssignmentStatus>(AssignmentStatus.PLANNED);
+  const [status, setStatus] = useState<AssignmentStatusType>('PLANNED');
   const [date, setDate] = useState('');
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('10:00');
@@ -143,7 +143,7 @@ export default function EventModal({ isOpen, onClose, onSave, selectedDate, even
 
   const resetForm = () => {
     setUserId(session?.user?.id || '');
-    setStatus(AssignmentStatus.PLANNED);
+    setStatus('PLANNED');
     setPatientId('');
     setSubject('');
     setLocation('');
@@ -521,7 +521,7 @@ export default function EventModal({ isOpen, onClose, onSave, selectedDate, even
               >
                 <option value="">Sélectionner...</option>
                 {users
-                  .filter(user => user.role !== Role.VISITEUR && user.name !== 'admin')
+                  .filter(user => user.role !== 'VISITEUR' && user.name !== 'admin')
                   .map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}
               </Select>
             </div>

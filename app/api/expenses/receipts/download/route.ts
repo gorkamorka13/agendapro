@@ -1,15 +1,16 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
-import { Role } from '@prisma/client';
+import { db } from '@/lib/db';
+import { expenses, users } from '@/lib/db/schema';
+import { eq, gte, lte, and, isNotNull } from 'drizzle-orm';
 import JSZip from 'jszip';
-import { promises as fs } from 'fs';
 import path from 'path';
+import type { Role } from '@/types';
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
-  if (session?.user?.role !== Role.ADMIN) {
+  if ((session?.user?.role as Role) !== 'ADMIN') {
     return new NextResponse('Accès refusé', { status: 403 });
   }
 
@@ -19,94 +20,71 @@ export async function GET(request: Request) {
     const endDate = searchParams.get('endDate');
     const userId = searchParams.get('userId');
 
-    // Build query filters
-    const where: any = {
-      receiptUrl: { not: null }
-    };
-
+    const conditions = [isNotNull(expenses.receiptUrl)];
     if (startDate && endDate) {
-      where.recordingDate = {
-        gte: new Date(startDate),
-        lte: new Date(endDate)
-      };
+      conditions.push(gte(expenses.recordingDate, new Date(startDate)));
+      conditions.push(lte(expenses.recordingDate, new Date(endDate)));
     }
+    if (userId && userId !== 'all') conditions.push(eq(expenses.userId, userId));
 
-    if (userId && userId !== 'all') {
-      where.userId = userId;
-    }
+    const rows = await db
+      .select({
+        id: expenses.id,
+        receiptUrl: expenses.receiptUrl,
+        recordingDate: expenses.recordingDate,
+        date: expenses.date,
+        motif: expenses.motif,
+        amount: expenses.amount,
+      })
+      .from(expenses)
+      .where(and(...conditions))
+      .orderBy(expenses.recordingDate);
 
-    // Fetch expenses with receipts
-    const expenses = await (prisma as any).expense.findMany({
-      where,
-      include: { user: true },
-      orderBy: { recordingDate: 'desc' }
-    });
+    if (rows.length === 0) return new NextResponse('Aucun justificatif trouvé', { status: 404 });
 
-    if (expenses.length === 0) {
-      return new NextResponse('Aucun justificatif trouvé', { status: 404 });
-    }
-
-    // Create ZIP file
     const zip = new JSZip();
 
-    for (const expense of expenses) {
+    for (const expense of rows) {
       if (!expense.receiptUrl) continue;
-
       try {
-        let fileBuffer: Buffer | ArrayBuffer;
-
+        let fileBuffer: ArrayBuffer;
         if (expense.receiptUrl.startsWith('http')) {
-          // Fetch from external URL (Vercel Blob)
           const response = await fetch(expense.receiptUrl);
-          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
           fileBuffer = await response.arrayBuffer();
         } else {
-          // Read file from disk
+          // Note: fs not available on Cloudflare Edge — files should be in R2
+          // Fallback for local dev only
+          const { promises: fs } = await import('fs');
           const filePath = path.join(process.cwd(), 'public', expense.receiptUrl);
-          fileBuffer = await fs.readFile(filePath);
+          fileBuffer = (await fs.readFile(filePath)).buffer;
         }
 
-        // Generate readable filename
         const date = new Date(expense.recordingDate || expense.date).toISOString().split('T')[0];
         const motif = expense.motif.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
         const amount = expense.amount.toFixed(2).replace('.', ',');
-
-        // Handle extension carefully for URLs
-        let ext = '.jpg'; // Default extension
+        let ext = '.jpg';
         try {
-          const urlPath = expense.receiptUrl.startsWith('http')
-            ? new URL(expense.receiptUrl).pathname
-            : expense.receiptUrl;
+          const urlPath = expense.receiptUrl.startsWith('http') ? new URL(expense.receiptUrl).pathname : expense.receiptUrl;
           ext = path.extname(urlPath) || '.jpg';
-        } catch (e) {
-          ext = path.extname(expense.receiptUrl) || '.jpg';
-        }
+        } catch {}
 
-        const fileName = `${date}_${motif}_${amount}€${ext}`;
-
-        // Add to ZIP
-        zip.file(fileName, fileBuffer);
-      } catch (error) {
-        console.error(`Erreur lecture fichier ${expense.receiptUrl}:`, error);
-        // Continue with other files
+        zip.file(`${date}_${motif}_${amount}€${ext}`, fileBuffer);
+      } catch (err) {
+        console.error(`Erreur lecture ${expense.receiptUrl}:`, err);
       }
     }
 
-    // Generate ZIP buffer
     const zipBuffer = await zip.generateAsync({ type: 'arraybuffer' });
-
-    // Return ZIP file
     const timestamp = new Date().toISOString().split('T')[0];
     return new NextResponse(new Uint8Array(zipBuffer), {
-      status: 200,
       headers: {
         'Content-Type': 'application/zip',
-        'Content-Disposition': `attachment; filename="justificatifs_${timestamp}.zip"`
-      }
+        'Content-Disposition': `attachment; filename="justificatifs_${timestamp}.zip"`,
+      },
     });
-
   } catch (error) {
-    console.error("Erreur lors de la création du ZIP:", error);
+    console.error('Erreur ZIP justificatifs:', error);
     return new NextResponse('Erreur interne du serveur', { status: 500 });
   }
 }

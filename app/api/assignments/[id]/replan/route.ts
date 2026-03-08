@@ -1,9 +1,11 @@
 // Fichier: app/api/assignments/[id]/replan/route.ts
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { assignments, workedHours } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { Role, AssignmentStatus } from '@prisma/client';
+import type { Role } from '@/types';
 
 export async function PATCH(request: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -12,36 +14,25 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
 
   try {
     const assignmentId = parseInt(params.id, 10);
-    const existing = await prisma.assignment.findUnique({
-      where: { id: assignmentId }
-    });
-
+    const [existing] = await db.select().from(assignments).where(eq(assignments.id, assignmentId)).limit(1);
     if (!existing) return new NextResponse('Affectation non trouvée', { status: 404 });
 
-    const isAdmin = session.user.role === Role.ADMIN;
-    // Permettre l'accès si Admin ou si c'est le propriétaire de l'intervention
+    const isAdmin = (session.user.role as Role) === 'ADMIN';
     const isOwner = session.user.id === existing.userId;
-
     if (!isAdmin && !isOwner) {
-      return new NextResponse('Accès refusé : vous ne pouvez modifier que vos propres interventions.', { status: 403 });
+      return new NextResponse('Accès refusé.', { status: 403 });
     }
 
-    const updatedAssignment = await prisma.$transaction(async (tx) => {
-      // 1. Delete associated WorkedHours if they exist (just in case)
-      await tx.workedHours.deleteMany({
-        where: { assignmentId: assignmentId }
-      });
+    await db.delete(workedHours).where(eq(workedHours.assignmentId, assignmentId));
+    const [updated] = await db
+      .update(assignments)
+      .set({ status: 'PLANNED' })
+      .where(eq(assignments.id, assignmentId))
+      .returning();
 
-      // 2. Update status back to PLANNED
-      return await tx.assignment.update({
-        where: { id: assignmentId },
-        data: { status: AssignmentStatus.PLANNED },
-      });
-    });
-
-    return NextResponse.json(updatedAssignment);
+    return NextResponse.json(updated);
   } catch (error) {
-    console.error("Erreur lors de la replannification de l'affectation:", error);
+    console.error("Erreur replan:", error);
     return new NextResponse('Erreur interne du serveur', { status: 500 });
   }
 }

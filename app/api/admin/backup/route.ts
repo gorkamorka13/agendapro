@@ -1,77 +1,70 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
-import { Role } from '@prisma/client';
+import { db } from '@/lib/db';
+import { users, patients, assignments, appointments, expenses, verificationTokens, workedHours, invoices, invoiceLineItems } from '@/lib/db/schema';
+import type { Role } from '@/types';
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-
-  if (session?.user?.role !== Role.ADMIN) {
+  if ((session?.user?.role as Role) !== 'ADMIN') {
     return new NextResponse('Accès refusé', { status: 403 });
   }
 
   try {
-    // Récupération de toutes les données importantes
-    // On utilise une transaction pour s'assurer de la cohérence des données à l'instant T
-    const backupData = await prisma.$transaction(async (tx) => {
-      const users = await tx.user.findMany({
-        include: {
-          accounts: true,
-          sessions: true,
-        }
-      });
+    // Fetch all tables in parallel for speed
+    const [
+      allUsers, allPatients, allAssignments, allAppointments,
+      allExpenses, allTokens, allWorkedHours, allInvoices, allLineItems
+    ] = await Promise.all([
+      db.select().from(users),
+      db.select().from(patients),
+      db.select().from(assignments),
+      db.select().from(appointments),
+      db.select().from(expenses),
+      db.select().from(verificationTokens),
+      db.select().from(workedHours),
+      db.select().from(invoices),
+      db.select().from(invoiceLineItems),
+    ]);
 
-      const patients = await tx.patient.findMany({
-        include: {
-          invoices: {
-            include: { lineItems: true }
-          }
-        }
-      });
-
-      const assignments = await tx.assignment.findMany({
-        include: {
-          workedHours: true
-        }
-      });
-
-      const appointments = await tx.appointment.findMany();
-      const expenses = await tx.expense.findMany();
-      const verificationTokens = await tx.verificationToken.findMany();
-
-      return {
-        metadata: {
-          date: new Date().toISOString(),
-          version: '1.0',
-          appName: 'AgendaPro'
-        },
-        data: {
-          users,
-          patients,
-          assignments,
-          appointments,
-          expenses,
-          verificationTokens
-        }
-      };
+    // Remove sensitive data and serialize dates for edge runtime
+    const safeUsers = allUsers.map(u => {
+      const { hashedPassword, ...rest } = u;
+      return rest;
     });
 
-    // Génération du nom de fichier avec la date
+    const backupData = {
+      metadata: {
+        date: new Date().toISOString(),
+        version: '2.0-drizzle',
+        appName: 'AgendaPro',
+      },
+      data: {
+        users: safeUsers,
+        patients: allPatients,
+        assignments: allAssignments,
+        workedHours: allWorkedHours,
+        appointments: allAppointments,
+        expenses: allExpenses,
+        invoices: allInvoices,
+        invoiceLineItems: allLineItems,
+        verificationTokens: allTokens,
+      },
+    };
+
     const dateStr = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
     const filename = `agendapro_backup_${dateStr}.json`;
 
-    // Création de la réponse avec les bons headers pour le téléchargement
     return new NextResponse(JSON.stringify(backupData, null, 2), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Content-Disposition': `attachment; filename="${filename}"`
-      }
+        'Content-Disposition': `attachment; filename="${filename}"`,
+      },
     });
-
   } catch (error) {
-    console.error("Erreur lors de la sauvegarde:", error);
+    console.error('Erreur sauvegarde:', error);
     return new NextResponse('Erreur lors de la génération de la sauvegarde', { status: 500 });
   }
 }

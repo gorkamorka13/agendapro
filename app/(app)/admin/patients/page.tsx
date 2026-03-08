@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Patient } from '@prisma/client';
+import type { Patient } from '@/types';
 import { useTitle } from '@/components/TitleContext';
 import { Trash2, Save, X } from 'lucide-react';
 export default function PatientManagementPage() {

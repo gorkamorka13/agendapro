@@ -1,9 +1,24 @@
-import { User, Assignment, Patient, Appointment, AssignmentStatus, WorkedHours, Invoice } from '@prisma/client';
+import type {
+  users,
+  assignments,
+  patients,
+  appointments,
+  workedHours,
+  invoices,
+} from '@/lib/db/schema';
+
+// Base types derived from Drizzle schema (single source of truth)
+export type User = typeof users.$inferSelect;
+export type Assignment = typeof assignments.$inferSelect;
+export type Patient = typeof patients.$inferSelect;
+export type Appointment = typeof appointments.$inferSelect;
+export type WorkedHours = typeof workedHours.$inferSelect;
+export type Invoice = typeof invoices.$inferSelect;
 
 export type Role = 'ADMIN' | 'USER' | 'VISITEUR';
+export type AssignmentStatus = 'PLANNED' | 'COMPLETED' | 'CANCELLED';
 
 export interface UserWithMetadata extends User {
-  // Add any additional fields that might be used in the UI or from custom queries
   _count?: {
     assignments: number;
     appointments: number;

@@ -1,31 +1,28 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
-import { Role } from '@prisma/client';
+import { db } from '@/lib/db';
+import { appointments, users } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
+import type { Role } from '@/types';
 
 export async function GET(request: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   const session = await getServerSession(authOptions);
-
-  if (!session?.user?.id) {
-    return new NextResponse('Non autorisé', { status: 401 });
-  }
+  if (!session?.user?.id) return new NextResponse('Non autorisé', { status: 401 });
 
   try {
     const id = parseInt(params.id.replace('apt-', ''), 10);
-    const appointment = await prisma.appointment.findUnique({
-      where: { id },
-      include: { user: true },
-    });
+    const [row] = await db
+      .select()
+      .from(appointments)
+      .leftJoin(users, eq(appointments.userId, users.id))
+      .where(eq(appointments.id, id))
+      .limit(1);
 
-    if (!appointment) {
-      return new NextResponse('Rendez-vous non trouvé', { status: 404 });
-    }
-
-    return NextResponse.json(appointment);
+    if (!row) return new NextResponse('Rendez-vous non trouvé', { status: 404 });
+    return NextResponse.json(row);
   } catch (error) {
-    console.error("Erreur lors de la récupération du rendez-vous:", error);
     return new NextResponse('Erreur interne du serveur', { status: 500 });
   }
 }
@@ -33,32 +30,28 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
 export async function PUT(request: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   const session = await getServerSession(authOptions);
-
-  if (session?.user?.role !== Role.ADMIN) {
+  if ((session?.user?.role as Role) !== 'ADMIN') {
     return new NextResponse('Accès refusé', { status: 403 });
   }
 
   try {
     const id = parseInt(params.id.replace('apt-', ''), 10);
-    const body = await request.json();
-    const { subject, location, userId, startTime, endTime, notes, status } = body;
+    const { subject, location, userId, startTime, endTime, notes, status } = await request.json();
 
-    const updatedAppointment = await prisma.appointment.update({
-      where: { id },
-      data: {
-        subject,
-        location,
-        userId,
+    const [updated] = await db
+      .update(appointments)
+      .set({
+        subject, location, userId,
         startTime: new Date(startTime),
         endTime: new Date(endTime),
-        notes,
-        status,
-      },
-    });
+        notes, status,
+        updatedAt: new Date(),
+      })
+      .where(eq(appointments.id, id))
+      .returning();
 
-    return NextResponse.json(updatedAppointment);
+    return NextResponse.json(updated);
   } catch (error) {
-    console.error("Erreur lors de la mise à jour du rendez-vous:", error);
     return new NextResponse('Erreur interne du serveur', { status: 500 });
   }
 }
@@ -66,30 +59,17 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
 export async function DELETE(request: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   const session = await getServerSession(authOptions);
-
-  if (session?.user?.role !== Role.ADMIN) {
+  if ((session?.user?.role as Role) !== 'ADMIN') {
     return new NextResponse('Accès refusé', { status: 403 });
   }
 
   try {
     const id = parseInt(params.id.replace('apt-', ''), 10);
-
-    // Check if appointment exists first
-    const existing = await prisma.appointment.findUnique({
-      where: { id },
-    });
-
-    if (!existing) {
-      return new NextResponse('Rendez-vous non trouvé', { status: 404 });
-    }
-
-    await prisma.appointment.delete({
-      where: { id },
-    });
-
+    const [existing] = await db.select({ id: appointments.id }).from(appointments).where(eq(appointments.id, id)).limit(1);
+    if (!existing) return new NextResponse('Rendez-vous non trouvé', { status: 404 });
+    await db.delete(appointments).where(eq(appointments.id, id));
     return new NextResponse(null, { status: 204 });
   } catch (error) {
-    console.error("Erreur lors de la suppression du rendez-vous:", error);
     return new NextResponse('Erreur interne du serveur', { status: 500 });
   }
 }

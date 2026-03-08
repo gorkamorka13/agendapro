@@ -1,36 +1,31 @@
 // Fichier: app/api/appointments/[id]/complete/route.ts
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { appointments } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { Role, AssignmentStatus } from '@prisma/client';
+import type { Role } from '@/types';
 
 export async function PATCH(request: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   const session = await getServerSession(authOptions);
   if (!session) return new NextResponse('Non autorisé', { status: 401 });
+  if ((session.user.role as Role) !== 'ADMIN') return new NextResponse('Accès refusé', { status: 403 });
 
   try {
-    const appointmentId = parseInt(params.id.replace('apt-', ''), 10);
-    const existing = await prisma.appointment.findUnique({
-      where: { id: appointmentId }
-    });
-
+    const id = parseInt(params.id.replace('apt-', ''), 10);
+    const [existing] = await db.select({ id: appointments.id }).from(appointments).where(eq(appointments.id, id)).limit(1);
     if (!existing) return new NextResponse('Rendez-vous non trouvé', { status: 404 });
 
-    const isAdmin = session.user.role === Role.ADMIN;
-    if (!isAdmin) {
-      return new NextResponse('Accès refusé', { status: 403 });
-    }
+    const [updated] = await db
+      .update(appointments)
+      .set({ status: 'COMPLETED', updatedAt: new Date() })
+      .where(eq(appointments.id, id))
+      .returning();
 
-    const updatedAppointment = await prisma.appointment.update({
-      where: { id: appointmentId },
-      data: { status: AssignmentStatus.COMPLETED },
-    });
-
-    return NextResponse.json(updatedAppointment);
+    return NextResponse.json(updated);
   } catch (error) {
-    console.error("Erreur lors de la validation du rendez-vous:", error);
     return new NextResponse('Erreur interne du serveur', { status: 500 });
   }
 }

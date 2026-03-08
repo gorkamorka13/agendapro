@@ -1,0 +1,44 @@
+name = "agendapro"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+# This file is used for local development with wrangler and deployment to Cloudflare.
+# Assets are served by default from the .open-next output directory.
+
+# Main worker entry (populated by @opennextjs/cloudflare build)
+main = ".open-next/worker.js"
+
+[assets]
+directory = ".open-next/assets"
+
+# ========================================
+# Environment variables
+# ========================================
+[vars]
+NEXT_PUBLIC_STORAGE_TYPE = "r2"
+
+# ========================================
+# R2 Buckets for file storage
+# ========================================
+[[r2_buckets]]
+binding = "R2_BUCKET"
+bucket_name = "agendapro-storage"
+preview_bucket_name = "agendapro-storage-preview"
+
+# ========================================
+# KV Namespaces (for caching / sessions)
+# ========================================
+# [[kv_namespaces]]
+# binding = "CACHE"
+# id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+# ========================================
+# Secrets (set via: wrangler secret put SECRET_NAME)
+# ========================================
+# DATABASE_URL
+# NEXTAUTH_SECRET
+# GEMINI_API_KEY
+# R2_ACCESS_KEY_ID
+# R2_SECRET_ACCESS_KEY
+# R2_ACCOUNT_ID
+# CLOUDFLARE_ACCOUNT_ID
