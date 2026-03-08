@@ -45,32 +45,46 @@ function createDbInstance() {
   return { db: dbInstance, pool };
 }
 
-let dbInstance: ReturnType<typeof drizzle<typeof schema>> | undefined;
+// On prépare une instance "fantôme" pour le temps de build / analyse statique
+// Cela permet à Auth.js de reconnaître l'objet comme une instance Drizzle Pg (dialect, etc.)
+const buildTimePool = new Pool({ connectionString: 'postgres://localhost/build_dummy' });
+const buildTimeDb = drizzle(buildTimePool, { schema });
 
-const initDb = () => {
-  if (!dbInstance) {
-    if (process.env.NODE_ENV !== 'production' && globalForDb.db) {
-      dbInstance = globalForDb.db;
-    } else {
-      const url = getDatabaseUrl();
-      if (!url) {
-        throw new Error('DATABASE_URL is missing. Ensure Cloudflare Environment variables are set.');
-      }
-      const { db, pool } = createDbInstance();
-      dbInstance = db;
-      if (process.env.NODE_ENV !== 'production') {
-        globalForDb.db = db;
-        globalForDb.pool = pool;
-      }
-    }
+let realDbInstance: ReturnType<typeof drizzle<typeof schema>> | undefined;
+
+const getRealDb = () => {
+  if (realDbInstance) return realDbInstance;
+
+  const url = getDatabaseUrl();
+  if (!url) {
+    // Si on n'a toujours pas d'URL au runtime, on reste sur l'instance buildTime ou on lance une erreur
+    // Pour l'Edge de Cloudflare, l'URL est injectée juste avant l'exécution du handler.
+    return buildTimeDb;
   }
-  return dbInstance;
+
+  const { db } = createDbInstance();
+  realDbInstance = db;
+  return db;
 };
 
-export const db = new Proxy({} as ReturnType<typeof drizzle<typeof schema>>, {
-  get(target, prop) {
-    const instance = initDb();
-    return (instance as any)[prop];
+// Proxy transparent qui utilise buildTimeDb comme cible de type
+export const db = new Proxy(buildTimeDb, {
+  get(target, prop, receiver) {
+    // Si on a une URL, on délègue à l'instance réelle
+    // Sinon on reste sur le target (buildTimeDb)
+    const url = getDatabaseUrl();
+    const activeDb = url ? getRealDb() : target;
+
+    const value = Reflect.get(activeDb, prop, receiver);
+    if (typeof value === 'function') {
+      return value.bind(activeDb);
+    }
+    return value;
+  },
+  getPrototypeOf(target) {
+    // Crucial pour instanceof Drizzle classes
+    const url = getDatabaseUrl();
+    return Object.getPrototypeOf(url ? getRealDb() : target);
   }
 });
 
