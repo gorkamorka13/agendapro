@@ -1,16 +1,23 @@
 'use client';
 
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { format, differenceInMinutes } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Calendar, Clock, User, CheckCircle2, XCircle } from 'lucide-react';
+import { Calendar, Clock, User, CheckCircle2, XCircle, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 
 interface PatientHistoryListProps {
   patientId: number;
 }
 
+type SortColumn = 'date' | 'user' | 'time' | 'status' | null;
+type SortDirection = 'asc' | 'desc';
+
 export default function PatientHistoryList({ patientId }: PatientHistoryListProps) {
+  const [sortColumn, setSortColumn] = useState<SortColumn>('date');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+
   const { data: assignments = [], isLoading, error } = useQuery<any[]>({
     queryKey: ['patient-assignments', patientId],
     queryFn: async () => {
@@ -56,20 +63,80 @@ export default function PatientHistoryList({ patientId }: PatientHistoryListProp
     }
   };
 
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  const SortIcon = ({ column }: { column: SortColumn }) => {
+    if (sortColumn !== column) return <ArrowUpDown size={14} className="inline-block ml-1 text-slate-300 group-hover:text-slate-500 transition-colors" />;
+    if (sortDirection === 'asc') return <ArrowUp size={14} className="inline-block ml-1 text-blue-500" />;
+    return <ArrowDown size={14} className="inline-block ml-1 text-blue-500" />;
+  };
+
+  const sortedAssignments = [...assignments].sort((a, b) => {
+    if (!sortColumn) return 0;
+
+    let valA: any;
+    let valB: any;
+
+    if (sortColumn === 'date') {
+      valA = new Date(a.startTime).getTime();
+      valB = new Date(b.startTime).getTime();
+    } else if (sortColumn === 'user') {
+      valA = (a.user?.name || '').toLowerCase();
+      valB = (b.user?.name || '').toLowerCase();
+    } else if (sortColumn === 'time') {
+      valA = format(new Date(a.startTime), 'HH:mm');
+      valB = format(new Date(b.startTime), 'HH:mm');
+    } else if (sortColumn === 'status') {
+      valA = a.status;
+      valB = b.status;
+    }
+
+    if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+    if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+    return 0;
+  });
+
   return (
     <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
           <thead className="bg-slate-50 dark:bg-slate-900/50">
             <tr>
-              <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Date</th>
-              <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Intervenant</th>
-              <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Horaires & Durée</th>
-              <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Statut</th>
+              <th
+                className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider cursor-pointer group hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                onClick={() => handleSort('date')}
+              >
+                Date <SortIcon column="date" />
+              </th>
+              <th
+                className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider cursor-pointer group hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                onClick={() => handleSort('user')}
+              >
+                Intervenant <SortIcon column="user" />
+              </th>
+              <th
+                className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider cursor-pointer group hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                onClick={() => handleSort('time')}
+              >
+                Horaires & Durée <SortIcon column="time" />
+              </th>
+              <th
+                className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider cursor-pointer group hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                onClick={() => handleSort('status')}
+              >
+                Statut <SortIcon column="status" />
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-            {assignments.map((assignment) => (
+            {sortedAssignments.map((assignment) => (
               <tr key={assignment.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
